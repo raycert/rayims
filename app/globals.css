@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/*
+ * RayIMS design foundation: light, neutral, restrained color.
+ * Status colors follow docs/05_UI_UX_GUIDELINES.md:
+ *   success = completed / accepted / verified
+ *   warning = attention / under review / revision required
+ *   danger  = issue / overdue
+ *   neutral = draft / not started
+ */
+:root {
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --border: #e2e5ea;
+  --foreground: #1b2130;
+  --muted: #5d6879;
+
+  --primary: #2a4b8d;
+  --primary-foreground: #ffffff;
+
+  --success: #1b7a4b;
+  --success-soft: #e5f4ec;
+  --warning: #96650a;
+  --warning-soft: #fcf1d6;
+  --danger: #b3261e;
+  --danger-soft: #fdebea;
+  --neutral: #5d6879;
+  --neutral-soft: #eef0f3;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-neutral: var(--neutral);
+  --color-neutral-soft: var(--neutral-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}

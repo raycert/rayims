@@ -63,8 +63,9 @@ No domain module or calculation engine is created in V1.
 
 ## Planned application structure
 
-Shallow by design. This is the approved layout; it is **not created yet**
-(see `06_ROADMAP.md`, Phase 0C).
+Shallow by design. This is the approved layout. The foundation was created in
+Phase 0C; folders and routes for later features (`clients/`, `projects/`,
+`frameworks/`, `components/<domain>/`) are added when their phase starts.
 
 ```
 RayIMS/
@@ -90,7 +91,7 @@ RayIMS/
 │  ├─ constants/           Activity types, statuses, priorities (TypeScript consts)
 │  └─ utils.ts
 ├─ types/                  Generated database types + hand-written domain types
-├─ supabase/               migrations/, seed.sql, config
+├─ supabase/               migrations/ (schema, RLS, storage, framework seed)
 ├─ proxy.ts                Session refresh (Next.js 16 name for middleware)
 ├─ docs/
 └─ CLAUDE.md
@@ -112,7 +113,9 @@ Notes:
   Actions cannot serve the need.
 - Prefer one embedded query per page over many round trips; select specific
   columns; paginate lists.
-- Database types are generated from the schema.
+- Database types are to be generated from the schema once a Supabase project
+  exists (not yet done); until then `types/domain.ts` holds hand-written types
+  for the value lists.
 
 ## Authentication and access model (V1)
 
@@ -173,10 +176,19 @@ Operational notes (**verify current provider limits when relevant**):
 - Vercel's free plan is restricted to non-commercial use; real consulting use
   may require a paid plan.
 
-## Items to verify during Phase 0C
+## Verified in Phase 0C
 
-These are implementation checks, not decisions:
+Checked against the current documentation (Next.js 16.3.5, `@supabase/ssr`
+0.12) before implementing:
 
-- Next.js 16 uses `proxy.ts` (renamed from `middleware.ts`).
-- Preferred Supabase SSR session check in `proxy.ts` (e.g. local JWT claims
-  verification rather than a network call per request).
+- Next.js 16 uses `proxy.ts` (renamed from `middleware.ts`); it defaults to the
+  Node.js runtime. Proxy is not a security boundary, so the workspace layout
+  re-checks the session.
+- Supabase SSR session check in `proxy.ts` uses `getClaims()` (verifies the JWT
+  signature) rather than `getSession()`; the cookie `setAll` callback also
+  applies the no-cache headers the library provides.
+- Environment variables: `NEXT_PUBLIC_SUPABASE_URL` and
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (publishable key; no secret key is used
+  in the foundation), plus `NEXT_PUBLIC_STORAGE_BUCKET`.
+- Storage bucket `rayims-files` is private with a 10 MB object limit; the bucket
+  name is configuration, not stored in rows.

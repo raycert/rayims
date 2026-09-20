@@ -47,3 +47,7 @@ relevant documents **before** modifying anything.
 - Architectural changes must be recorded in `docs/07_DECISIONS.md`, and only
   **after** approval.
 - Do not invent test results. Never record PASS for a test that was not run.
+
+## Next.js 16
+
+@AGENTS.md

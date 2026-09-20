@@ -235,8 +235,13 @@ consistency), `04_BUSINESS_RULES.md` (BR-26, BR-26a).
 for optional planning/context links and user references. Object storage deletion
 is never a database cascade. Blocking relationships use **NO ACTION rather than
 RESTRICT** so a whole-project delete cascades correctly (including the
-`project_sites` composite integrity FKs). Full table in `03_DATABASE.md`
-(Deletion behavior).
+`project_sites` composite integrity FKs). *Implementation finding (Phase 0C):*
+testing the migration showed plain NO ACTION is still checked per cascade step,
+so the FKs between project-owned tables (composite site FKs, `actions.issue_id`,
+`document_versions.file_id`, `attachments.file_id`) are declared
+`NO ACTION DEFERRABLE INITIALLY DEFERRED`. Same behavior (blocked while
+referenced), checked at commit. Full table in `03_DATABASE.md` (Deletion
+behavior).
 
 ### OI-4 — V1 value lists — RESOLVED
 

@@ -342,6 +342,9 @@ Evaluation order:
 | 3    | Latest version has no review record                     | **Received**     |
 | 4    | Otherwise, the status of the most recently created review record of the latest version | `under_review` â†’ **Under Review**; `revision_required` â†’ **Revision Required**; `accepted` â†’ **Accepted** |
 
+The view exposes the derived status as one of `n_a`, `not_received`,
+`received`, `under_review`, `revision_required`, `accepted`.
+
 Rules:
 
 - Only `under_review`, `revision_required`, `accepted` are stored (on
@@ -361,9 +364,10 @@ Rules:
 - The FK is `MATCH SIMPLE`: when `site_id` is NULL (project-wide work) the check
   is skipped; when set, the site **must** be in the project's scope.
 - Removing a `project_sites` row that is still referenced by project work is
-  blocked. The composite FKs use **NO ACTION** (not RESTRICT) so that deleting a
-  whole project correctly cascades to its `project_sites` rows and its
-  project-owned work at the same time (see Deletion behavior).
+  blocked. The composite FKs use **NO ACTION, DEFERRABLE INITIALLY DEFERRED**
+  (not RESTRICT) so that deleting a whole project correctly cascades to its
+  `project_sites` rows and its project-owned work at the same time (see Deletion
+  behavior).
 
 ## Framework hierarchy
 
@@ -402,6 +406,14 @@ Rules:
 **Overdue is derived** from `actions.due_date` and `actions.status`; it is never
 stored as a status.
 
+**Column defaults** (initial state; used by the migration): `profiles.role` =
+`consultant`; `clients.status` = `active`; `projects.status` = `planning`;
+`activities.status` = `planned`; `issues.status` = `open`; `actions.status` =
+`open`; `priority` = `medium` on verification items, issues and actions;
+`documents.is_applicable` = `true`; `framework_items.item_type` = `item`;
+`files.storage_provider` = `supabase`. `activities.mode` and
+`document_reviews.status` have no default.
+
 ## Deletion behavior
 
 Principles:
@@ -419,9 +431,17 @@ Principles:
 checked immediately and can wrongly block a whole-project delete when
 project-owned siblings reference each other (actions → issues,
 document versions / attachments → files, project work → `project_sites`).
-NO ACTION is checked after the cascade completes, so deleting a project cascades
-correctly while a stand-alone delete of a referenced row is still blocked. All
-"blocked while referenced" relationships below therefore use NO ACTION.
+NO ACTION is checked at the end of the statement, and Postgres runs each
+cascade step as its own statement, so even plain NO ACTION can fire before a
+sibling cascade has removed its rows (found by testing the migration). The FKs
+**between project-owned tables** are therefore declared
+`NO ACTION DEFERRABLE INITIALLY DEFERRED`: the check runs at commit, after the
+whole project delete has finished, while a stand-alone delete of a referenced row
+is still rejected (at commit). These are: the composite `(project_id, site_id)`
+site-integrity FKs, `actions.issue_id`, `document_versions.file_id` and
+`attachments.file_id`. Other blocking FKs (client, site, framework and framework
+item references) use plain NO ACTION because the referenced row is not
+project-owned.
 
 | Relationship                                                        | On delete   |
 | ------------------------------------------------------------------- | ----------- |
@@ -493,5 +513,7 @@ Validated by the application:
   `project_id`.
 - A referenced framework item belongs to a framework used by the project
   (`project_frameworks`).
+- A site added to a project's scope (`project_sites`) belongs to the project's
+  client (BR-04).
 - `reviewed_at` is populated when a review reaches `revision_required` or
   `accepted`.

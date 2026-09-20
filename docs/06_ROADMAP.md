@@ -4,7 +4,7 @@
 | ----- | ------------------------------------------- | ------------- |
 | 0A    | Architecture Review                         | **COMPLETED** |
 | 0B    | Documentation Baseline                      | **COMPLETED** |
-| 0C    | Foundation Implementation                   | **CURRENT**   |
+| 0C    | Foundation Implementation                   | **COMPLETED** |
 | 1     | Authentication & App Shell                  | Planned       |
 | 2     | Client / Project / Site / Frameworks        | Planned       |
 | 3     | Master Plan / Activities                    | Planned       |
@@ -32,24 +32,35 @@ Made the approved architecture the repository source of truth: `CLAUDE.md` and
 `docs/00`–`09`. Open Items OI-1 to OI-4 were resolved and the documentation
 updated. Committed as the documentation baseline.
 
-## Phase 0C — Foundation Implementation [CURRENT]
+## Phase 0C — Foundation Implementation [COMPLETED]
 
-Scope (foundation only; no feature CRUD):
+Delivered (foundation only; no feature CRUD):
 
-- Initialize Next.js 16 (TypeScript, App Router, Tailwind), dependencies, folder
-  structure per `02_ARCHITECTURE.md`; repository initialization
-- Supabase setup, environment template
-- Initial SQL migration for the approved Core schema (`03_DATABASE.md`), RLS,
-  storage bucket and policies
-- Seed data: frameworks and framework items (numbers and short titles only)
-- Supabase clients, generated database types, `lib/storage` abstraction
-- Design foundation (tokens, status badge, responsive shell skeleton)
-- Verification items listed at the end of `02_ARCHITECTURE.md`
+- Next.js 16 (TypeScript, App Router, Tailwind) initialized; foundation
+  dependencies only (`@supabase/supabase-js`, `@supabase/ssr`, `zod`,
+  `lucide-react`, `clsx`); folder structure per `02_ARCHITECTURE.md`
+- `.env.example` (placeholders only); no secrets committed
+- Supabase browser/server clients and `proxy.ts` session handling
+- Initial migrations for the approved Core schema, RLS foundations, private
+  storage bucket, and framework seed data (`supabase/migrations/`)
+- `lib/storage` provider abstraction, value-list constants, domain types
+- Design tokens and the responsive shell (desktop sidebar, mobile navigation,
+  page container, empty dashboard placeholder); login foundation without sign-up
+- Lint, typecheck and production build pass
+
+Still needed from the project owner before Phase 1 can be exercised end to end
+(none of this was part of Phase 0C):
+
+- Create the hosted Supabase project, disable public sign-ups, create the first
+  user, and fill `.env.local`
+- Apply the migrations to that project and confirm the storage bucket exists
+- Run a real login round trip (not yet verified: no Supabase project exists)
 
 ## Phase 1 — Authentication & App Shell
 
 Login (no public sign-up), session handling, responsive shell (sidebar / mobile
-navigation).
+navigation). Builds on the Phase 0C foundation (login form, sign-in/out actions,
+`proxy.ts`, shell) and adds real-project verification and refinement.
 
 ## Phase 2 — Client / Project / Site / Frameworks
 
