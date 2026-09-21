@@ -17,6 +17,7 @@ relevant documents **before** modifying anything.
 | Schema, migrations, queries, RLS, derived values    | `docs/03_DATABASE.md`, `docs/04_BUSINESS_RULES.md`      |
 | UI, layout, status colors, responsive behavior      | `docs/05_UI_UX_GUIDELINES.md`                           |
 | Tests                                               | `docs/08_TESTING.md`                                    |
+| Users, roles, passwords, sign-up, hosted Supabase ops | `docs/10_RUNBOOK.md`                                  |
 | Recording what changed                              | `docs/09_CHANGELOG.md`                                  |
 
 ## Rules
@@ -47,6 +48,14 @@ relevant documents **before** modifying anything.
 - Architectural changes must be recorded in `docs/07_DECISIONS.md`, and only
   **after** approval.
 - Do not invent test results. Never record PASS for a test that was not run.
+- **Public sign-up must stay disabled** in the hosted Supabase project, and **never run
+  `supabase config push`** against it (it would overwrite hosted settings). See
+  `docs/10_RUNBOOK.md`.
+- Every server entry point (Server Component tree, Server Action, route handler) that
+  needs a user must verify it with `requireUser()` / `getCurrentUser()` from
+  `lib/auth/session.ts`. Proxy is not a security boundary.
+- Only relative internal paths may be used as post-login return paths: use
+  `safeNextPath()` from `lib/auth/redirect.ts`. Never redirect to a user-supplied URL.
 
 ## Next.js 16
 

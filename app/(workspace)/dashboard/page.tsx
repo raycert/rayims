@@ -2,7 +2,7 @@ import { LayoutDashboard } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 
-export const metadata = { title: "Dashboard · RayIMS" };
+export const metadata = { title: "Dashboard" };
 
 export default function DashboardPage() {
   return (

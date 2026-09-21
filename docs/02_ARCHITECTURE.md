@@ -84,6 +84,8 @@ RayIMS/
 │  └─ <domain>/            Feature components (documents/, verification/, …)
 ├─ lib/
 │  ├─ supabase/            Browser client, server client, session helper
+│  ├─ auth/                Server user helper (session.ts), return-path validation,
+│  │                       sign-in error mapping
 │  ├─ storage/             Provider-agnostic interface + Supabase implementation
 │  ├─ queries/             Server-side read functions per entity
 │  ├─ mutations/           Server Actions per entity
@@ -128,6 +130,13 @@ Notes:
 - Every project-owned work entity carries `project_id`, so RLS can later move to
   project-level membership without reshaping tables.
 - The Supabase service/secret key is server-only and never sent to the browser.
+- `lib/auth/session.ts` (`getCurrentUser`, `requireUser`) verifies the user with
+  `getClaims()`, memoized per request. Every server entry point calls it (Proxy is not a
+  security boundary). Sign-out is per device (local scope).
+- Minimal security headers on every response (`next.config.ts`): `X-Frame-Options: DENY`,
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`.
+  No Content-Security-Policy yet (Phase 7) and deliberately no `Permissions-Policy`, so
+  the camera stays available for on-site evidence. HSTS is left to the hosting platform.
 
 ## Storage and provider portability
 

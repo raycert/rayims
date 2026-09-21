@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RayIMS",
+  title: { default: "RayIMS", template: "%s · RayIMS" },
   description:
     "Workspace for implementation, assessment, consulting, verification and reporting.",
 };

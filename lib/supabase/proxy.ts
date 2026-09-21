@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { DEFAULT_AFTER_LOGIN, safeNextPath } from "@/lib/auth/redirect";
 import type { Database } from "@/types/database";
 import { getSupabaseEnv } from "./env";
 
@@ -7,6 +8,18 @@ const PUBLIC_PATHS = ["/login"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/**
+ * Login URL for an unauthenticated request, carrying the page it wanted as a
+ * validated `next` return path (omitted when it is just the default landing page).
+ */
+function loginUrlFor(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  url.searchParams.delete("_rsc"); // Next.js internal RSC cache-busting parameter
+  const target = safeNextPath(url.pathname + url.search);
+  if (url.pathname === "/" || target === DEFAULT_AFTER_LOGIN) return "/login";
+  return `/login?next=${encodeURIComponent(target)}`;
 }
 
 /**
@@ -52,8 +65,10 @@ export async function updateSession(request: NextRequest) {
     return redirect;
   };
 
-  if (!isAuthenticated && !isPublicPath(pathname)) return redirectTo("/login");
-  if (isAuthenticated && pathname === "/login") return redirectTo("/dashboard");
+  if (!isAuthenticated && !isPublicPath(pathname)) return redirectTo(loginUrlFor(request));
+  if (isAuthenticated && pathname === "/login") {
+    return redirectTo(safeNextPath(request.nextUrl.searchParams.get("next")));
+  }
 
   return response;
 }

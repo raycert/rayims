@@ -6,7 +6,7 @@
 | 0B    | Documentation Baseline                      | **COMPLETED** |
 | 0C    | Foundation Implementation                   | **COMPLETED** |
 | 0D    | Supabase Integration & Backend Verification | **COMPLETED** |
-| 1     | Authentication & App Shell                  | Planned       |
+| 1     | Authentication & App Shell                  | **COMPLETED** |
 | 2     | Client / Project / Site / Frameworks        | Planned       |
 | 3     | Master Plan / Activities                    | Planned       |
 | 4     | Verification / Issues / Actions             | Planned       |
@@ -75,12 +75,34 @@ Not scheduled and not implemented:
 - Evaluate a shorter `cacheControl` for uploaded RayIMS evidence/documents if stronger post-delete revocation is required. **Not implemented; no change to the storage architecture in Phase 0D.** (from TC-P0D-STO-006; see `08_TESTING.md`)
 - Consider a shorter access-token lifetime, or `getUser()`, if copied-cookie replay after
   sign-out (TC-P0D-AUTH-013) becomes a concern; this trades cost for immediacy.
+- In-app password change / reset screen (V1 relies on the runbook procedure).
+- Skip-to-content link and showing the signed-in user in the mobile top bar (optional polish).
+- Full Content-Security-Policy and HSTS review (Phase 7 hardening; HSTS is normally set by
+  the hosting platform). Do not add a Permissions-Policy that blocks the camera.
+- A repeatable browser test script would need a dev dependency and credentials; not added
+  in Phase 1 by decision.
+- "Sign out everywhere" is intentionally **not** planned for V1.
 
-## Phase 1 — Authentication & App Shell
+## Phase 1 — Authentication & App Shell [COMPLETED]
 
 Login (no public sign-up), session handling, responsive shell (sidebar / mobile
-navigation). Builds on the Phase 0C foundation (login form, sign-in/out actions,
-`proxy.ts`, shell) and adds real-project verification and refinement.
+navigation). Built on the Phase 0C foundation; Phase 1 closed the gaps found in the Gap
+Review. Results: 17 PASS, 0 FAIL, 2 NOT TESTED (`08_TESTING.md`, TC-P1-*).
+
+Delivered:
+
+- Sign-out for the current device only (BR-46); pending state on the button
+- Safe `next` return path through sign-in (BR-47); no open redirect
+- Accurate sign-in errors without account enumeration (BR-48); `aria-invalid` /
+  `aria-describedby`; 16 px mobile inputs and email input attributes
+- `lib/auth/session.ts` (`getCurrentUser`, `requireUser`) used by the workspace layout and
+  ready for Phase 2 Server Actions (BR-50)
+- Branded not-found, workspace error boundary and global error fallback; title template
+- Minimal security headers (`X-Frame-Options`, `nosniff`, `Referrer-Policy`); no CSP yet
+- Operations runbook (`docs/10_RUNBOOK.md`)
+
+Placeholders that intentionally remain until their phase: dashboard metrics (Phase 7);
+Clients / Projects / Frameworks navigation (disabled, Phase 2).
 
 ## Phase 2 — Client / Project / Site / Frameworks
 

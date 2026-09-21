@@ -10,20 +10,20 @@ const variants: Record<Variant, string> = {
   ghost: "bg-transparent text-muted border-transparent hover:bg-neutral-soft",
 };
 
+/** Button styling, also usable on links (e.g. next/link) that should look like buttons. */
+export function buttonClasses(variant: Variant = "primary", className?: string) {
+  return cn(
+    // min-h-11 (44px) keeps touch targets large for site work
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60",
+    variants[variant],
+    className,
+  );
+}
+
 export function Button({
   variant = "primary",
   className,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
-  return (
-    <button
-      className={cn(
-        // min-h-11 (44px) keeps touch targets large for site work
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60",
-        variants[variant],
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <button className={buttonClasses(variant, className)} {...props} />;
 }

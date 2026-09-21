@@ -1,7 +1,40 @@
 # 09 — Changelog
 
 Records what has been completed per phase. **No feature CRUD exists yet**; the
-application currently has the foundation only (login, shell, schema).
+application has authentication, the responsive shell and the schema only.
+
+## Phase 1 — Authentication & App Shell (2026-09-21)
+
+Completed: 17 PASS, 0 FAIL, 2 NOT TESTED (see `08_TESTING.md`). No database, RLS or framework change.
+
+### Added / changed
+
+- **Sign-out is local:** `signOut({ scope: "local" })` ends only the current device's
+  session (the Gap Review showed the default global scope logged out the phone when the
+  laptop signed out). Sign-out button shows a pending state.
+- **Return path:** `lib/auth/redirect.ts` `safeNextPath()`; the proxy adds `?next=` for
+  protected deep links, the login page and the sign-in action validate it, and a signed-in
+  user opening `/login?next=` is redirected safely. Relative internal paths only.
+- **Login errors:** `lib/auth/errors.ts`; only `invalid_credentials` shows "Invalid email or
+  password."; everything else gets one generic message. The form keeps the email, and sets
+  `aria-invalid` / `aria-describedby`.
+- **Mobile inputs:** 16 px on small screens (no iOS focus-zoom); email
+  `inputMode`/`autoCapitalize`/`autoCorrect`/`spellCheck` attributes.
+- **`lib/auth/session.ts`:** request-cached `getCurrentUser()` and `requireUser()`
+  (`getClaims()`); the workspace layout uses it.
+- **Error experience:** `app/not-found.tsx`, `app/(workspace)/error.tsx`,
+  `app/global-error.tsx` (uses the Next.js 16 `retry` prop), title template `%s · RayIMS`,
+  `buttonClasses()` and `MessagePanel` helpers.
+- **Security headers** in `next.config.ts`: `X-Frame-Options: DENY`,
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`.
+  No CSP, no Permissions-Policy (camera must stay available).
+- **Docs:** `docs/10_RUNBOOK.md` (new), `CLAUDE.md` index and rules, BR-46 to BR-51,
+  `02_ARCHITECTURE.md`, roadmap and testing.
+
+### Not changed
+
+Accepted Phase 0D limitations (CDN deletion lag, stateless JWT after sign-out) are unchanged.
+No browser-test script or dependency was added to the repository.
 
 ## Phase 0D — Supabase Integration & Real Backend Verification (2026-09-21)
 

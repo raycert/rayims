@@ -149,3 +149,25 @@ Product behavior that the schema and UI must respect. Database details are in
 - **BR-44** Seeded framework data contains clause numbers and short titles only,
   not the text of the standards.
 - **BR-45** Frameworks are read-only to users in V1.
+
+## Authentication behavior (Phase 1)
+
+- **BR-46** Sign-out ends the session of the **current device only** (local scope). A
+  consultant signed in on a laptop and a phone stays signed in on the other device. There
+  is no "sign out everywhere" feature in V1.
+- **BR-47** After sign-in the user returns to the internal page they originally asked for
+  (`next`). Only a **relative internal path** is accepted; absolute URLs, protocol-relative
+  paths, backslash/control-character or malformed variants (raw or percent-encoded) and the
+  login page itself are rejected and the user lands on `/dashboard`. The value is validated
+  again by the sign-in action.
+- **BR-48** Sign-in failure messages never reveal account information: wrong password and
+  unknown email give the same "Invalid email or password."; every other authentication
+  error (network, rate limit, disabled or unconfirmed account, server error) gives one
+  generic "couldn't sign you in right now" message.
+- **BR-49** There is **no role-aware UI** in V1: admin and consultant see the same
+  navigation and pages. The role is stored on `profiles` and is not fetched to render pages.
+  Roles are changed only by an administrator through the runbook.
+- **BR-50** Every server entry point that needs a user verifies it itself through
+  `requireUser()` / `getCurrentUser()` (`lib/auth/session.ts`); Proxy alone is not relied on.
+- **BR-51** Users are provisioned by an administrator (`docs/10_RUNBOOK.md`); there is no
+  self-service sign-up, password reset or password change in V1.
