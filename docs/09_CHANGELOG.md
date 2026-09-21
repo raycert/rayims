@@ -3,6 +3,48 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application currently has the foundation only (login, shell, schema).
 
+## Phase 0D — Supabase Integration & Real Backend Verification (2026-09-21)
+
+Completed: 36 PASS, 1 FAIL (accepted platform limitation), 1 informational note.
+
+### Added / changed
+
+- Migration `20260920000500_data_api_grants.sql`: explicit Data API grants (Supabase no
+  longer auto-grants privileges on new `public` tables). Revokes everything from
+  `anon` / `authenticated` first (the hosted project still had legacy default
+  privileges), then grants least-privilege: `anon` nothing; `authenticated` CRUD on
+  work tables, SELECT on frameworks, SELECT+UPDATE on profiles, SELECT on
+  `document_register`. Documented in `03_DATABASE.md` ("Data API grants").
+- `types/database.ts` generated from the hosted schema; browser/server/proxy Supabase
+  clients are typed with `Database`. Hand-written `types/domain.ts` is kept (CHECK
+  columns are `string` in generated types).
+- `supabase/config.toml` and `supabase/.gitignore` from `supabase init`.
+- `docs/03_DATABASE.md`: repaired a double-encoding defect (garbled characters) that
+  had been introduced in the baseline commit; one wording fix.
+- `docs/02_ARCHITECTURE.md`: generated-types statement updated.
+
+### Verified on the hosted project (see `08_TESTING.md`)
+
+36 PASS, 1 FAIL, 1 informational note: schema, RLS, grants, seed, derived document
+status, profile role lock, authenticated CRUD, real browser login / session refresh /
+sign-out / forged cookie, private Storage (signed URLs, size limit, `lib/storage`),
+sign-up disabled at Supabase level, lint / typecheck / build.
+
+Public sign-up was found **enabled** on the first run (TC-P0D-AUTH-001 failed). The owner
+disabled it in the dashboard and the re-run passed (`disable_signup = true`, sign-up
+attempts rejected with `signup_disabled`, still exactly 2 users).
+
+### Accepted limitations, notes and backlog
+
+- **Storage deletion vs CDN (TC-P0D-STO-006, stays FAIL): decided by the owner.** Accepted platform limitation – Supabase CDN cache invalidation after object deletion may take up to approximately 60 seconds. Database metadata is removed immediately, new/unfetched access is denied, but a previously fetched object using the same cached authorization context may remain retrievable until CDN invalidation propagates.
+  The storage architecture is unchanged in Phase 0D. Backlog: Evaluate a shorter `cacheControl` for uploaded RayIMS evidence/documents if stronger post-delete revocation is required. **Not implemented; no change to the storage architecture in Phase 0D.**
+- **Sign-out and stolen cookies:** `getClaims()` verifies the JWT locally, so a copied
+  pre-sign-out cookie works until the access token expires (default 1 h); the refresh
+  token is revoked on sign-out. Shorter JWT expiry or `getUser()` would trade cost for
+  immediacy.
+- **Do not run `supabase config push`:** the local `config.toml` template differs from
+  the hosted project on 13 auth/db settings and would overwrite them.
+
 ## Phase 0C — Foundation Implementation (2026-09-20)
 
 Foundation only; no feature CRUD.

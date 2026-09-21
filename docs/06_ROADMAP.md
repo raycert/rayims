@@ -5,6 +5,7 @@
 | 0A    | Architecture Review                         | **COMPLETED** |
 | 0B    | Documentation Baseline                      | **COMPLETED** |
 | 0C    | Foundation Implementation                   | **COMPLETED** |
+| 0D    | Supabase Integration & Backend Verification | **COMPLETED** |
 | 1     | Authentication & App Shell                  | Planned       |
 | 2     | Client / Project / Site / Frameworks        | Planned       |
 | 3     | Master Plan / Activities                    | Planned       |
@@ -48,13 +49,32 @@ Delivered (foundation only; no feature CRUD):
   page container, empty dashboard placeholder); login foundation without sign-up
 - Lint, typecheck and production build pass
 
-Still needed from the project owner before Phase 1 can be exercised end to end
-(none of this was part of Phase 0C):
+The hosted project, migrations and real login round trip were handled in Phase 0D.
 
-- Create the hosted Supabase project, disable public sign-ups, create the first
-  user, and fill `.env.local`
-- Apply the migrations to that project and confirm the storage bucket exists
-- Run a real login round trip (not yet verified: no Supabase project exists)
+## Phase 0D — Supabase Integration & Backend Verification [COMPLETED]
+
+Connect the foundation to a real hosted Supabase project and verify Next.js, Auth,
+PostgreSQL, RLS and Storage. Results are in `08_TESTING.md` (TC-P0D-*).
+
+Done: five migrations applied (including explicit Data API grants), schema / RLS /
+grants / storage / auth / session behavior verified on the hosted project, database
+types generated (`types/database.ts`), lint / typecheck / build pass.
+
+**Result: 36 PASS, 1 FAIL, 1 NOTE** (see `08_TESTING.md`). Public sign-up was found
+enabled on the first run, the owner disabled it in the dashboard, and TC-P0D-AUTH-001
+then passed.
+
+**Test results vs accepted limitations.** Phase 0D distinguishes test PASS results from
+owner-accepted platform limitations. TC-P0D-STO-006 remains a **FAIL** and is **not**
+counted as a pass; its disposition is: *Accepted platform limitation – Supabase CDN cache invalidation after object deletion may take up to approximately 60 seconds. Database metadata is removed immediately, new/unfetched access is denied, but a previously fetched object using the same cached authorization context may remain retrievable until CDN invalidation propagates.*
+
+## Backlog / future hardening
+
+Not scheduled and not implemented:
+
+- Evaluate a shorter `cacheControl` for uploaded RayIMS evidence/documents if stronger post-delete revocation is required. **Not implemented; no change to the storage architecture in Phase 0D.** (from TC-P0D-STO-006; see `08_TESTING.md`)
+- Consider a shorter access-token lifetime, or `getUser()`, if copied-cookie replay after
+  sign-out (TC-P0D-AUTH-013) becomes a concern; this trades cost for immediacy.
 
 ## Phase 1 — Authentication & App Shell
 

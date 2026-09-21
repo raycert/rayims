@@ -113,9 +113,10 @@ Notes:
   Actions cannot serve the need.
 - Prefer one embedded query per page over many round trips; select specific
   columns; paginate lists.
-- Database types are to be generated from the schema once a Supabase project
-  exists (not yet done); until then `types/domain.ts` holds hand-written types
-  for the value lists.
+- Database types are generated from the hosted schema into `types/database.ts`
+  (`npx supabase gen types typescript --linked`); regenerate after every migration.
+  `types/domain.ts` keeps hand-written types for the value lists, because CHECK
+  columns are plain `string` in generated types.
 
 ## Authentication and access model (V1)
 

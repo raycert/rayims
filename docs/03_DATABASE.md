@@ -1,4 +1,4 @@
-# 03 â€” Database (Approved V1 Core Schema)
+# 03 — Database (Approved V1 Core Schema)
 
 This document describes the approved V1 Core schema. It is the strict basis for
 the initial migration. Open Items OI-1 to OI-4 raised during Phase 0B were
@@ -11,7 +11,7 @@ the initial migration. Open Items OI-1 to OI-4 raised during Phase 0B were
   (composite primary keys).
 - `created_at timestamptz` on all tables; `updated_at timestamptz` on mutable
   tables, maintained by one shared trigger.
-- Work entities have `created_by â†’ profiles`.
+- Work entities have `created_by → profiles`.
 - Planned dates are `date`; events are `timestamptz`.
 - **No native Postgres enums.** Stable workflow states use `text + CHECK`.
   Taxonomies (activity type, document type, item type, framework category,
@@ -43,34 +43,34 @@ Evidence             : files, attachments
 ## Relationship diagram
 
 ```
-profiles Â·Â· referenced by created_by / consultant_id / reviewer_id / uploaded_by / verified_by
+profiles ·· referenced by created_by / consultant_id / reviewer_id / uploaded_by / verified_by
 
-clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_sites â”€*â”€1â”€ sites â”€*â”€1â”€ clients
-                â”‚
-                â”œâ”€1â”€*â”€ project_frameworks â”€*â”€1â”€ frameworks â”€1â”€*â”€ framework_items â”€â” parent_id
-                â”‚                                                     â–²   â–²   â–²    â”‚ (self)
-                â”œâ”€1â”€*â”€ activities (site_id?)                          â”‚   â”‚   â”‚
-                â”‚        â–²   â–²                                        â”‚   â”‚   â”‚
-                â”‚        â”‚   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ verified_activity_id?       â”‚   â”‚   â”‚
-                â”‚        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ target_activity_id?         â”‚   â”‚   â”‚
-                â”‚                                                     â”‚   â”‚   â”‚
-                â”œâ”€1â”€*â”€ documents (site_id?) â”€1â”€*â”€ document_framework_items â”˜   â”‚   â”‚
-                â”‚          â””â”€1â”€*â”€ document_versions â”€*â”€1â”€ files                â”‚   â”‚
-                â”‚                      â””â”€1â”€*â”€ document_reviews                 â”‚   â”‚
-                â”‚                                    â–²                         â”‚   â”‚
-                â”œâ”€1â”€*â”€ verification_items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ document_review_id?     â”‚   â”‚
-                â”‚        (framework_item_id?, target_activity_id?,             â”‚   â”‚
-                â”‚         verified_activity_id?, follows_item_id? â†’ self)  â”€â”€â”€â”€â”˜   â”‚
-                â”‚             â–²                                                    â”‚
-                â”œâ”€1â”€*â”€ issues â”˜ verification_item_id?, document_review_id?,        â”‚
-                â”‚        â”‚      activity_id?, framework_item_id? â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                â”‚        â–²
-                â”œâ”€1â”€*â”€ actions â”€â”€ issue_id? (standalone allowed), activity_id?
-                â”‚
-                â””â”€1â”€*â”€ files â”€1â”€*â”€ attachments â”€â”€â–º exactly ONE of:
+clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─1─ clients
+                │
+                ├─1─*─ project_frameworks ─*─1─ frameworks ─1─*─ framework_items ─┐ parent_id
+                │                                                     ▲   ▲   ▲    │ (self)
+                ├─1─*─ activities (site_id?)                          │   │   │
+                │        ▲   ▲                                        │   │   │
+                │        │   └─────────── verified_activity_id?       │   │   │
+                │        └─────────────── target_activity_id?         │   │   │
+                │                                                     │   │   │
+                ├─1─*─ documents (site_id?) ─1─*─ document_framework_items ┘   │   │
+                │          └─1─*─ document_versions ─*─1─ files                │   │
+                │                      └─1─*─ document_reviews                 │   │
+                │                                    ▲                         │   │
+                ├─1─*─ verification_items ───────────┘ document_review_id?     │   │
+                │        (framework_item_id?, target_activity_id?,             │   │
+                │         verified_activity_id?, follows_item_id? → self)  ────┘   │
+                │             ▲                                                    │
+                ├─1─*─ issues ┘ verification_item_id?, document_review_id?,        │
+                │        │      activity_id?, framework_item_id? ──────────────────┘
+                │        ▲
+                ├─1─*─ actions ── issue_id? (standalone allowed), activity_id?
+                │
+                └─1─*─ files ─1─*─ attachments ──► exactly ONE of:
                                                    activity | document_review |
                                                    verification_item | issue | action
-                document_versions.file_id â”€â”€â–º files
+                document_versions.file_id ──► files
 ```
 
 `(site_id?)` = nullable site, constrained by project scope (see Site integrity).
@@ -79,7 +79,7 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
 
 ### profiles
 - **Purpose:** application-side user record linked to Supabase Auth.
-- **Fields:** `id` (PK, FK â†’ `auth.users`), `display_name`, `email`,
+- **Fields:** `id` (PK, FK → `auth.users`), `display_name`, `email`,
   `role` (CHECK `admin | consultant`), `created_at`, `updated_at`.
 - **Notes:** created by a trigger on `auth.users` insert. All `created_by`,
   `consultant_id`, `reviewer_id`, `uploaded_by` and `verified_by` columns
@@ -91,11 +91,11 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
 - **Purpose:** the organization a consultant works for.
 - **Fields:** `id`, `name`, `notes`, `status` (CHECK `active | inactive`),
   timestamps.
-- **Relationships:** 1 client â†’ N projects; 1 client â†’ N sites.
+- **Relationships:** 1 client → N projects; 1 client → N sites.
 
 ### sites
 - **Purpose:** a reusable, **client-level** location (ADR-003).
-- **Fields:** `id`, `client_id` (FK â†’ clients, NOT NULL), `name`, `address`,
+- **Fields:** `id`, `client_id` (FK → clients, NOT NULL), `name`, `address`,
   `notes`, timestamps.
 - **Delete:** `client_id` NO ACTION (blocked while the client has sites).
 
@@ -105,7 +105,8 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
   text, e.g. `ims_implementation`, for future module routing), `status`
   (CHECK `planning | active | on_hold | completed | archived`),
   `start_date`, `end_date`, `created_by`, timestamps.
-- **Delete:** `client_id` NO ACTION (blocked while the client has sites). Project-owned children CASCADE.
+- **Delete:** `client_id` NO ACTION (a client with projects cannot be deleted).
+  Project-owned children CASCADE.
 - **Not present:** `issue_seq`, `action_seq` (ADR-015).
 
 ### project_sites
@@ -118,7 +119,7 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
 
 ### frameworks
 - **Purpose:** a structured reference system (ISO 9001:2015, GHG Protocol,
-  ISO 14064-1, ESG assessment framework, EU CBAM, â€¦). Client-independent.
+  ISO 14064-1, ESG assessment framework, EU CBAM, …). Client-independent.
 - **Fields:** `id`, `code` (e.g. "ISO 14001"), `edition` (e.g. "2015"), `name`,
   `category` (free text), `description`, timestamps.
 - **Constraints:** UNIQUE `(code, edition)`. Each edition is its own row.
@@ -131,7 +132,7 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
   default `item`), `sort_order`, timestamps.
 - **Constraints:**
   - UNIQUE `(framework_id, id)` (target of the composite FK below).
-  - Composite FK `(framework_id, parent_id) â†’ framework_items (framework_id, id)`
+  - Composite FK `(framework_id, parent_id) → framework_items (framework_id, id)`
     guarantees a parent belongs to the same framework.
   - UNIQUE `(framework_id, code)` where `code IS NOT NULL`.
 - **Delete:** `framework_id` CASCADE; `parent_id` NO ACTION (blocked while it has children); items referenced elsewhere cannot be deleted (NO ACTION on the referencing FKs).
@@ -150,16 +151,16 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
   `mode = on_site`; there is no separate visits table.
 - **Fields:**
   - `id`, `project_id` (FK, NOT NULL), `site_id` (**nullable**)
-  - `activity_type` (free text, validated in app â€” Training, Site Assessment,
+  - `activity_type` (free text, validated in app — Training, Site Assessment,
     Document Review, Document Support, Consulting, Online Support,
     Internal Audit, Follow-up)
   - `name`, `start_date`, `end_date`
   - `mode` (CHECK `on_site | online`), `planned_days numeric(4,1)`
-  - `consultant_id â†’ profiles`, `objectives`, `planned_work`
+  - `consultant_id → profiles`, `objectives`, `planned_work`
   - `status` (CHECK `planned | in_progress | completed | cancelled`)
   - `work_performed`, `next_steps` (visit summary fields, ADR-013)
   - `created_by`, timestamps
-- **Site integrity:** composite FK `(project_id, site_id) â†’ project_sites`.
+- **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
 - **Nullable:** `site_id` (project-wide activity), `consultant_id`.
 - **Index:** `(project_id, start_date)`.
 - **Not present:** drag-and-drop scheduling data, timesheets, actual days.
@@ -170,7 +171,7 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
   `doc_code` (client's own number, nullable), `title`, `document_type` (free
   text), `owner_name` (client-side owner, free text),
   `is_applicable boolean NOT NULL DEFAULT true`, `created_by`, timestamps.
-- **Site integrity:** composite FK `(project_id, site_id) â†’ project_sites`.
+- **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
 - **No status column.** Current status is derived (see below).
 - A document with zero versions is a valid "expected document" (Not Received).
 
@@ -178,7 +179,7 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
 - **Purpose:** an actual uploaded revision of a document.
 - **Fields:** `id`, `document_id` (FK, NOT NULL), `version_no int` (immutable
   ordering), `revision text` (client's label, e.g. "Rev.02"), `file_id`
-  (FK â†’ files, NOT NULL), `received_on date`, `notes`, `uploaded_by`,
+  (FK → files, NOT NULL), `received_on date`, `notes`, `uploaded_by`,
   `created_at`.
 - **Constraints:** UNIQUE `(document_id, version_no)`.
 - **Ordering rule:** the latest version is the highest `version_no`, never the
@@ -196,7 +197,7 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
 
 ### document_reviews
 - **Purpose:** a review record for one document version.
-- **Fields:** `id`, `document_version_id` (FK, NOT NULL), `reviewer_id â†’
+- **Fields:** `id`, `document_version_id` (FK, NOT NULL), `reviewer_id →
   profiles`, `status` (CHECK `under_review | revision_required | accepted`),
   `reviewed_at`, `notes`, `created_at`, `updated_at`.
 - **Constraints:** **`document_version_id` is NOT unique.** A version may have
@@ -204,10 +205,10 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
   simple/latest-review workflow, but the database must not prevent multiple
   reviews of the same version.
 - **Timestamp semantics:**
-  - `created_at` â€” when the review record was created. It is the deterministic
+  - `created_at` — when the review record was created. It is the deterministic
     ordering key among the review records of a version.
-  - `updated_at` â€” when the review record was last modified.
-  - `reviewed_at` â€” when the review reached a completed outcome. While
+  - `updated_at` — when the review record was last modified.
+  - `reviewed_at` — when the review reached a completed outcome. While
     `status = under_review` it may be NULL; when status becomes
     `revision_required` or `accepted` it should be populated (application
     rule; not a database constraint).
@@ -221,11 +222,11 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
 - **Fields:**
   - `id`, `project_id` (FK, NOT NULL), `site_id` (nullable)
   - `framework_item_id` (nullable), `question`, `priority`
-  - `document_review_id` (nullable â€” source; NULL means manual)
-  - `target_activity_id` (nullable â€” **planned** activity)
-  - `verified_activity_id` (nullable â€” **actual** activity in which the item was
+  - `document_review_id` (nullable — source; NULL means manual)
+  - `target_activity_id` (nullable — **planned** activity)
+  - `verified_activity_id` (nullable — **actual** activity in which the item was
     completed)
-  - `follows_item_id` (nullable self-FK â€” carry-over lineage)
+  - `follows_item_id` (nullable self-FK — carry-over lineage)
   - `result` (nullable, CHECK `verified_ok | issue_identified |
     follow_up_required`)
   - `notes`, `verified_by`, `verified_at`, `created_by`, timestamps
@@ -235,7 +236,7 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
   not a workflow engine.
 - **No `status` column:** `result IS NULL` means pending. An item with no
   `target_activity_id` sits in the project's verification backlog.
-- **Site integrity:** composite FK `(project_id, site_id) â†’ project_sites`.
+- **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
 - **Verification context rules (application-validated):**
   - `verified_activity_id` must not be used as a substitute for
     `target_activity_id`.
@@ -250,7 +251,7 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
   item never stores an `issue_id`.
 
 ### issues
-- **Purpose:** a generic finding/problem â€” not necessarily a nonconformity.
+- **Purpose:** a generic finding/problem — not necessarily a nonconformity.
 - **Fields:** `id`, `project_id` (FK, NOT NULL), `site_id` (nullable), `title`,
   `description`, `framework_item_id` (nullable), origin FKs (all nullable):
   `activity_id`, `verification_item_id`, `document_review_id`; `priority`,
@@ -259,7 +260,7 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
 - **Origin:** expressed by explicit nullable FKs; there is no `source_type`
   column. Store only the closest origin (do not copy `document_review_id` onto
   an issue that already has `verification_item_id`).
-- **Site integrity:** composite FK `(project_id, site_id) â†’ project_sites`.
+- **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
 - **Delete:** `activity_id`, `verification_item_id`, `document_review_id` SET NULL
   (optional origin context; the issue survives); `framework_item_id` NO ACTION.
 - **Not present:** NC / Observation / OFI classification, root cause, `number`.
@@ -267,15 +268,15 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
 ### actions
 - **Purpose:** a trackable unit of follow-up. May exist without an issue.
 - **Fields:** `id`, `project_id` (FK, NOT NULL), `site_id` (nullable),
-  `issue_id` (**nullable**), `activity_id` (nullable â€” where it was raised),
+  `issue_id` (**nullable**), `activity_id` (nullable — where it was raised),
   `description`, `owner_name` (free text), `due_date`, `priority`, `status`
   (CHECK `open | in_progress | pending_review | closed`), `completion_notes`,
   `completed_at`, `created_by`, timestamps.
-- **Site integrity:** composite FK `(project_id, site_id) â†’ project_sites`.
+- **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
 - **Delete:** `issue_id` NO ACTION (an issue with linked actions cannot be
   deleted until its actions are removed or detached; actions are never silently
   deleted); `activity_id` SET NULL.
-- **Overdue is not a column** â€” it is derived (see Business Rules).
+- **Overdue is not a column** — it is derived (see Business Rules).
 - **Index:** partial `(project_id, site_id) WHERE status <> 'closed'`, serving
   "open actions to follow up".
 - **Not present:** `number`.
@@ -286,7 +287,7 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
   `supabase`), `storage_key` (relative object key), `original_name`,
   `mime_type`, `size_bytes`, `uploaded_by`, `created_at`.
 - **Constraints:** UNIQUE `storage_key`.
-- **Delete:** `project_id` CASCADE (registry rows only â€” see the storage rule
+- **Delete:** `project_id` CASCADE (registry rows only — see the storage rule
   below). A file referenced by a document version or attachment cannot be
   deleted (NO ACTION on the referencing FKs).
 - **File storage rule:** metadata only. No binary content, **no permanent public
@@ -294,11 +295,11 @@ clients â”€1â”€*â”€ projects â”€1â”€*â”€ project_s
   **Deleting objects in object storage is never a database cascade.** Removing a
   `files` row (or a project) does not remove the stored object; objects are
   removed by the application/cleanup script through `lib/storage`, and orphans
-  can be found by key prefix (`{project_id}/â€¦`).
+  can be found by key prefix (`{project_id}/…`).
 
 ### attachments
 - **Purpose:** links a file to exactly one Core entity (ADR-009).
-- **Fields:** `id`, `project_id` (FK, NOT NULL), `file_id â†’ files`, `caption`,
+- **Fields:** `id`, `project_id` (FK, NOT NULL), `file_id → files`, `caption`,
   `created_by`, `created_at`, and five explicit nullable FKs:
   `activity_id`, `document_review_id`, `verification_item_id`, `issue_id`,
   `action_id`.
@@ -340,7 +341,7 @@ Evaluation order:
 | 1    | `documents.is_applicable = false`                       | **N/A**          |
 | 2    | No document version exists                              | **Not Received** |
 | 3    | Latest version has no review record                     | **Received**     |
-| 4    | Otherwise, the status of the most recently created review record of the latest version | `under_review` â†’ **Under Review**; `revision_required` â†’ **Revision Required**; `accepted` â†’ **Accepted** |
+| 4    | Otherwise, the status of the most recently created review record of the latest version | `under_review` → **Under Review**; `revision_required` → **Revision Required**; `accepted` → **Accepted** |
 
 The view exposes the derived status as one of `n_a`, `not_received`,
 `received`, `under_review`, `revision_required`, `accepted`.
@@ -360,7 +361,7 @@ Rules:
 - Sites belong to clients; projects use a subset via `project_sites`.
 - Every project work entity with a nullable `site_id` (`activities`, `documents`,
   `verification_items`, `issues`, `actions`) carries a composite FK
-  `(project_id, site_id) â†’ project_sites (project_id, site_id)`.
+  `(project_id, site_id) → project_sites (project_id, site_id)`.
 - The FK is `MATCH SIMPLE`: when `site_id` is NULL (project-wide work) the check
   is skipped; when set, the site **must** be in the project's scope.
 - Removing a `project_sites` row that is still referenced by project work is
@@ -473,6 +474,23 @@ Notes:
   remain in object storage until removed by the application/cleanup script.
 - `NULL` on the profile-reference columns is permitted; none of them is
   structurally required.
+
+## Data API grants
+
+Grants decide whether a role can reach an object at all; RLS decides which rows.
+Both are required. Supabase no longer grants privileges on new `public` tables to
+the Data API roles automatically (new projects since 2026-05-30, all projects from
+2026-10-30), so they are explicit in migration `20260920000500_data_api_grants.sql`:
+
+- Starts with `revoke all on all tables in schema public from anon, authenticated`
+  so the result does not depend on the project's "automatically expose new
+  tables" setting.
+- **`anon`: no privileges** on any table or view (fails closed with `42501`).
+- **`authenticated`:** `select, insert, update, delete` on the 15 work tables;
+  `select` only on `frameworks` and `framework_items`; `select, update` on
+  `profiles` (RLS also locks `role`); `select` on `document_register`.
+- `service_role` is not used by RayIMS in V1 and is not granted.
+- Every future migration that adds a table must include its own grants and RLS.
 
 ## Indexes (summary)
 
