@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f3f5f9;}
+@keyframes shimmer{0%{background-position:-300px 0;}100%{background-position:300px 0;}}
+a{color:#1c2b4a;text-decoration:none;}
+a:hover{color:#0f1a30;text-decoration:underline;}
+</style>
+</helmet>
+<div data-screen-label="Framework Library" style="min-height:100vh;background:#f3f5f9;color:#1a2233;display:flex;position:relative;">
+
+  <aside style="display:none;width:224px;flex-shrink:0;flex-direction:column;border-right:1px solid #e5e8ee;background:#ffffff;" class="rayims-sidebar">
+    <div style="padding:18px 20px 4px;font-size:16px;font-weight:700;letter-spacing:-0.01em;color:#1c2b4a;">RayIMS</div>
+    <div style="padding:0 20px 14px;font-size:11px;color:#8a93a3;letter-spacing:0.02em;text-transform:uppercase;">Consulting Workspace</div>
+    <nav aria-label="Main" style="flex:1;padding:6px 10px 0;display:flex;flex-direction:column;gap:2px;border-top:1px solid #e5e8ee;padding-top:12px;">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:10px;min-height:38px;padding:0 12px;border-radius:8px;font-size:13.5px;font-weight:500;background:{{ item.activeBg }};color:{{ item.color }};cursor:{{ item.cursor }};opacity:{{ item.opacity }};" title="{{ item.title }}">
+          <span>{{ item.label }}</span>
+        </div>
+      </sc-for>
+    </nav>
+    <div style="border-top:1px solid #e5e8ee;padding:12px;">
+      <p style="font-size:12px;color:#8a93a3;padding:0 12px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ roleLabel }}</p>
+      <div style="min-height:34px;display:flex;align-items:center;padding:0 12px;font-size:13px;font-weight:500;color:#6b7280;border-radius:8px;">Sign out</div>
+    </div>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+    <header class="rayims-topbar" style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e8ee;background:#ffffff;padding:10px 16px;">
+      <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em;color:#1c2b4a;">RayIMS</span>
+      <span style="font-size:13px;font-weight:500;color:#6b7280;">Sign out</span>
+    </header>
+
+    <main style="flex:1;padding-bottom:76px;">
+      <div style="max-width:900px;margin:0 auto;padding:26px 22px 44px;">
+
+        <sc-if value="{{ isLibrary }}" hint-placeholder-val="{{ true }}">
+          <div data-screen-label="Framework Library — List">
+            <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;">
+              <div>
+                <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0;color:#111827;">Framework Library</h1>
+                <p style="font-size:13px;color:#6b7280;margin:4px 0 0;">{{ frameworkCountLabel }} · read-only reference</p>
+              </div>
+              <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ openCreateFramework }}" style="min-height:34px;display:flex;align-items:center;justify-content:center;padding:0 14px;border-radius:7px;border:1px solid #1c2b4a;background:#ffffff;font-size:12.5px;font-weight:600;color:#1c2b4a;cursor:pointer;">+ New Framework</div>
+              </sc-if>
+            </div>
+
+            <div style="margin:16px 0 18px;max-width:320px;">
+              <input value="{{ librarySearch }}" onChange="{{ onLibrarySearchChange }}" placeholder="Search frameworks…" style="width:100%;min-height:38px;border-radius:7px;border:1px solid #e5e8ee;background:#ffffff;padding:0 12px;font-size:13.5px;color:#1a2233;outline:none;"/>
+            </div>
+
+            <sc-if value="{{ showLibraryLoading }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:16px;display:flex;flex-direction:column;gap:10px;">
+                <sc-for list="{{ skeletonRows }}" as="sk" hint-placeholder-count="4">
+                  <div style="height:18px;border-radius:4px;background:linear-gradient(90deg,#eef1f5 25%,#f6f7f9 37%,#eef1f5 63%);background-size:400px 100%;animation:shimmer 1.4s infinite linear;width:{{ sk.width }};"></div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showLibraryNoResults }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:48px 24px;text-align:center;">
+                <p style="font-size:13.5px;color:#6b7280;margin:0 0 8px;">No frameworks match "{{ librarySearch }}".</p>
+                <a href="#" onClick="{{ clearLibrarySearch }}" style="font-size:13px;font-weight:600;">Clear search</a>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showLibraryResults }}" hint-placeholder-val="{{ true }}">
+              <div class="fw-table-wrap" style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);overflow:hidden;">
+                <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
+                  <thead>
+                    <tr>
+                      <th style="text-align:left;padding:12px 16px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Framework</th>
+                      <th style="text-align:left;padding:12px 10px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Category</th>
+                      <th style="text-align:left;padding:12px 10px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Framework Items</th>
+                      <th style="padding:12px 16px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ libraryRows }}" as="fw" hint-placeholder-count="4">
+                      <sc-if value="{{ fw.confirming }}" hint-placeholder-val="{{ false }}">
+                        <tr>
+                          <td colSpan="4" style="padding:12px 16px;border-top:1px solid #eef0f4;">
+                            <sc-if value="{{ fw.blocked }}" hint-placeholder-val="{{ false }}">
+                              <div style="display:flex;align-items:center;gap:10px;">
+                                <span style="font-size:12.5px;color:#96650a;">{{ fw.blockReason }}</span>
+                                <span onClick="{{ fw.cancelDelete }}" style="font-size:12.5px;font-weight:600;color:#6b7280;cursor:pointer;">OK</span>
+                              </div>
+                            </sc-if>
+                            <sc-if value="{{ fw.notBlocked }}" hint-placeholder-val="{{ true }}">
+                              <div style="display:flex;align-items:center;gap:10px;">
+                                <span style="font-size:12.5px;color:#b3261e;">Delete this framework and all its framework items?</span>
+                                <span onClick="{{ fw.cancelDelete }}" style="font-size:12.5px;font-weight:600;color:#6b7280;cursor:pointer;">Cancel</span>
+                                <span onClick="{{ fw.confirmDelete }}" style="font-size:12.5px;font-weight:600;color:#ffffff;background:#b3261e;border-radius:6px;padding:5px 10px;cursor:pointer;">Delete</span>
+                              </div>
+                            </sc-if>
+                          </td>
+                        </tr>
+                      </sc-if>
+                      <sc-if value="{{ fw.notConfirming }}" hint-placeholder-val="{{ true }}">
+                        <tr onClick="{{ fw.open }}" style="cursor:pointer;">
+                          <td style="padding:12px 16px;border-top:1px solid #eef0f4;">
+                            <div style="font-weight:600;">{{ fw.title }}</div>
+                            <div style="font-size:12px;color:#8a93a3;">{{ fw.name }}</div>
+                          </td>
+                          <td style="padding:12px 10px;border-top:1px solid #eef0f4;">
+                            <span style="display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;background:#f0f2f6;font-size:11.5px;font-weight:500;color:#374151;white-space:nowrap;">{{ fw.category }}</span>
+                          </td>
+                          <td style="padding:12px 10px;border-top:1px solid #eef0f4;color:#6b7280;">{{ fw.itemCount }}</td>
+                          <td style="padding:12px 16px;border-top:1px solid #eef0f4;text-align:right;white-space:nowrap;position:relative;">
+                            <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+                              <span onClick="{{ fw.toggleMenu }}" style="font-size:15px;font-weight:700;color:#6b7280;cursor:pointer;padding:2px 8px;border-radius:6px;margin-right:6px;">⋯</span>
+                              <sc-if value="{{ fw.menuOpen }}" hint-placeholder-val="{{ false }}">
+                                <div style="position:absolute;top:38px;right:16px;background:#ffffff;border:1px solid #e5e8ee;border-radius:8px;box-shadow:0 4px 12px rgba(16,24,40,0.14);min-width:140px;z-index:6;overflow:hidden;text-align:left;">
+                                  <div onClick="{{ fw.openEdit }}" style="padding:9px 14px;font-size:13px;font-weight:500;color:#1a2233;cursor:pointer;">Edit Framework</div>
+                                  <div onClick="{{ fw.askDelete }}" style="padding:9px 14px;font-size:13px;font-weight:500;color:#b3261e;cursor:pointer;border-top:1px solid #eef0f4;">Delete Framework</div>
+                                </div>
+                              </sc-if>
+                            </sc-if>
+                            <span style="color:#c3cad6;">›</span>
+                          </td>
+                        </tr>
+                      </sc-if>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+              <sc-if value="{{ anyLibraryMenuOpen }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ closeLibraryMenus }}" style="position:fixed;inset:0;z-index:5;"></div>
+              </sc-if>
+
+              <div class="fw-cards-wrap" style="display:none;flex-direction:column;gap:10px;">
+                <sc-for list="{{ libraryRows }}" as="fw" hint-placeholder-count="4">
+                  <div onClick="{{ fw.open }}" style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:14px 16px;cursor:pointer;">
+                    <div style="font-weight:700;font-size:14.5px;">{{ fw.title }}</div>
+                    <div style="font-size:12.5px;color:#8a93a3;margin:2px 0 8px;">{{ fw.name }}</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      <span style="display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;background:#f0f2f6;font-size:11.5px;font-weight:500;color:#374151;white-space:nowrap;">{{ fw.category }}</span>
+                      <span style="font-size:12.5px;color:#6b7280;">{{ fw.itemCount }} items</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Framework Detail">
+            <div style="font-size:12.5px;color:#8a93a3;margin-bottom:8px;">
+              <a href="#" onClick="{{ backToLibrary }}">Framework Library</a>
+              <span style="margin:0 6px;">/</span>
+              <span style="color:#1a2233;">{{ detailTitle }}</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;">
+              <div>
+                <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0;color:#111827;">{{ detailTitle }}</h1>
+                <p style="font-size:13.5px;color:#6b7280;margin:4px 0 0;">{{ detailName }}</p>
+              </div>
+              <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div onClick="{{ openEditFramework }}" style="min-height:32px;display:flex;align-items:center;justify-content:center;padding:0 12px;border-radius:7px;border:1px solid #1c2b4a;background:#ffffff;font-size:12.5px;font-weight:600;color:#1c2b4a;cursor:pointer;">Edit</div>
+                  <span onClick="{{ toggleDetailMenu }}" style="font-size:15px;font-weight:700;color:#6b7280;cursor:pointer;padding:2px 8px;border-radius:6px;position:relative;">⋯</span>
+                  <sc-if value="{{ detailMenuOpen }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;top:46px;right:22px;background:#ffffff;border:1px solid #e5e8ee;border-radius:8px;box-shadow:0 4px 12px rgba(16,24,40,0.14);min-width:150px;z-index:6;overflow:hidden;">
+                      <div onClick="{{ askDeleteFramework }}" style="padding:9px 14px;font-size:13px;font-weight:500;color:#b3261e;cursor:pointer;">Delete Framework</div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-if>
+            </div>
+            <p style="font-size:12.5px;color:#8a93a3;margin:2px 0 18px;">{{ detailItemCountLabel }}</p>
+
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
+              <input value="{{ itemSearch }}" onChange="{{ onItemSearchChange }}" placeholder="Search framework items…" style="min-width:220px;flex:1;max-width:320px;min-height:38px;border-radius:7px;border:1px solid #e5e8ee;background:#ffffff;padding:0 12px;font-size:13.5px;color:#1a2233;outline:none;"/>
+              <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ openCreateItem }}" style="min-height:34px;display:flex;align-items:center;justify-content:center;padding:0 14px;border-radius:7px;border:1px solid #1c2b4a;background:#ffffff;font-size:12.5px;font-weight:600;color:#1c2b4a;cursor:pointer;">+ Add Item</div>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{ showDetailLoading }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:16px;display:flex;flex-direction:column;gap:10px;">
+                <sc-for list="{{ skeletonRows }}" as="sk" hint-placeholder-count="4">
+                  <div style="height:18px;border-radius:4px;background:linear-gradient(90deg,#eef1f5 25%,#f6f7f9 37%,#eef1f5 63%);background-size:400px 100%;animation:shimmer 1.4s infinite linear;width:{{ sk.width }};"></div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showItemNoResults }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:40px 24px;text-align:center;">
+                <p style="font-size:13.5px;color:#6b7280;margin:0 0 8px;">No framework items match "{{ itemSearch }}".</p>
+                <a href="#" onClick="{{ clearItemSearch }}" style="font-size:13px;font-weight:600;">Clear search</a>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showSearchList }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);">
+                <sc-for list="{{ searchRows }}" as="row" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:baseline;gap:10px;min-height:42px;padding:0 16px;border-top:1px solid #eef0f4;font-size:13.5px;">
+                    <span style="font-weight:600;color:#1c2b4a;flex-shrink:0;">{{ row.code }}</span>
+                    <div style="min-width:0;">
+                      <div>{{ row.title }}</div>
+                      <div style="font-size:11.5px;color:#8a93a3;">{{ row.path }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showTree }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:6px 0;">
+                <sc-for list="{{ treeRows }}" as="row" hint-placeholder-count="8">
+                  <sc-if value="{{ row.confirming }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:10px;min-height:40px;padding:0 16px 0 {{ row.indent }}px;">
+                      <sc-if value="{{ row.blocked }}" hint-placeholder-val="{{ false }}">
+                        <span style="font-size:12.5px;color:#96650a;">{{ row.blockReason }}</span>
+                        <span onClick="{{ row.cancelDelete }}" style="font-size:12.5px;font-weight:600;color:#6b7280;cursor:pointer;">OK</span>
+                      </sc-if>
+                      <sc-if value="{{ row.notBlocked }}" hint-placeholder-val="{{ true }}">
+                        <span style="font-size:12.5px;color:#b3261e;">Delete this item?</span>
+                        <span onClick="{{ row.cancelDelete }}" style="font-size:12.5px;font-weight:600;color:#6b7280;cursor:pointer;">Cancel</span>
+                        <span onClick="{{ row.confirmDelete }}" style="font-size:12.5px;font-weight:600;color:#ffffff;background:#b3261e;border-radius:6px;padding:5px 10px;cursor:pointer;">Delete</span>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ row.notConfirming }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;align-items:center;gap:8px;min-height:40px;padding:0 16px 0 {{ row.indent }}px;font-size:{{ row.fontSize }};position:relative;">
+                      <span onClick="{{ row.toggle }}" style="width:14px;flex-shrink:0;color:#8a93a3;font-size:11px;cursor:{{ row.cursor }};">{{ row.caret }}</span>
+                      <span onClick="{{ row.toggle }}" style="flex-shrink:0;color:#1c2b4a;font-weight:600;cursor:{{ row.cursor }};">{{ row.code }}</span>
+                      <span onClick="{{ row.toggle }}" style="font-weight:{{ row.fontWeight }};color:{{ row.textColor }};cursor:{{ row.cursor }};flex:1;">{{ row.title }}</span>
+                      <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+                        <span onClick="{{ row.toggleMenu }}" style="font-size:14px;font-weight:700;color:#6b7280;cursor:pointer;padding:2px 8px;border-radius:6px;">⋯</span>
+                        <sc-if value="{{ row.menuOpen }}" hint-placeholder-val="{{ false }}">
+                          <div style="position:absolute;top:34px;right:8px;background:#ffffff;border:1px solid #e5e8ee;border-radius:8px;box-shadow:0 4px 12px rgba(16,24,40,0.14);min-width:150px;z-index:6;overflow:hidden;text-align:left;">
+                            <div onClick="{{ row.openAddChild }}" style="padding:9px 14px;font-size:13px;font-weight:500;color:#1a2233;cursor:pointer;">Add Sub-item</div>
+                            <div onClick="{{ row.openEdit }}" style="padding:9px 14px;font-size:13px;font-weight:500;color:#1a2233;cursor:pointer;border-top:1px solid #eef0f4;">Edit Item</div>
+                            <div onClick="{{ row.askDelete }}" style="padding:9px 14px;font-size:13px;font-weight:500;color:#b3261e;cursor:pointer;border-top:1px solid #eef0f4;">Delete Item</div>
+                          </div>
+                        </sc-if>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+                </sc-for>
+              </div>
+              <sc-if value="{{ anyItemMenuOpen }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ closeItemMenus }}" style="position:fixed;inset:0;z-index:5;"></div>
+              </sc-if>
+            </sc-if>
+          </div>
+        </sc-if>
+
+      </div>
+    </main>
+  </div>
+
+  <nav aria-label="Main" class="rayims-bottomnav" style="display:flex;position:fixed;inset:auto 0 0 0;border-top:1px solid #e5e8ee;background:#ffffff;justify-content:space-around;padding:4px 4px env(safe-area-inset-bottom);">
+    <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;min-width:64px;border-radius:7px;font-size:11px;font-weight:500;color:{{ item.color }};opacity:{{ item.opacity }};">
+        <span style="width:6px;height:6px;border-radius:1px;background:{{ item.dotColor }};"></span>
+        <span>{{ item.label }}</span>
+      </div>
+    </sc-for>
+  </nav>
+
+  <sc-if value="{{ frameworkDrawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(17,24,39,0.32);z-index:40;" onClick="{{ closeFrameworkDrawer }}"></div>
+    <div class="drawer-panel" style="position:fixed;top:0;right:0;bottom:0;width:400px;background:#ffffff;z-index:41;box-shadow:-4px 0 16px rgba(16,24,40,0.12);display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e8ee;">
+        <h2 style="font-size:15px;font-weight:700;margin:0;">{{ frameworkDrawerTitle }}</h2>
+        <span onClick="{{ closeFrameworkDrawer }}" style="font-size:13px;color:#8a93a3;cursor:pointer;">Close</span>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;gap:12px;">
+          <div style="flex:1;">
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Code *</label>
+            <input value="{{ fwCode }}" onChange="{{ onFwCodeChange }}" placeholder="e.g. ISO 22000" style="width:100%;min-height:40px;border-radius:7px;border:1px solid {{ fwCodeBorder }};padding:0 12px;font-size:14px;outline:none;"/>
+          </div>
+          <div style="flex:1;">
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Edition *</label>
+            <input value="{{ fwEdition }}" onChange="{{ onFwEditionChange }}" placeholder="e.g. 2018" style="width:100%;min-height:40px;border-radius:7px;border:1px solid {{ fwEditionBorder }};padding:0 12px;font-size:14px;outline:none;"/>
+          </div>
+        </div>
+        <sc-if value="{{ fwCodeEditionError }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size:12px;color:#b3261e;margin:0;">Code and edition are required.</p>
+        </sc-if>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Name *</label>
+          <input value="{{ fwName }}" onChange="{{ onFwNameChange }}" placeholder="e.g. Food safety management systems" style="width:100%;min-height:40px;border-radius:7px;border:1px solid {{ fwNameBorder }};padding:0 12px;font-size:14px;outline:none;"/>
+          <sc-if value="{{ fwNameError }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:12px;color:#b3261e;margin:6px 0 0;">Name is required.</p>
+          </sc-if>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Category</label>
+          <input value="{{ fwCategory }}" onChange="{{ onFwCategoryChange }}" placeholder="e.g. Management System" style="width:100%;min-height:40px;border-radius:7px;border:1px solid #e5e8ee;padding:0 12px;font-size:14px;outline:none;"/>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Description</label>
+          <textarea value="{{ fwDescription }}" onChange="{{ onFwDescriptionChange }}" placeholder="Optional" style="width:100%;min-height:80px;border-radius:7px;border:1px solid #e5e8ee;padding:10px 12px;font-size:13.5px;outline:none;resize:vertical;font-family:inherit;"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid #e5e8ee;">
+        <div onClick="{{ closeFrameworkDrawer }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 14px;border-radius:7px;border:1px solid #e5e8ee;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">Cancel</div>
+        <div onClick="{{ saveFramework }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;background:#1c2b4a;font-size:13px;font-weight:600;color:#ffffff;cursor:pointer;opacity:{{ fwSavingOpacity }};">{{ fwSaveLabel }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ itemDrawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(17,24,39,0.32);z-index:40;" onClick="{{ closeItemDrawer }}"></div>
+    <div class="drawer-panel" style="position:fixed;top:0;right:0;bottom:0;width:400px;background:#ffffff;z-index:41;box-shadow:-4px 0 16px rgba(16,24,40,0.12);display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e8ee;">
+        <h2 style="font-size:15px;font-weight:700;margin:0;">{{ itemDrawerTitle }}</h2>
+        <span onClick="{{ closeItemDrawer }}" style="font-size:13px;color:#8a93a3;cursor:pointer;">Close</span>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Parent item</label>
+          <select value="{{ itemParentCode }}" onChange="{{ onItemParentChange }}" style="width:100%;min-height:40px;border-radius:7px;border:1px solid #e5e8ee;background:#ffffff;padding:0 12px;font-size:14px;color:#1a2233;">
+            <option value="">— Top level —</option>
+            <sc-for list="{{ parentOptions }}" as="opt" hint-placeholder-count="6">
+              <option value="{{ opt.code }}">{{ opt.label }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Item code</label>
+          <input value="{{ itemCode }}" onChange="{{ onItemCodeChange }}" placeholder="e.g. 6.1.5 (optional)" style="width:100%;min-height:40px;border-radius:7px;border:1px solid #e5e8ee;padding:0 12px;font-size:14px;outline:none;"/>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Title *</label>
+          <input value="{{ itemTitle }}" onChange="{{ onItemTitleChange }}" placeholder="Short label" style="width:100%;min-height:40px;border-radius:7px;border:1px solid {{ itemTitleBorder }};padding:0 12px;font-size:14px;outline:none;"/>
+          <sc-if value="{{ itemTitleError }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:12px;color:#b3261e;margin:6px 0 0;">Title is required.</p>
+          </sc-if>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Item type</label>
+          <input value="{{ itemType }}" onChange="{{ onItemTypeChange }}" placeholder="item" style="width:100%;min-height:40px;border-radius:7px;border:1px solid #e5e8ee;padding:0 12px;font-size:14px;outline:none;"/>
+          <p style="font-size:12px;color:#8a93a3;margin:6px 0 0;">Defaults to "item". Use a different label for non-standard structures (e.g. "topic").</p>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Description</label>
+          <textarea value="{{ itemDescription }}" onChange="{{ onItemDescriptionChange }}" placeholder="Optional" style="width:100%;min-height:70px;border-radius:7px;border:1px solid #e5e8ee;padding:10px 12px;font-size:13.5px;outline:none;resize:vertical;font-family:inherit;"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid #e5e8ee;">
+        <div onClick="{{ closeItemDrawer }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 14px;border-radius:7px;border:1px solid #e5e8ee;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">Cancel</div>
+        <div onClick="{{ saveItem }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;background:#1c2b4a;font-size:13px;font-weight:600;color:#ffffff;cursor:pointer;opacity:{{ itemSavingOpacity }};">{{ itemSaveLabel }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ deleteFrameworkModalOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(17,24,39,0.4);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px;" onClick="{{ cancelDeleteFramework }}">
+      <div onClick="{{ stopClick }}" style="background:#ffffff;border-radius:10px;max-width:380px;width:100%;padding:20px;box-shadow:0 8px 24px rgba(16,24,40,0.2);">
+        <h2 style="font-size:15px;font-weight:700;margin:0 0 10px;">Delete Framework</h2>
+        <sc-if value="{{ deleteFrameworkBlocked }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size:13.5px;color:#374151;margin:0 0 16px;">{{ deleteFrameworkBlockReason }}</p>
+          <div style="display:flex;justify-content:flex-end;">
+            <div onClick="{{ cancelDeleteFramework }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;background:#1c2b4a;font-size:13px;font-weight:600;color:#ffffff;cursor:pointer;">OK</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ deleteFrameworkNotBlocked }}" hint-placeholder-val="{{ true }}">
+          <p style="font-size:13.5px;color:#374151;margin:0 0 16px;">This will permanently delete this framework and all of its framework items. This cannot be undone.</p>
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <div onClick="{{ cancelDeleteFramework }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 14px;border-radius:7px;border:1px solid #e5e8ee;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">Cancel</div>
+            <div onClick="{{ confirmDeleteFramework }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;background:#b3261e;font-size:13px;font-weight:600;color:#ffffff;cursor:pointer;">Delete Framework</div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2233;color:#ffffff;font-size:13px;font-weight:500;padding:10px 18px;border-radius:8px;box-shadow:0 4px 12px rgba(16,24,40,0.2);z-index:50;">{{ toastMessage }}</div>
+  </sc-if>
+
+  <helmet>
+    <style>
+      @media (min-width: 768px) {
+        .rayims-sidebar { display: flex !important; }
+        .rayims-topbar { display: none !important; }
+        .rayims-bottomnav { display: none !important; }
+        main { padding-bottom: 0 !important; }
+      }
+      @media (max-width: 767px) {
+        .fw-table-wrap { display: none !important; }
+        .fw-cards-wrap { display: flex !important; }
+        .drawer-panel { top: auto !important; left: 0 !important; width: 100% !important; height: 85vh !important; border-radius: 14px 14px 0 0 !important; }
+      }
+    </style>
+  </helmet>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Consultant&quot;,&quot;options&quot;:[&quot;Consultant&quot;,&quot;Admin&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Demo&quot;},&quot;demoLoading&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;}}">
+function node(code, title, children, referenced) { return { code: code, title: title, referenced: !!referenced, children: children || [] }; }
+
+function seedFrameworks() {
+  return [
+    {
+      id: "iso9001", code: "ISO 9001", edition: "2015", name: "Quality management systems", category: "Management System", description: "", referenced: true,
+      tree: [
+        node("4", "Context", [node("4.1", "Organization and context"), node("4.2", "Interested parties"), node("4.3", "System scope"), node("4.4", "Quality management system and processes")]),
+        node("5", "Leadership", [node("5.1", "Leadership and commitment"), node("5.2", "Quality policy"), node("5.3", "Roles and authorities")]),
+        node("6", "Planning", [node("6.1", "Risks and opportunities"), node("6.2", "Quality objectives"), node("6.3", "Planning of changes")]),
+        node("7", "Support", [node("7.1", "Resources"), node("7.2", "Competence"), node("7.3", "Awareness"), node("7.4", "Communication"), node("7.5", "Documented information")]),
+        node("8", "Operation", [node("8.1", "Operational planning and control"), node("8.2", "Requirements for products and services"), node("8.3", "Design and development"), node("8.4", "External providers"), node("8.5", "Production and service provision"), node("8.6", "Release of products and services"), node("8.7", "Nonconforming outputs")]),
+        node("9", "Performance evaluation", [node("9.1", "Monitoring and measurement"), node("9.2", "Internal audit", [], true), node("9.3", "Management review")]),
+        node("10", "Improvement", [node("10.1", "General improvement"), node("10.2", "Nonconformity and corrective action"), node("10.3", "Continual improvement")]),
+      ],
+    },
+    {
+      id: "iso14001", code: "ISO 14001", edition: "2015", name: "Environmental management systems", category: "Management System", description: "", referenced: true,
+      tree: [
+        node("4", "Context", [node("4.1", "Organization and context"), node("4.2", "Interested parties"), node("4.3", "System scope"), node("4.4", "Environmental management system")]),
+        node("5", "Leadership", [node("5.1", "Leadership and commitment"), node("5.2", "Environmental policy"), node("5.3", "Roles and authorities")]),
+        node("6", "Planning", [
+          node("6.1", "Risks and opportunities", [node("6.1.1", "General"), node("6.1.2", "Environmental aspects"), node("6.1.3", "Compliance obligations"), node("6.1.4", "Planning action")]),
+          node("6.2", "Environmental objectives", [node("6.2.1", "Objectives"), node("6.2.2", "Planning to achieve objectives")]),
+        ]),
+        node("7", "Support", [node("7.1", "Resources"), node("7.2", "Competence"), node("7.3", "Awareness"), node("7.4", "Communication"), node("7.5", "Documented information")]),
+        node("8", "Operation", [node("8.1", "Operational planning and control"), node("8.2", "Emergency preparedness and response")]),
+        node("9", "Performance evaluation", [
+          node("9.1", "Monitoring and measurement", [node("9.1.1", "General"), node("9.1.2", "Evaluation of compliance")]),
+          node("9.2", "Internal audit", [], true), node("9.3", "Management review"),
+        ]),
+        node("10", "Improvement", [node("10.1", "General improvement"), node("10.2", "Nonconformity and corrective action"), node("10.3", "Continual improvement")]),
+      ],
+    },
+    {
+      id: "iso45001", code: "ISO 45001", edition: "2018", name: "Occupational health and safety management systems", category: "Management System", description: "", referenced: true,
+      tree: [
+        node("4", "Context", [node("4.1", "Organization and context"), node("4.2", "Interested parties"), node("4.3", "System scope"), node("4.4", "OH&S management system")]),
+        node("5", "Leadership", [node("5.1", "Leadership and commitment"), node("5.2", "OH&S policy"), node("5.3", "Roles and authorities"), node("5.4", "Consultation and participation")]),
+        node("6", "Planning", [
+          node("6.1", "Risks and opportunities", [node("6.1.1", "General"), node("6.1.2", "Hazard identification and assessment"), node("6.1.3", "Legal and other requirements"), node("6.1.4", "Planning action")]),
+          node("6.2", "OH&S objectives", [node("6.2.1", "Objectives"), node("6.2.2", "Planning to achieve objectives")]),
+        ]),
+        node("7", "Support", [node("7.1", "Resources"), node("7.2", "Competence"), node("7.3", "Awareness"), node("7.4", "Communication"), node("7.5", "Documented information")]),
+        node("8", "Operation", [
+          node("8.1", "Operational planning and control", [node("8.1.1", "General"), node("8.1.2", "Eliminating hazards and reducing risks"), node("8.1.3", "Management of change"), node("8.1.4", "Procurement")]),
+          node("8.2", "Emergency preparedness and response"),
+        ]),
+        node("9", "Performance evaluation", [
+          node("9.1", "Monitoring and measurement", [node("9.1.1", "General"), node("9.1.2", "Evaluation of compliance")]),
+          node("9.2", "Internal audit", [], true), node("9.3", "Management review"),
+        ]),
+        node("10", "Improvement", [node("10.1", "General improvement"), node("10.2", "Incident, nonconformity and corrective action"), node("10.3", "Continual improvement")]),
+      ],
+    },
+    {
+      id: "iso50001", code: "ISO 50001", edition: "2018", name: "Energy management systems", category: "Management System", description: "", referenced: true,
+      tree: [
+        node("4", "Context", [node("4.1", "Organization and context"), node("4.2", "Interested parties"), node("4.3", "System scope"), node("4.4", "Energy management system")]),
+        node("5", "Leadership", [node("5.1", "Leadership and commitment"), node("5.2", "Energy policy"), node("5.3", "Roles and authorities")]),
+        node("6", "Planning", [node("6.1", "Risks and opportunities"), node("6.2", "Objectives, energy targets and planning"), node("6.3", "Energy review"), node("6.4", "Energy performance indicators"), node("6.5", "Energy baseline"), node("6.6", "Energy data collection planning")]),
+        node("7", "Support", [node("7.1", "Resources"), node("7.2", "Competence"), node("7.3", "Awareness"), node("7.4", "Communication"), node("7.5", "Documented information")]),
+        node("8", "Operation", [node("8.1", "Operational planning and control"), node("8.2", "Design"), node("8.3", "Procurement")]),
+        node("9", "Performance evaluation", [
+          node("9.1", "Performance monitoring and measurement", [node("9.1.1", "General"), node("9.1.2", "Evaluation of compliance")]),
+          node("9.2", "Internal audit", [], true), node("9.3", "Management review"),
+        ]),
+        node("10", "Improvement", [node("10.1", "Nonconformity and corrective action"), node("10.2", "Continual improvement")]),
+      ],
+    },
+  ];
+}
+
+function countNodes(nodes) { let n = 0; nodes.forEach((x) => { n += 1 + countNodes(x.children); }); return n; }
+function flattenSearch(nodes, path, out) {
+  nodes.forEach((x) => {
+    out.push({ code: x.code, title: x.title, path: path.join(" › ") || "Top level" });
+    flattenSearch(x.children, path.concat([x.code + " " + x.title]), out);
+  });
+}
+function flattenOptions(nodes, depth, excludeCode, out) {
+  nodes.forEach((x) => {
+    if (x.code === excludeCode) return;
+    out.push({ code: x.code, label: "— ".repeat(depth) + x.code + " " + x.title });
+    flattenOptions(x.children, depth + 1, excludeCode, out);
+  });
+}
+function findNode(nodes, code) {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].code === code) return nodes[i];
+    const f = findNode(nodes[i].children, code);
+    if (f) return f;
+  }
+  return null;
+}
+function removeByCode(nodes, code) {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].code === code) { nodes.splice(i, 1); return true; }
+    if (removeByCode(nodes[i].children, code)) return true;
+  }
+  return false;
+}
+function updateByCode(nodes, code, patch) {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].code === code) { Object.assign(nodes[i], patch); return true; }
+    if (updateByCode(nodes[i].children, code, patch)) return true;
+  }
+  return false;
+}
+function insertNode(nodes, parentCode, newNode) {
+  if (!parentCode) { nodes.push(newNode); return true; }
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].code === parentCode) { nodes[i].children.push(newNode); return true; }
+    if (insertNode(nodes[i].children, parentCode, newNode)) return true;
+  }
+  return false;
+}
+
+class Component extends DCLogic {
+  state = {
+    frameworks: seedFrameworks(),
+    screen: "library", selectedId: null,
+    librarySearch: "", itemSearch: "",
+    expanded: null,
+    libraryMenuOpenId: null, libraryDeleteConfirmId: null,
+    itemMenuOpenCode: null, itemDeleteConfirmCode: null,
+    frameworkDrawer: null, itemDrawer: null,
+    detailMenuOpen: false, deleteFrameworkConfirming: false,
+    toast: null,
+  };
+
+  showToast(message) {
+    this.setState({ toast: message });
+    setTimeout(() => this.setState((s) => (s.toast === message ? { toast: null } : {})), 2200);
+  }
+
+  openFramework(id) {
+    const fw = this.state.frameworks.find((f) => f.id === id);
+    const topIds = fw.tree.map((n) => n.code);
+    this.setState({ screen: "detail", selectedId: id, itemSearch: "", expanded: new Set(topIds), detailMenuOpen: false });
+  }
+  backToLibrary() { this.setState({ screen: "library", selectedId: null }); }
+  toggleNode(code) {
+    this.setState((s) => { const next = new Set(s.expanded); if (next.has(code)) next.delete(code); else next.add(code); return { expanded: next }; });
+  }
+
+  openCreateFramework() { this.setState({ frameworkDrawer: { mode: "create", id: null, code: "", edition: "", name: "", category: "", description: "", codeEditionError: false, nameError: false, saving: false }, libraryMenuOpenId: null }); }
+  openEditFrameworkFor(id) {
+    const fw = this.state.frameworks.find((f) => f.id === id);
+    this.setState({ frameworkDrawer: { mode: "edit", id, code: fw.code, edition: fw.edition, name: fw.name, category: fw.category, description: fw.description || "", codeEditionError: false, nameError: false, saving: false }, libraryMenuOpenId: null, detailMenuOpen: false });
+  }
+  closeFrameworkDrawer() { this.setState({ frameworkDrawer: null }); }
+  updateFrameworkDrawer(patch) { this.setState((s) => ({ frameworkDrawer: Object.assign({}, s.frameworkDrawer, patch) })); }
+  saveFramework() {
+    const d = this.state.frameworkDrawer;
+    const errors = {};
+    if (!d.code.trim() || !d.edition.trim()) errors.codeEditionError = true;
+    if (!d.name.trim()) errors.nameError = true;
+    if (Object.keys(errors).length) { this.updateFrameworkDrawer(errors); return; }
+    this.updateFrameworkDrawer({ saving: true });
+    setTimeout(() => {
+      this.setState((s) => {
+        let frameworks = s.frameworks;
+        if (d.mode === "create") {
+          frameworks = frameworks.concat([{ id: "fw" + Date.now(), code: d.code.trim(), edition: d.edition.trim(), name: d.name.trim(), category: d.category.trim() || "Uncategorized", description: d.description, referenced: false, tree: [] }]);
+        } else {
+          frameworks = frameworks.map((f) => (f.id === d.id ? Object.assign({}, f, { code: d.code.trim(), edition: d.edition.trim(), name: d.name.trim(), category: d.category.trim() || "Uncategorized", description: d.description }) : f));
+        }
+        return { frameworks, frameworkDrawer: null };
+      });
+      this.showToast(d.mode === "create" ? "Framework created" : "Framework saved");
+    }, 550);
+  }
+
+  askDeleteFrameworkRow(id) { this.setState({ libraryDeleteConfirmId: id, libraryMenuOpenId: null }); }
+  cancelDeleteFrameworkRow() { this.setState({ libraryDeleteConfirmId: null }); }
+  confirmDeleteFrameworkRow(id) {
+    this.setState((s) => ({ frameworks: s.frameworks.filter((f) => f.id !== id), libraryDeleteConfirmId: null }));
+    this.showToast("Framework deleted");
+  }
+  askDeleteFrameworkHeader() { this.setState({ deleteFrameworkConfirming: true, detailMenuOpen: false }); }
+  cancelDeleteFrameworkHeader() { this.setState({ deleteFrameworkConfirming: false }); }
+  confirmDeleteFrameworkHeader() {
+    const id = this.state.selectedId;
+    this.setState((s) => ({ frameworks: s.frameworks.filter((f) => f.id !== id), deleteFrameworkConfirming: false, screen: "library", selectedId: null }));
+    this.showToast("Framework deleted");
+  }
+
+  openCreateItem(parentCode) {
+    this.setState({ itemDrawer: { mode: "create", code: "", title: "", description: "", itemType: "item", parentCode: parentCode || "", codeIsNew: true, titleError: false, saving: false }, itemMenuOpenCode: null });
+  }
+  openEditItemFor(code) {
+    const fw = this.state.frameworks.find((f) => f.id === this.state.selectedId);
+    const n = findNode(fw.tree, code);
+    this.setState({ itemDrawer: { mode: "edit", originalCode: code, code: n.code, title: n.title, description: n.description || "", itemType: n.itemType || "item", parentCode: this.findParentCode(fw.tree, code), titleError: false, saving: false }, itemMenuOpenCode: null });
+  }
+  findParentCode(nodes, code, parent) {
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].code === code) return parent || "";
+      const found = this.findParentCode(nodes[i].children, code, nodes[i].code);
+      if (found !== undefined && found !== null) return found;
+    }
+    return null;
+  }
+  closeItemDrawer() { this.setState({ itemDrawer: null }); }
+  updateItemDrawer(patch) { this.setState((s) => ({ itemDrawer: Object.assign({}, s.itemDrawer, patch) })); }
+  saveItem() {
+    const d = this.state.itemDrawer;
+    if (!d.title.trim()) { this.updateItemDrawer({ titleError: true }); return; }
+    this.updateItemDrawer({ saving: true });
+    setTimeout(() => {
+      this.setState((s) => {
+        const frameworks = s.frameworks.map((f) => f);
+        const fw = frameworks.find((f) => f.id === s.selectedId);
+        const tree = JSON.parse(JSON.stringify(fw.tree));
+        if (d.mode === "create") {
+          const newCode = d.code.trim() || "item" + Date.now();
+          insertNode(tree, d.parentCode || null, { code: newCode, title: d.title.trim(), description: d.description, itemType: d.itemType || "item", referenced: false, children: [] });
+        } else {
+          updateByCode(tree, d.originalCode, { code: d.code.trim() || d.originalCode, title: d.title.trim(), description: d.description, itemType: d.itemType || "item" });
+        }
+        fw.tree = tree;
+        const topIds = tree.map((n) => n.code);
+        return { frameworks, itemDrawer: null, expanded: new Set(Array.from(s.expanded || []).concat(topIds)) };
+      });
+      this.showToast(d.mode === "create" ? "Framework item added" : "Framework item saved");
+    }, 550);
+  }
+
+  askDeleteItemRow(code) { this.setState({ itemDeleteConfirmCode: code, itemMenuOpenCode: null }); }
+  cancelDeleteItemRow() { this.setState({ itemDeleteConfirmCode: null }); }
+  confirmDeleteItemRow(code) {
+    this.setState((s) => {
+      const frameworks = s.frameworks.map((f) => f);
+      const fw = frameworks.find((f) => f.id === s.selectedId);
+      const tree = JSON.parse(JSON.stringify(fw.tree));
+      removeByCode(tree, code);
+      fw.tree = tree;
+      return { frameworks, itemDeleteConfirmCode: null };
+    });
+    this.showToast("Framework item deleted");
+  }
+
+  renderVals() {
+    const demoLoading = !!this.props.demoLoading;
+    const isAdmin = this.props.role === "Admin";
+    const s = this.state;
+
+    const navItems = [
+      { label: "Dashboard", enabled: false, active: false },
+      { label: "Clients", enabled: true, active: false },
+      { label: "Projects", enabled: true, active: false },
+      { label: "Frameworks", enabled: true, active: true },
+    ].map((n) => ({
+      label: n.label,
+      title: n.enabled ? "" : "Coming in a later phase",
+      cursor: n.enabled ? "pointer" : "not-allowed",
+      opacity: n.enabled ? 1 : 0.5,
+      color: n.active ? "#1c2b4a" : n.enabled ? "#1a2233" : "#8a93a3",
+      activeBg: n.active ? "#e8f0fe" : "transparent",
+      dotColor: n.active ? "#1c2b4a" : "#c3cad6",
+    }));
+
+    const query = s.librarySearch.trim().toLowerCase();
+    const allLibraryRows = s.frameworks.map((f) => {
+      const isConfirming = s.libraryDeleteConfirmId === f.id;
+      return {
+        id: f.id, title: f.code + ":" + f.edition, name: f.name, category: f.category,
+        itemCount: countNodes(f.tree),
+        open: () => this.openFramework(f.id),
+        menuOpen: s.libraryMenuOpenId === f.id,
+        toggleMenu: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState((st) => ({ libraryMenuOpenId: st.libraryMenuOpenId === f.id ? null : f.id })); },
+        openEdit: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openEditFrameworkFor(f.id); },
+        askDelete: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.askDeleteFrameworkRow(f.id); },
+        confirming: isConfirming, notConfirming: !isConfirming,
+        blocked: isConfirming && f.referenced, notBlocked: isConfirming && !f.referenced,
+        blockReason: "This framework is assigned to one or more projects and cannot be deleted.",
+        cancelDelete: () => this.cancelDeleteFrameworkRow(),
+        confirmDelete: () => this.confirmDeleteFrameworkRow(f.id),
+      };
+    });
+    const libraryRows = query ? allLibraryRows.filter((r) => (r.title + " " + r.name).toLowerCase().includes(query)) : allLibraryRows;
+
+    const showLibraryLoading = demoLoading && s.screen === "library";
+    const showLibraryNoResults = !showLibraryLoading && s.screen === "library" && query.length > 0 && libraryRows.length === 0;
+    const showLibraryResults = s.screen === "library" && !showLibraryLoading && !showLibraryNoResults;
+
+    let detailVals = {};
+    if (s.screen === "detail" && s.selectedId) {
+      const fw = s.frameworks.find((f) => f.id === s.selectedId);
+      const itemCount = countNodes(fw.tree);
+      const iq = s.itemSearch.trim().toLowerCase();
+
+      let treeRows = [];
+      if (!iq) {
+        const walk = (nodes, level, parentAllows) => {
+          nodes.forEach((n) => {
+            if (!parentAllows) return;
+            const hasChildren = n.children.length > 0;
+            const expanded = s.expanded && s.expanded.has(n.code);
+            const isConfirming = s.itemDeleteConfirmCode === n.code;
+            treeRows.push({
+              code: n.code, title: n.title, indent: 16 + (level - 1) * 22,
+              fontSize: level === 1 ? "13.5px" : level === 2 ? "13px" : "12.5px",
+              fontWeight: level === 1 ? 700 : 500,
+              textColor: level === 1 ? "#111827" : level === 2 ? "#1a2233" : "#4b5563",
+              cursor: hasChildren ? "pointer" : "default",
+              caret: hasChildren ? (expanded ? "▾" : "▸") : "",
+              toggle: hasChildren ? () => this.toggleNode(n.code) : () => {},
+              menuOpen: s.itemMenuOpenCode === n.code,
+              toggleMenu: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState((st) => ({ itemMenuOpenCode: st.itemMenuOpenCode === n.code ? null : n.code })); },
+              openEdit: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openEditItemFor(n.code); },
+              openAddChild: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openCreateItem(n.code); },
+              askDelete: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.askDeleteItemRow(n.code); },
+              confirming: isConfirming, notConfirming: !isConfirming,
+              blocked: isConfirming && (hasChildren || n.referenced),
+              notBlocked: isConfirming && !hasChildren && !n.referenced,
+              blockReason: hasChildren ? "This item has sub-items and cannot be deleted." : "Referenced by project data and cannot be deleted.",
+              cancelDelete: () => this.cancelDeleteItemRow(),
+              confirmDelete: () => this.confirmDeleteItemRow(n.code),
+            });
+            walk(n.children, level + 1, hasChildren ? expanded : false);
+          });
+        };
+        walk(fw.tree, 1, true);
+      }
+
+      let searchRows = [];
+      if (iq) {
+        const flat = [];
+        flattenSearch(fw.tree, [], flat);
+        searchRows = flat.filter((r) => (r.code + " " + r.title).toLowerCase().includes(iq));
+      }
+
+      const parentOptions = [];
+      flattenOptions(fw.tree, 0, s.itemDrawer && s.itemDrawer.mode === "edit" ? s.itemDrawer.originalCode : null, parentOptions);
+
+      detailVals = {
+        detailTitle: fw.code + ":" + fw.edition,
+        detailName: fw.name,
+        detailItemCountLabel: itemCount + " framework items",
+        detailMenuOpen: s.detailMenuOpen,
+        toggleDetailMenu: () => this.setState((st) => ({ detailMenuOpen: !st.detailMenuOpen })),
+        openEditFramework: () => this.openEditFrameworkFor(fw.id),
+        askDeleteFramework: () => this.askDeleteFrameworkHeader(),
+        itemSearch: s.itemSearch,
+        onItemSearchChange: (e) => this.setState({ itemSearch: e.target.value }),
+        clearItemSearch: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ itemSearch: "" }); },
+        openCreateItem: () => this.openCreateItem(null),
+        showDetailLoading: demoLoading,
+        showItemNoResults: !demoLoading && iq.length > 0 && searchRows.length === 0,
+        showSearchList: !demoLoading && iq.length > 0 && searchRows.length > 0,
+        showTree: !demoLoading && iq.length === 0,
+        searchRows, treeRows,
+        anyItemMenuOpen: !!s.itemMenuOpenCode,
+        closeItemMenus: () => this.setState({ itemMenuOpenCode: null }),
+        parentOptions,
+      };
+    }
+
+    const fd = s.frameworkDrawer || {};
+    const id = s.itemDrawer || {};
+
+    return Object.assign({
+      navItems,
+      roleLabel: isAdmin ? "Admin · consultant@rayims.io" : "consultant@rayims.io",
+      isAdmin,
+      isLibrary: s.screen === "library",
+      isDetail: s.screen === "detail",
+      frameworkCountLabel: s.frameworks.length + " frameworks",
+      librarySearch: s.librarySearch,
+      onLibrarySearchChange: (e) => this.setState({ librarySearch: e.target.value }),
+      clearLibrarySearch: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ librarySearch: "" }); },
+      showLibraryLoading, showLibraryNoResults, showLibraryResults,
+      skeletonRows: [{ width: "70%" }, { width: "55%" }, { width: "62%" }, { width: "48%" }],
+      libraryRows,
+      anyLibraryMenuOpen: !!s.libraryMenuOpenId,
+      closeLibraryMenus: () => this.setState({ libraryMenuOpenId: null }),
+      openCreateFramework: () => this.openCreateFramework(),
+      backToLibrary: (e) => { if (e && e.preventDefault) e.preventDefault(); this.backToLibrary(); },
+
+      frameworkDrawerOpen: !!s.frameworkDrawer,
+      frameworkDrawerTitle: fd.mode === "edit" ? "Edit Framework" : "New Framework",
+      fwCode: fd.code || "", fwEdition: fd.edition || "", fwName: fd.name || "", fwCategory: fd.category || "", fwDescription: fd.description || "",
+      fwCodeEditionError: !!fd.codeEditionError, fwCodeBorder: fd.codeEditionError ? "#b3261e" : "#e5e8ee", fwEditionBorder: fd.codeEditionError ? "#b3261e" : "#e5e8ee",
+      fwNameError: !!fd.nameError, fwNameBorder: fd.nameError ? "#b3261e" : "#e5e8ee",
+      onFwCodeChange: (e) => this.updateFrameworkDrawer({ code: e.target.value, codeEditionError: false }),
+      onFwEditionChange: (e) => this.updateFrameworkDrawer({ edition: e.target.value, codeEditionError: false }),
+      onFwNameChange: (e) => this.updateFrameworkDrawer({ name: e.target.value, nameError: false }),
+      onFwCategoryChange: (e) => this.updateFrameworkDrawer({ category: e.target.value }),
+      onFwDescriptionChange: (e) => this.updateFrameworkDrawer({ description: e.target.value }),
+      closeFrameworkDrawer: () => this.closeFrameworkDrawer(),
+      saveFramework: () => this.saveFramework(),
+      fwSaveLabel: fd.saving ? "Saving…" : "Save",
+      fwSavingOpacity: fd.saving ? 0.6 : 1,
+
+      itemDrawerOpen: !!s.itemDrawer,
+      itemDrawerTitle: id.mode === "edit" ? "Edit Framework Item" : "Add Framework Item",
+      itemParentCode: id.parentCode || "",
+      onItemParentChange: (e) => this.updateItemDrawer({ parentCode: e.target.value }),
+      itemCode: id.code || "",
+      onItemCodeChange: (e) => this.updateItemDrawer({ code: e.target.value }),
+      itemTitle: id.title || "",
+      itemTitleError: !!id.titleError,
+      itemTitleBorder: id.titleError ? "#b3261e" : "#e5e8ee",
+      onItemTitleChange: (e) => this.updateItemDrawer({ title: e.target.value, titleError: false }),
+      itemType: id.itemType || "item",
+      onItemTypeChange: (e) => this.updateItemDrawer({ itemType: e.target.value }),
+      itemDescription: id.description || "",
+      onItemDescriptionChange: (e) => this.updateItemDrawer({ description: e.target.value }),
+      closeItemDrawer: () => this.closeItemDrawer(),
+      saveItem: () => this.saveItem(),
+      itemSaveLabel: id.saving ? "Saving…" : "Save",
+      itemSavingOpacity: id.saving ? 0.6 : 1,
+
+      deleteFrameworkModalOpen: s.deleteFrameworkConfirming,
+      deleteFrameworkBlocked: s.deleteFrameworkConfirming && s.selectedId && s.frameworks.find((f) => f.id === s.selectedId).referenced,
+      deleteFrameworkNotBlocked: s.deleteFrameworkConfirming && s.selectedId && !s.frameworks.find((f) => f.id === s.selectedId).referenced,
+      deleteFrameworkBlockReason: "This framework is assigned to one or more projects and cannot be deleted.",
+      cancelDeleteFramework: () => this.cancelDeleteFrameworkHeader(),
+      confirmDeleteFramework: () => this.confirmDeleteFrameworkHeader(),
+      stopClick: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+
+      toastVisible: !!s.toast,
+      toastMessage: s.toast || "",
+    }, detailVals);
+  }
+}
+
+</script>
+</body>
+</html>

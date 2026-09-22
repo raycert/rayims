@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f3f5f9;}
+a{color:#1c2b4a;text-decoration:none;}
+a:hover{color:#0f1a30;text-decoration:underline;}
+select{-webkit-appearance:none;appearance:none;}
+</style>
+</helmet>
+<div data-screen-label="Project Setup" style="min-height:100vh;background:#f3f5f9;color:#1a2233;display:flex;">
+
+  <aside style="display:none;width:224px;flex-shrink:0;flex-direction:column;border-right:1px solid #e5e8ee;background:#ffffff;" class="rayims-sidebar">
+    <div style="padding:18px 20px 4px;font-size:16px;font-weight:700;letter-spacing:-0.01em;color:#1c2b4a;">RayIMS</div>
+    <div style="padding:0 20px 14px;font-size:11px;color:#8a93a3;letter-spacing:0.02em;text-transform:uppercase;">Consulting Workspace</div>
+    <nav aria-label="Main" style="flex:1;padding:6px 10px 0;display:flex;flex-direction:column;gap:2px;border-top:1px solid #e5e8ee;padding-top:12px;">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:10px;min-height:38px;padding:0 12px;border-radius:8px;font-size:13.5px;font-weight:500;background:{{ item.activeBg }};color:{{ item.color }};cursor:{{ item.cursor }};opacity:{{ item.opacity }};" title="{{ item.title }}">
+          <span>{{ item.label }}</span>
+        </div>
+      </sc-for>
+    </nav>
+    <div style="border-top:1px solid #e5e8ee;padding:12px;">
+      <p style="font-size:12px;color:#8a93a3;padding:0 12px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">consultant@rayims.io</p>
+      <div style="min-height:34px;display:flex;align-items:center;padding:0 12px;font-size:13px;font-weight:500;color:#6b7280;border-radius:8px;">Sign out</div>
+    </div>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+    <header class="rayims-topbar" style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e8ee;background:#ffffff;padding:10px 16px;">
+      <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em;color:#1c2b4a;">RayIMS</span>
+      <span style="font-size:13px;font-weight:500;color:#6b7280;">Sign out</span>
+    </header>
+
+    <main style="flex:1;padding-bottom:76px;">
+      <div style="max-width:760px;margin:0 auto;padding:26px 22px 60px;">
+
+        <div style="font-size:12.5px;color:#8a93a3;margin-bottom:8px;">{{ breadcrumb }}</div>
+        <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0 0 20px;color:#111827;">{{ pageTitle }}</h1>
+
+        <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:20px;margin-bottom:16px;">
+          <h2 style="font-size:14px;font-weight:700;margin:0 0 16px;">Project Identity</h2>
+
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Client</label>
+            <sc-if value="{{ clientLocked }}" hint-placeholder-val="{{ true }}">
+              <div style="min-height:40px;display:flex;align-items:center;padding:0 12px;border-radius:7px;border:1px solid #e5e8ee;background:#f6f7f9;font-size:14px;font-weight:600;color:#1a2233;">{{ clientName }}</div>
+              <p style="font-size:12px;color:#8a93a3;margin:6px 0 0;">{{ clientLockedNote }}</p>
+            </sc-if>
+            <sc-if value="{{ clientSelectable }}" hint-placeholder-val="{{ false }}">
+              <select value="{{ clientId }}" onChange="{{ onClientChange }}" style="width:100%;min-height:40px;border-radius:7px;border:1px solid {{ clientBorder }};background:#ffffff;padding:0 12px;font-size:14px;color:#1a2233;">
+                <option value="">Select a client…</option>
+                <sc-for list="{{ clientOptions }}" as="opt" hint-placeholder-count="4">
+                  <option value="{{ opt.id }}">{{ opt.name }}</option>
+                </sc-for>
+              </select>
+              <sc-if value="{{ clientError }}" hint-placeholder-val="{{ false }}">
+                <p style="font-size:12px;color:#b3261e;margin:6px 0 0;">Select a client to continue.</p>
+              </sc-if>
+            </sc-if>
+          </div>
+
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Project name *</label>
+            <input value="{{ projectName }}" onChange="{{ onNameChange }}" placeholder="e.g. Chinh Long – IMS Implementation 2026" style="width:100%;min-height:40px;border-radius:7px;border:1px solid {{ nameBorder }};padding:0 12px;font-size:14px;outline:none;"/>
+            <sc-if value="{{ nameError }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:12px;color:#b3261e;margin:6px 0 0;">Project name is required.</p>
+            </sc-if>
+          </div>
+
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:160px;">
+              <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Status</label>
+              <select value="{{ status }}" onChange="{{ onStatusChange }}" style="width:100%;min-height:40px;border-radius:7px;border:1px solid #e5e8ee;background:#ffffff;padding:0 12px;font-size:14px;color:#1a2233;">
+                <sc-for list="{{ statusOptions }}" as="s" hint-placeholder-count="5">
+                  <option value="{{ s }}">{{ s }}</option>
+                </sc-for>
+              </select>
+            </div>
+            <div style="flex:1;min-width:160px;">
+              <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Start date</label>
+              <input type="date" value="{{ startDate }}" onChange="{{ onStartDateChange }}" style="width:100%;min-height:40px;border-radius:7px;border:1px solid #e5e8ee;padding:0 12px;font-size:14px;outline:none;"/>
+            </div>
+            <div style="flex:1;min-width:160px;">
+              <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">End date (optional)</label>
+              <input type="date" value="{{ endDate }}" onChange="{{ onEndDateChange }}" style="width:100%;min-height:40px;border-radius:7px;border:1px solid #e5e8ee;padding:0 12px;font-size:14px;outline:none;"/>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:20px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <h2 style="font-size:14px;font-weight:700;margin:0;">Site Scope</h2>
+            <sc-if value="{{ sitesInteractive }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:12.5px;color:#6b7280;">{{ siteSelectionLabel }}</span>
+                <span onClick="{{ toggleSelectAllSites }}" style="font-size:12.5px;font-weight:600;color:#1c2b4a;cursor:pointer;">{{ selectAllLabel }}</span>
+              </div>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ needsClientForSites }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:13.5px;color:#8a93a3;margin:0;">Select a client to choose sites.</p>
+          </sc-if>
+
+          <sc-if value="{{ clientHasNoSites }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:13.5px;color:#6b7280;margin:0;">This client has no sites yet. <a href="Client and Site Management.dc.html">Add sites from the Client page</a>.</p>
+          </sc-if>
+
+          <sc-if value="{{ sitesInteractive }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <sc-for list="{{ siteRows }}" as="site" hint-placeholder-count="4">
+                <label style="display:flex;align-items:center;gap:10px;min-height:40px;padding:0 6px;border-radius:7px;cursor:pointer;background:{{ site.rowBg }};">
+                  <input type="checkbox" checked="{{ site.checked }}" onChange="{{ site.toggle }}" style="width:16px;height:16px;accent-color:#1c2b4a;cursor:pointer;flex-shrink:0;"/>
+                  <span style="font-size:13.5px;font-weight:600;">{{ site.name }}</span>
+                  <sc-if value="{{ site.hasAddress }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size:12.5px;color:#8a93a3;">— {{ site.address }}</span>
+                  </sc-if>
+                </label>
+              </sc-for>
+            </div>
+            <sc-if value="{{ showNoSitesNote }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:12.5px;color:#6b7280;margin:14px 0 0;">No sites selected. You can define the project scope later.</p>
+            </sc-if>
+          </sc-if>
+        </div>
+
+        <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:20px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <h2 style="font-size:14px;font-weight:700;margin:0;">Frameworks</h2>
+            <span style="font-size:12.5px;color:#6b7280;">{{ frameworkSelectionLabel }}</span>
+          </div>
+
+          <sc-for list="{{ frameworkGroups }}" as="group" hint-placeholder-count="1">
+            <div style="margin-bottom:12px;">
+              <div style="font-size:11px;color:#8a93a3;letter-spacing:0.02em;text-transform:uppercase;margin-bottom:6px;">{{ group.name }}</div>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <sc-for list="{{ group.items }}" as="fw" hint-placeholder-count="4">
+                  <label style="display:flex;align-items:center;gap:10px;min-height:40px;padding:0 6px;border-radius:7px;cursor:pointer;background:{{ fw.rowBg }};">
+                    <input type="checkbox" checked="{{ fw.checked }}" onChange="{{ fw.toggle }}" style="width:16px;height:16px;accent-color:#1c2b4a;cursor:pointer;flex-shrink:0;"/>
+                    <span style="font-size:13.5px;font-weight:600;">{{ fw.code }}</span>
+                    <span style="font-size:12.5px;color:#8a93a3;">— {{ fw.name }}</span>
+                  </label>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ showNoFrameworksNote }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:12.5px;color:#6b7280;margin:2px 0 0;">No frameworks assigned yet. You can add these later.</p>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+          <div onClick="{{ onCancel }}" style="min-height:38px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;border:1px solid #e5e8ee;background:#ffffff;font-size:13.5px;font-weight:600;color:#374151;cursor:pointer;">Cancel</div>
+          <div onClick="{{ onSave }}" style="min-height:38px;display:flex;align-items:center;justify-content:center;padding:0 18px;border-radius:7px;background:#1c2b4a;font-size:13.5px;font-weight:600;color:#ffffff;cursor:pointer;opacity:{{ saveOpacity }};pointer-events:{{ savePointerEvents }};">{{ saveLabel }}</div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <nav aria-label="Main" class="rayims-bottomnav" style="display:flex;position:fixed;inset:auto 0 0 0;border-top:1px solid #e5e8ee;background:#ffffff;justify-content:space-around;padding:4px 4px env(safe-area-inset-bottom);">
+    <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;min-width:64px;border-radius:7px;font-size:11px;font-weight:500;color:{{ item.color }};opacity:{{ item.opacity }};">
+        <span style="width:6px;height:6px;border-radius:1px;background:{{ item.dotColor }};"></span>
+        <span>{{ item.label }}</span>
+      </div>
+    </sc-for>
+  </nav>
+
+  <sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2233;color:#ffffff;font-size:13px;font-weight:500;padding:10px 18px;border-radius:8px;box-shadow:0 4px 12px rgba(16,24,40,0.2);z-index:50;">{{ toastMessage }}</div>
+  </sc-if>
+
+  <helmet>
+    <style>
+      @media (min-width: 768px) {
+        .rayims-sidebar { display: flex !important; }
+        .rayims-topbar { display: none !important; }
+        .rayims-bottomnav { display: none !important; }
+        main { padding-bottom: 0 !important; }
+      }
+    </style>
+  </helmet>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;entryMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Create – from Client Detail&quot;,&quot;options&quot;:[&quot;Create – from Client Detail&quot;,&quot;Create – from Global Projects&quot;,&quot;Edit Project&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Demo&quot;}}">
+const STATUS_OPTIONS = ["Planning", "Active", "On Hold", "Completed", "Archived"];
+
+const CLIENTS = [
+  { id: "chinh-long", name: "Chinh Long" },
+  { id: "long-hau", name: "Long Hau Textiles" },
+  { id: "delta-foods", name: "Delta Foods Co." },
+  { id: "an-phat", name: "An Phat Packaging" },
+  { id: "nam-viet", name: "Nam Viet Trading" },
+];
+
+const SITES_BY_CLIENT = {
+  "chinh-long": [
+    { id: "s1", name: "Viet Long", address: "Binh Duong Province" },
+    { id: "s2", name: "Chinh Long Binh Duong", address: "Binh Duong Province" },
+    { id: "s3", name: "Chinh Long Long An", address: "Long An Province" },
+    { id: "s4", name: "Chinh Long Ben Cat", address: "Binh Duong Province" },
+    { id: "s5", name: "Chinh Long Bac Giang", address: "Bac Giang Province" },
+  ],
+  "long-hau": [
+    { id: "s6", name: "Long Hau Plant 1", address: "Long An Province" },
+    { id: "s7", name: "Long Hau Plant 2", address: "Long An Province" },
+  ],
+  "delta-foods": [{ id: "s8", name: "Delta Foods HQ", address: "Ho Chi Minh City" }],
+  "an-phat": [
+    { id: "s9", name: "An Phat Site A", address: "Hai Duong Province" },
+    { id: "s10", name: "An Phat Site B", address: "Hai Duong Province" },
+    { id: "s11", name: "An Phat Site C", address: "Hai Duong Province" },
+  ],
+  "nam-viet": [],
+};
+
+const FRAMEWORKS = [
+  { id: "iso9001", code: "ISO 9001:2015", name: "Quality management systems", category: "Management System" },
+  { id: "iso14001", code: "ISO 14001:2015", name: "Environmental management systems", category: "Management System" },
+  { id: "iso45001", code: "ISO 45001:2018", name: "Occupational health and safety management systems", category: "Management System" },
+  { id: "iso50001", code: "ISO 50001:2018", name: "Energy management systems", category: "Management System" },
+];
+
+function modeOf(props) {
+  return props.entryMode || "Create – from Client Detail";
+}
+
+class Component extends DCLogic {
+  state = this.buildInitialState(modeOf(this.props));
+
+  buildInitialState(mode) {
+    if (mode === "Edit Project") {
+      return {
+        mode, clientId: "chinh-long", name: "Chinh Long – IMS Implementation 2026", status: "Active",
+        startDate: "2026-02-03", endDate: "", nameError: false, clientError: false,
+        selectedSiteIds: ["s1", "s2", "s3", "s4", "s5"], selectedFrameworkIds: ["iso9001", "iso14001", "iso45001"],
+        saving: false, toast: null,
+      };
+    }
+    if (mode === "Create – from Client Detail") {
+      return {
+        mode, clientId: "chinh-long", name: "", status: "Planning", startDate: "", endDate: "",
+        nameError: false, clientError: false, selectedSiteIds: [], selectedFrameworkIds: [], saving: false, toast: null,
+      };
+    }
+    return {
+      mode, clientId: null, name: "", status: "Planning", startDate: "", endDate: "",
+      nameError: false, clientError: false, selectedSiteIds: [], selectedFrameworkIds: [], saving: false, toast: null,
+    };
+  }
+
+  componentDidUpdate(prevProps) {
+    if (modeOf(prevProps) !== modeOf(this.props)) {
+      this.setState(this.buildInitialState(modeOf(this.props)));
+    }
+  }
+
+  showToast(message) {
+    this.setState({ toast: message });
+    setTimeout(() => this.setState((s) => (s.toast === message ? { toast: null } : {})), 2200);
+  }
+
+  setClient(id) { this.setState({ clientId: id || null, clientError: false, selectedSiteIds: [] }); }
+  setName(v) { this.setState({ name: v, nameError: false }); }
+  setStatus(v) { this.setState({ status: v }); }
+  setStartDate(v) { this.setState({ startDate: v }); }
+  setEndDate(v) { this.setState({ endDate: v }); }
+
+  toggleSite(id) {
+    this.setState((s) => {
+      const has = s.selectedSiteIds.includes(id);
+      return { selectedSiteIds: has ? s.selectedSiteIds.filter((x) => x !== id) : s.selectedSiteIds.concat([id]) };
+    });
+  }
+  toggleSelectAllSites() {
+    this.setState((s) => {
+      const all = (SITES_BY_CLIENT[s.clientId] || []).map((site) => site.id);
+      const allSelected = all.length > 0 && all.every((id) => s.selectedSiteIds.includes(id));
+      return { selectedSiteIds: allSelected ? [] : all };
+    });
+  }
+  toggleFramework(id) {
+    this.setState((s) => {
+      const has = s.selectedFrameworkIds.includes(id);
+      return { selectedFrameworkIds: has ? s.selectedFrameworkIds.filter((x) => x !== id) : s.selectedFrameworkIds.concat([id]) };
+    });
+  }
+
+  save() {
+    const isGlobal = this.state.mode === "Create – from Global Projects";
+    const errors = {};
+    if (isGlobal && !this.state.clientId) errors.clientError = true;
+    if (!this.state.name.trim()) errors.nameError = true;
+    if (Object.keys(errors).length) { this.setState(errors); return; }
+    this.setState({ saving: true });
+    setTimeout(() => {
+      this.setState({ saving: false });
+      this.showToast(this.state.mode === "Edit Project" ? "Changes saved" : "Project created");
+    }, 600);
+  }
+
+  renderVals() {
+    const s = this.state;
+    const isEdit = s.mode === "Edit Project";
+    const isGlobal = s.mode === "Create – from Global Projects";
+    const client = CLIENTS.find((c) => c.id === s.clientId);
+    const sitesForClient = s.clientId ? SITES_BY_CLIENT[s.clientId] || [] : [];
+
+    const navItems = [
+      { label: "Dashboard", enabled: false, active: false },
+      { label: "Clients", enabled: true, active: false },
+      { label: "Projects", enabled: true, active: true },
+      { label: "Frameworks", enabled: false, active: false },
+    ].map((n) => ({
+      label: n.label,
+      title: n.enabled ? "" : "Coming in a later phase",
+      cursor: n.enabled ? "pointer" : "not-allowed",
+      opacity: n.enabled ? 1 : 0.5,
+      color: n.active ? "#1c2b4a" : n.enabled ? "#1a2233" : "#8a93a3",
+      activeBg: n.active ? "#e8f0fe" : "transparent",
+      dotColor: n.active ? "#1c2b4a" : "#c3cad6",
+    }));
+
+    const siteRows = sitesForClient.map((site) => {
+      const checked = s.selectedSiteIds.includes(site.id);
+      return {
+        id: site.id, name: site.name, address: site.address || "", hasAddress: !!(site.address && site.address.trim()),
+        checked, rowBg: checked ? "#f6f8fc" : "transparent",
+        toggle: () => this.toggleSite(site.id),
+      };
+    });
+
+    const fwById = {};
+    FRAMEWORKS.forEach((f) => { fwById[f.category] = fwById[f.category] || []; });
+    const grouped = {};
+    FRAMEWORKS.forEach((f) => {
+      const checked = s.selectedFrameworkIds.includes(f.id);
+      const row = { id: f.id, code: f.code, name: f.name, checked, rowBg: checked ? "#f6f8fc" : "transparent", toggle: () => this.toggleFramework(f.id) };
+      grouped[f.category] = (grouped[f.category] || []).concat([row]);
+    });
+    const frameworkGroups = Object.keys(grouped).map((name) => ({ name, items: grouped[name] }));
+
+    const breadcrumb = isEdit
+      ? "Chinh Long – IMS Implementation 2026 / Edit Project"
+      : (s.mode === "Create – from Client Detail" ? "Clients / Chinh Long / New Project" : "Projects / New Project");
+    const pageTitle = isEdit ? "Edit Project" : "New Project";
+
+    const allSiteIdsForClient = sitesForClient.map((site) => site.id);
+    const allSelected = allSiteIdsForClient.length > 0 && allSiteIdsForClient.every((id) => s.selectedSiteIds.includes(id));
+
+    return {
+      navItems,
+      breadcrumb, pageTitle,
+      clientLocked: !isGlobal,
+      clientSelectable: isGlobal,
+      clientName: client ? client.name : "",
+      clientLockedNote: isEdit ? "Client cannot be changed on an existing project." : "Set from the client you're viewing.",
+      clientOptions: CLIENTS,
+      clientId: s.clientId || "",
+      clientError: s.clientError,
+      clientBorder: s.clientError ? "#b3261e" : "#e5e8ee",
+      onClientChange: (e) => this.setClient(e.target.value),
+
+      projectName: s.name,
+      nameError: s.nameError,
+      nameBorder: s.nameError ? "#b3261e" : "#e5e8ee",
+      onNameChange: (e) => this.setName(e.target.value),
+
+      statusOptions: STATUS_OPTIONS,
+      status: s.status,
+      onStatusChange: (e) => this.setStatus(e.target.value),
+      startDate: s.startDate,
+      onStartDateChange: (e) => this.setStartDate(e.target.value),
+      endDate: s.endDate,
+      onEndDateChange: (e) => this.setEndDate(e.target.value),
+
+      sitesInteractive: !!s.clientId && sitesForClient.length > 0,
+      needsClientForSites: !s.clientId,
+      clientHasNoSites: !!s.clientId && sitesForClient.length === 0,
+      siteRows,
+      siteSelectionLabel: s.selectedSiteIds.length + " of " + sitesForClient.length + " selected",
+      selectAllLabel: allSelected ? "Clear all" : "Select all",
+      toggleSelectAllSites: () => this.toggleSelectAllSites(),
+      showNoSitesNote: !!s.clientId && sitesForClient.length > 0 && s.selectedSiteIds.length === 0,
+
+      frameworkGroups,
+      frameworkSelectionLabel: s.selectedFrameworkIds.length + " of " + FRAMEWORKS.length + " selected",
+      showNoFrameworksNote: s.selectedFrameworkIds.length === 0,
+
+      onCancel: () => {},
+      onSave: () => this.save(),
+      saveLabel: s.saving ? (isEdit ? "Saving…" : "Creating…") : (isEdit ? "Save Changes" : "Create Project"),
+      saveOpacity: s.saving ? 0.6 : 1,
+      savePointerEvents: s.saving ? "none" : "auto",
+
+      toastVisible: !!s.toast,
+      toastMessage: s.toast || "",
+    };
+  }
+}
+
+</script>
+</body>
+</html>

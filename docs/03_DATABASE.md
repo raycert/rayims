@@ -123,7 +123,10 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Fields:** `id`, `code` (e.g. "ISO 14001"), `edition` (e.g. "2015"), `name`,
   `category` (free text), `description`, timestamps.
 - **Constraints:** UNIQUE `(code, edition)`. Each edition is its own row.
-- **Notes:** system reference data, seeded by migration, read-only to users in V1.
+- **Notes:** reference/master data, seeded by migration (four ISO frameworks).
+  Readable by every authenticated user; **writable by Admins only** (ADR-016). A seeded
+  framework is an ordinary row: there is no `is_seeded` / `is_system` concept, and
+  deletability depends only on actual references.
 
 ### framework_items
 - **Purpose:** the hierarchical tree of a framework (ADR-001).
@@ -138,6 +141,8 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Delete:** `framework_id` CASCADE; `parent_id` NO ACTION (blocked while it has children); items referenced elsewhere cannot be deleted (NO ACTION on the referencing FKs).
 - **Index:** `(framework_id, parent_id, sort_order)`.
 - See **Framework hierarchy** below.
+- **Notes:** Admin-only writes (ADR-016). `sort_order` is not exposed in the design; the
+  application assigns the next value for new items.
 
 ### project_frameworks
 - **Purpose:** many-to-many between projects and frameworks. Framework
@@ -387,6 +392,11 @@ Rules:
 - Per-project or per-site state ("6.1.2 assessed at Viet Long") is not stored on
   framework items.
 - Seed data uses clause numbers and short titles only (ISO text is copyrighted).
+- **Cycle prevention is application-level (ADR-016).** The database does **not** block an
+  item being its own parent or a re-parent that creates a cycle (verified). The
+  application must exclude the item itself and all its descendants from the parent
+  picker, repeat the check server-side, and build trees cycle-safely. A database trigger
+  is deferred (backlog).
 
 
 ## V1 value lists
@@ -475,6 +485,29 @@ Notes:
 - `NULL` on the profile-reference columns is permitted; none of them is
   structurally required.
 
+## Framework administration (ADR-016)
+
+Frameworks and framework items stay reference/master data and gain **no new columns,
+indexes, FKs or triggers**. Migration `20260921000100_framework_admin_write.sql` only adds authorization:
+
+- `grant insert, update, delete` on both tables to `authenticated`, and
+- six **admin-only** policies (INSERT, UPDATE, DELETE on each table; UPDATE has both
+  `USING` and `WITH CHECK`) that require `profiles.role = 'admin'` for the current user.
+  The existing `authenticated read` (SELECT) policies are unchanged.
+
+| Operation | Consultant | Admin | Anon |
+| --------- | ---------- | ----- | ---- |
+| SELECT | allowed | allowed | denied |
+| INSERT | denied (RLS, `42501`) | allowed | denied |
+| UPDATE | 0 rows affected | allowed | denied |
+| DELETE | 0 rows affected | allowed, subject to FK integrity | denied |
+
+Deletion safety is the existing FK behavior, not policy: a framework assigned to a project
+(`project_frameworks`) cannot be deleted; an item referenced by `document_framework_items`,
+`verification_items` or `issues` cannot be deleted; an item with children cannot be
+deleted; deleting an **unreferenced** framework cascades only to its own items, and is
+blocked if any of them is referenced. Editions are separate rows (`UNIQUE (code, edition)`).
+
 ## Data API grants
 
 Grants decide whether a role can reach an object at all; RLS decides which rows.
@@ -487,7 +520,9 @@ the Data API roles automatically (new projects since 2026-05-30, all projects fr
   tables" setting.
 - **`anon`: no privileges** on any table or view (fails closed with `42501`).
 - **`authenticated`:** `select, insert, update, delete` on the 15 work tables;
-  `select` only on `frameworks` and `framework_items`; `select, update` on
+  `select` on `frameworks` and `framework_items` (from Phase 2, migration
+  `20260921000100_framework_admin_write.sql` also grants `insert, update, delete`, and Admin-only RLS policies decide who
+  may use them; see "Framework administration"); `select, update` on
   `profiles` (RLS also locks `role`); `select` on `document_register`.
 - `service_role` is not used by RayIMS in V1 and is not granted.
 - Every future migration that adds a table must include its own grants and RLS.
@@ -532,6 +567,9 @@ Validated by the application:
 - A referenced framework item belongs to a framework used by the project
   (`project_frameworks`).
 - A site added to a project's scope (`project_sites`) belongs to the project's
-  client (BR-04).
+  client (BR-04, BR-57). Not database-enforced.
+- A project's `client_id` is not changed after creation (BR-57); the edit screen locks
+  it. Not database-enforced.
+- A framework item's parent is neither itself nor one of its descendants (BR-55).
 - `reviewed_at` is populated when a review reaches `revision_required` or
   `accepted`.

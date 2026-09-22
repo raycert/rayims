@@ -11,9 +11,10 @@ without explicit approval.
 3. **Projects** — a client may have multiple projects.
 4. **Sites** — reusable client-level sites, linked to projects through
    `project_sites` (scope of a project).
-5. **Frameworks** — seeded, read-only reference frameworks with a hierarchical
-   item tree (ISO 9001, 14001, 45001, 50001); projects select the frameworks
-   they use.
+5. **Frameworks** — reference/master data with a hierarchical item tree (seeded:
+   ISO 9001, 14001, 45001, 50001). Consultants browse and search; **Admins
+   administer** (create, edit, controlled delete; ADR-016). Projects select the
+   frameworks they use.
 6. **Master Plan / Activities** — plan project work: activity type, site
    (optional), dates, mode (on-site / online), planned days, consultant,
    objectives, planned work, status. Also holds the visit summary fields.
@@ -29,6 +30,18 @@ without explicit approval.
 14. **Visit Summary / Report** — generated from structured data as a printable
     page (no server-side PDF generation).
 15. **Minimal Dashboard** — upcoming activities and open / overdue actions.
+
+## Phase 2 scope (Client / Project / Site / Frameworks)
+
+In: Clients, Sites, Projects, Project Setup (identity, site scope, framework
+assignment), Project Workspace **Overview with real data only** (sites, frameworks,
+project information), Framework Library and Detail, Framework Administration (Admin).
+Approved UI references: `docs/phase-2/`.
+
+Outside Phase 2: activity planning, documents and versions, reviews, evidence,
+verification, issues and actions, reports, and every excluded item below. The
+Overview does not show upcoming activities, verification progress or issues/actions
+until their phases.
 
 ## Out of scope (V1 exclusions)
 
@@ -66,12 +79,21 @@ Where such things look useful, they are **future considerations only**.
 | Per-project, per-item assessment status matrix            | Future additive table (gap assessment)                                |
 | Organizations, `project_members`, client contacts         | Future multi-user / portal work                                       |
 | Issue classification (NC / Observation / OFI), CAPA       | Future additive column or 1:1 extension table                         |
-| Framework editing UI / custom frameworks                  | Frameworks are seeded via migration                                   |
 | `ltree` paths, full-text search                           | Adjacency list + recursive query is sufficient                        |
 | Soft delete, audit log                                    | `created_by` + `updated_at` are sufficient for V1                     |
 | Image thumbnails / storage image transformations          | Cost; compress client-side at upload instead                          |
 | Server-side PDF generation                                | Printable HTML page instead                                           |
 | Domain tables for Carbon / ESG / CBAM                     | Not created in V1                                                     |
+| DB trigger against framework hierarchy cycles             | Prevented in the application in Phase 2 (ADR-016)                     |
+| Atomic `save_project` database function                  | Phase 2 uses idempotent multi-step saves                              |
+| DB guards for project/site client consistency and immutable project client | Validated in the application in Phase 2              |
+| Client and project deletion                               | Not part of Phase 2; use `inactive` / `archived`                    |
+| "Duplicate framework as new edition"                      | A new edition is a new framework row entered by an Admin              |
+| Site status                                               | Not stored; no per-site status is shown                                |
+
+Previously deferred and now **in scope**: framework administration (the "Framework
+editing UI / custom frameworks" deferral), approved for Phase 2 and recorded as
+ADR-016.
 
 ## Scope change rule
 

@@ -7,7 +7,7 @@
 | 0C    | Foundation Implementation                   | **COMPLETED** |
 | 0D    | Supabase Integration & Backend Verification | **COMPLETED** |
 | 1     | Authentication & App Shell                  | **COMPLETED** |
-| 2     | Client / Project / Site / Frameworks        | Planned       |
+| 2     | Client / Project / Site / Frameworks        | Planned (baseline updated) |
 | 3     | Master Plan / Activities                    | Planned       |
 | 4     | Verification / Issues / Actions             | Planned       |
 | 5     | Documents / Versions / Reviews              | Planned       |
@@ -104,10 +104,24 @@ Delivered:
 Placeholders that intentionally remain until their phase: dashboard metrics (Phase 7);
 Clients / Projects / Frameworks navigation (disabled, Phase 2).
 
-## Phase 2 — Client / Project / Site / Frameworks
+## Phase 2 — Client / Project / Site / Frameworks [Planned; baseline updated]
 
-Clients, projects, client-level sites, `project_sites` scope, framework browser
-(read-only), project frameworks.
+Scope: Clients, Sites (client-level), Projects, Project Setup (identity, site scope,
+framework assignment; full page), Project Workspace **Overview with real data only**
+(sites, frameworks, project information), Framework Library and Detail for everyone,
+and **Framework Administration for Admins** (create, edit, controlled delete; ADR-016).
+UI references: `docs/phase-2/`. The other workspace tabs (Plan, Documents,
+Verification, Issues & Actions, Reports) are disabled until their phases.
+
+**Baseline update (done, before implementation):** ADR-016 and the document amendments;
+migration `20260921000100_framework_admin_write.sql` (Admin-only framework writes) applied and verified on the hosted
+project; approved design set reduced to the final files. No Phase 2 screen has been
+implemented yet.
+
+Intentionally deferred from Phase 2 (backlog): DB trigger against framework hierarchy
+cycles; atomic `save_project` function; DB guards for site/client consistency and
+immutable project client; client and project deletion; "duplicate framework as new
+edition"; site status.
 
 ## Phase 3 — Master Plan / Activities
 

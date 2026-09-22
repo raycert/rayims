@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f3f5f9;}
+@keyframes shimmer{0%{background-position:-300px 0;}100%{background-position:300px 0;}}
+a{color:#1c2b4a;text-decoration:none;}
+a:hover{color:#0f1a30;text-decoration:underline;}
+input::placeholder,textarea::placeholder{color:#9aa2b1;}
+</style>
+</helmet>
+<div data-screen-label="Clients" style="min-height:100vh;background:#f3f5f9;color:#1a2233;display:flex;position:relative;">
+
+  <aside style="display:none;width:224px;flex-shrink:0;flex-direction:column;border-right:1px solid #e5e8ee;background:#ffffff;" class="rayims-sidebar">
+    <div style="padding:18px 20px 4px;font-size:16px;font-weight:700;letter-spacing:-0.01em;color:#1c2b4a;">RayIMS</div>
+    <div style="padding:0 20px 14px;font-size:11px;color:#8a93a3;letter-spacing:0.02em;text-transform:uppercase;">Consulting Workspace</div>
+    <nav aria-label="Main" style="flex:1;padding:6px 10px 0;display:flex;flex-direction:column;gap:2px;border-top:1px solid #e5e8ee;padding-top:12px;">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:10px;min-height:38px;padding:0 12px;border-radius:8px;font-size:13.5px;font-weight:500;background:{{ item.activeBg }};color:{{ item.color }};cursor:{{ item.cursor }};opacity:{{ item.opacity }};" title="{{ item.title }}">
+          <span>{{ item.label }}</span>
+        </div>
+      </sc-for>
+    </nav>
+    <div style="border-top:1px solid #e5e8ee;padding:12px;">
+      <p style="font-size:12px;color:#8a93a3;padding:0 12px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">consultant@rayims.io</p>
+      <div style="min-height:34px;display:flex;align-items:center;padding:0 12px;font-size:13px;font-weight:500;color:#6b7280;border-radius:8px;">Sign out</div>
+    </div>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+    <header class="rayims-topbar" style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e8ee;background:#ffffff;padding:10px 16px;">
+      <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em;color:#1c2b4a;">RayIMS</span>
+      <span style="font-size:13px;font-weight:500;color:#6b7280;">Sign out</span>
+    </header>
+
+    <main style="flex:1;padding-bottom:76px;">
+      <div style="max-width:1180px;margin:0 auto;padding:26px 22px 44px;">
+
+        <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+          <div data-screen-label="Client List">
+            <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;">
+              <div>
+                <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0;color:#111827;">Clients</h1>
+                <p style="font-size:13px;color:#6b7280;margin:4px 0 0;">{{ clientCountLabel }}</p>
+              </div>
+              <div onClick="{{ openCreateClient }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;background:#1c2b4a;font-size:13px;font-weight:600;color:#ffffff;cursor:pointer;">+ Add Client</div>
+            </div>
+
+            <div style="margin:16px 0 18px;max-width:320px;">
+              <input value="{{ search }}" onChange="{{ onSearchChange }}" placeholder="Search clients…" style="width:100%;min-height:38px;border-radius:7px;border:1px solid #e5e8ee;background:#ffffff;padding:0 12px;font-size:13.5px;color:#1a2233;outline:none;"/>
+            </div>
+
+            <sc-if value="{{ showLoading }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:16px;display:flex;flex-direction:column;gap:10px;">
+                <sc-for list="{{ skeletonRows }}" as="s" hint-placeholder-count="4">
+                  <div style="height:18px;border-radius:4px;background:linear-gradient(90deg,#eef1f5 25%,#f6f7f9 37%,#eef1f5 63%);background-size:400px 100%;animation:shimmer 1.4s infinite linear;width:{{ s.width }};"></div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showEmptyClients }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:56px 24px;text-align:center;">
+                <h2 style="font-size:15px;font-weight:700;margin:0 0 6px;">No clients yet</h2>
+                <p style="font-size:13.5px;color:#6b7280;margin:0 0 16px;">Add your first client to start setting up projects and sites.</p>
+                <div onClick="{{ openCreateClient }}" style="display:inline-flex;min-height:36px;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;background:#1c2b4a;font-size:13px;font-weight:600;color:#ffffff;cursor:pointer;">+ Add Client</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showNoResults }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:48px 24px;text-align:center;">
+                <p style="font-size:13.5px;color:#6b7280;margin:0 0 8px;">No clients match "{{ search }}".</p>
+                <a href="#" onClick="{{ clearSearch }}" style="font-size:13px;font-weight:600;">Clear search</a>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showResults }}" hint-placeholder-val="{{ true }}">
+              <div class="clients-table-wrap" style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);overflow:hidden;">
+                <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
+                  <thead>
+                    <tr>
+                      <th style="text-align:left;padding:12px 16px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Client</th>
+                      <th style="text-align:left;padding:12px 10px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Sites</th>
+                      <th style="text-align:left;padding:12px 10px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Projects</th>
+                      <th style="text-align:left;padding:12px 10px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Status</th>
+                      <th style="text-align:right;padding:12px 16px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ filteredClients }}" as="c" hint-placeholder-count="4">
+                      <tr onClick="{{ c.openDetail }}" style="cursor:pointer;">
+                        <td style="padding:12px 16px;border-top:1px solid #eef0f4;font-weight:600;">{{ c.name }}</td>
+                        <td style="padding:12px 10px;border-top:1px solid #eef0f4;color:#6b7280;">{{ c.sitesCount }}</td>
+                        <td style="padding:12px 10px;border-top:1px solid #eef0f4;color:#6b7280;">{{ c.projectsCount }}</td>
+                        <td style="padding:12px 10px;border-top:1px solid #eef0f4;">
+                          <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;background:{{ c.bg }};color:{{ c.color }};font-weight:600;font-size:11px;">{{ c.status }}</span>
+                        </td>
+                        <td style="padding:12px 16px;border-top:1px solid #eef0f4;text-align:right;white-space:nowrap;">
+                          <span onClick="{{ c.openEdit }}" style="font-size:12.5px;font-weight:600;color:#1c2b4a;cursor:pointer;margin-right:10px;">Edit</span>
+                          <span style="color:#c3cad6;">›</span>
+                        </td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="clients-cards-wrap" style="display:none;flex-direction:column;gap:10px;">
+                <sc-for list="{{ filteredClients }}" as="c" hint-placeholder-count="4">
+                  <div onClick="{{ c.openDetail }}" style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:14px 16px;cursor:pointer;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                      <span style="font-size:14.5px;font-weight:700;">{{ c.name }}</span>
+                      <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;background:{{ c.bg }};color:{{ c.color }};font-weight:600;font-size:11px;">{{ c.status }}</span>
+                    </div>
+                    <div style="font-size:13px;color:#6b7280;">{{ c.sitesCount }} sites · {{ c.projectsCount }} projects</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Client Detail">
+            <div style="font-size:12.5px;color:#8a93a3;margin-bottom:8px;">
+              <a href="#" onClick="{{ backToList }}">Clients</a>
+              <span style="margin:0 6px;">/</span>
+              <span style="color:#1a2233;">{{ client.name }}</span>
+            </div>
+
+            <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0;color:#111827;">{{ client.name }}</h1>
+                <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;background:{{ client.bg }};color:{{ client.color }};font-weight:600;font-size:11.5px;">{{ client.status }}</span>
+              </div>
+              <div onClick="{{ openEditClient }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 14px;border-radius:7px;border:1px solid #1c2b4a;background:#ffffff;font-size:13px;font-weight:600;color:#1c2b4a;cursor:pointer;">Edit Client</div>
+            </div>
+            <p style="font-size:13px;color:#6b7280;margin:2px 0 24px;">{{ client.metaLine }}</p>
+
+            <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);margin-bottom:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+                <h2 style="font-size:14px;font-weight:700;margin:0;">Sites</h2>
+                <div onClick="{{ openCreateSite }}" style="min-height:32px;display:flex;align-items:center;justify-content:center;padding:0 12px;border-radius:6px;background:#1c2b4a;font-size:12.5px;font-weight:600;color:#ffffff;cursor:pointer;">+ Add Site</div>
+              </div>
+
+              <sc-if value="{{ client.showNoSites }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:8px 16px 28px;text-align:center;">
+                  <p style="font-size:13.5px;color:#6b7280;margin:0 0 12px;">No sites yet for this client.</p>
+                  <div onClick="{{ openCreateSite }}" style="display:inline-flex;min-height:34px;align-items:center;justify-content:center;padding:0 14px;border-radius:7px;background:#1c2b4a;font-size:12.5px;font-weight:600;color:#ffffff;cursor:pointer;">+ Add Site</div>
+                </div>
+              </sc-if>
+
+              <sc-for list="{{ client.sites }}" as="site" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;justify-content:space-between;min-height:46px;padding:0 16px;border-top:1px solid #eef0f4;font-size:13.5px;gap:12px;">
+                  <div style="min-width:0;">
+                    <div style="font-weight:600;">{{ site.name }}</div>
+                    <sc-if value="{{ site.hasAddress }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:12px;color:#8a93a3;">{{ site.address }}</div>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ site.confirmingBlocked }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:10px;white-space:nowrap;">
+                      <span style="font-size:12.5px;color:#96650a;">In use by a project — cannot be removed.</span>
+                      <span onClick="{{ site.cancelDelete }}" style="font-size:12.5px;font-weight:600;color:#6b7280;cursor:pointer;">OK</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ site.confirmingDeletable }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:10px;white-space:nowrap;">
+                      <span style="font-size:12.5px;color:#b3261e;">Delete this site?</span>
+                      <span onClick="{{ site.cancelDelete }}" style="font-size:12.5px;font-weight:600;color:#6b7280;cursor:pointer;">Cancel</span>
+                      <span onClick="{{ site.confirmDelete }}" style="font-size:12.5px;font-weight:600;color:#ffffff;background:#b3261e;border-radius:6px;padding:5px 10px;cursor:pointer;">Delete</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ site.notConfirming }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;align-items:center;gap:12px;white-space:nowrap;position:relative;">
+                      <span title="Site workspace — future navigation" style="color:#c3cad6;font-size:13px;">›</span>
+                      <span onClick="{{ site.toggleMenu }}" style="font-size:15px;font-weight:700;color:#6b7280;cursor:pointer;padding:2px 8px;border-radius:6px;letter-spacing:1px;">⋯</span>
+                      <sc-if value="{{ site.menuOpen }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute;top:26px;right:0;background:#ffffff;border:1px solid #e5e8ee;border-radius:8px;box-shadow:0 4px 12px rgba(16,24,40,0.14);min-width:130px;z-index:6;overflow:hidden;">
+                          <div onClick="{{ site.openEdit }}" style="padding:9px 14px;font-size:13px;font-weight:500;color:#1a2233;cursor:pointer;">Edit</div>
+                          <div onClick="{{ site.askDelete }}" style="padding:9px 14px;font-size:13px;font-weight:500;color:#b3261e;cursor:pointer;border-top:1px solid #eef0f4;">Delete</div>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ anySiteMenuOpen }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ closeSiteMenus }}" style="position:fixed;inset:0;z-index:5;"></div>
+              </sc-if>
+            </div>
+
+            <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);">
+              <div style="padding:14px 16px;">
+                <h2 style="font-size:14px;font-weight:700;margin:0;">Projects</h2>
+              </div>
+
+              <sc-if value="{{ client.showNoProjects }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:0 16px 24px;">
+                  <p style="font-size:13.5px;color:#6b7280;margin:0;">No projects yet. Project setup is reviewed in a later phase.</p>
+                </div>
+              </sc-if>
+
+              <sc-for list="{{ client.projects }}" as="proj" hint-placeholder-count="1">
+                <div style="display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 16px;border-top:1px solid #eef0f4;font-size:13.5px;gap:12px;">
+                  <sc-if value="{{ proj.linkable }}" hint-placeholder-val="{{ false }}">
+                    <a href="{{ proj.href }}" style="font-weight:600;">{{ proj.name }}</a>
+                  </sc-if>
+                  <sc-if value="{{ proj.notLinkable }}" hint-placeholder-val="{{ true }}">
+                    <span style="font-weight:600;">{{ proj.name }}</span>
+                  </sc-if>
+                  <div style="display:flex;align-items:center;gap:10px;white-space:nowrap;">
+                    <span style="font-size:12px;color:#8a93a3;">{{ proj.start }}</span>
+                    <span style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:5px;background:{{ proj.bg }};color:{{ proj.color }};font-weight:600;font-size:11px;">{{ proj.status }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+    </main>
+  </div>
+
+  <nav aria-label="Main" class="rayims-bottomnav" style="display:flex;position:fixed;inset:auto 0 0 0;border-top:1px solid #e5e8ee;background:#ffffff;justify-content:space-around;padding:4px 4px env(safe-area-inset-bottom);">
+    <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;min-width:64px;border-radius:7px;font-size:11px;font-weight:500;color:{{ item.color }};opacity:{{ item.opacity }};">
+        <span style="width:6px;height:6px;border-radius:1px;background:{{ item.dotColor }};"></span>
+        <span>{{ item.label }}</span>
+      </div>
+    </sc-for>
+  </nav>
+
+  <sc-if value="{{ clientDrawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(17,24,39,0.32);z-index:40;" onClick="{{ closeClientDrawer }}"></div>
+    <div class="drawer-panel" style="position:fixed;top:0;right:0;bottom:0;width:400px;background:#ffffff;z-index:41;box-shadow:-4px 0 16px rgba(16,24,40,0.12);display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e8ee;">
+        <h2 style="font-size:15px;font-weight:700;margin:0;">{{ clientDrawerTitle }}</h2>
+        <span onClick="{{ closeClientDrawer }}" style="font-size:13px;color:#8a93a3;cursor:pointer;">Close</span>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Client name *</label>
+          <input value="{{ clientDrawerName }}" onChange="{{ onClientNameChange }}" placeholder="e.g. Chinh Long" style="width:100%;min-height:40px;border-radius:7px;border:1px solid {{ clientNameBorder }};padding:0 12px;font-size:14px;outline:none;"/>
+          <sc-if value="{{ clientNameError }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:12px;color:#b3261e;margin:6px 0 0;">Client name is required.</p>
+          </sc-if>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Status</label>
+          <div style="display:flex;gap:6px;">
+            <div onClick="{{ setClientStatusActive }}" style="flex:1;text-align:center;min-height:36px;display:flex;align-items:center;justify-content:center;border-radius:7px;border:1px solid {{ activeBorder }};background:{{ activeBg }};color:{{ activeColor }};font-size:13px;font-weight:600;cursor:pointer;">Active</div>
+            <div onClick="{{ setClientStatusInactive }}" style="flex:1;text-align:center;min-height:36px;display:flex;align-items:center;justify-content:center;border-radius:7px;border:1px solid {{ inactiveBorder }};background:{{ inactiveBg }};color:{{ inactiveColor }};font-size:13px;font-weight:600;cursor:pointer;">Inactive</div>
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Notes</label>
+          <textarea value="{{ clientDrawerNotes }}" onChange="{{ onClientNotesChange }}" placeholder="Optional context for this client" style="width:100%;min-height:80px;border-radius:7px;border:1px solid #e5e8ee;padding:10px 12px;font-size:13.5px;outline:none;resize:vertical;font-family:inherit;"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid #e5e8ee;">
+        <div onClick="{{ closeClientDrawer }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 14px;border-radius:7px;border:1px solid #e5e8ee;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">Cancel</div>
+        <div onClick="{{ saveClient }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;background:#1c2b4a;font-size:13px;font-weight:600;color:#ffffff;cursor:pointer;opacity:{{ clientSavingOpacity }};">{{ clientSaveLabel }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ siteDrawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(17,24,39,0.32);z-index:40;" onClick="{{ closeSiteDrawer }}"></div>
+    <div class="drawer-panel" style="position:fixed;top:0;right:0;bottom:0;width:400px;background:#ffffff;z-index:41;box-shadow:-4px 0 16px rgba(16,24,40,0.12);display:flex;flex-direction:column;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e5e8ee;">
+        <h2 style="font-size:15px;font-weight:700;margin:0;">{{ siteDrawerTitle }}</h2>
+        <span onClick="{{ closeSiteDrawer }}" style="font-size:13px;color:#8a93a3;cursor:pointer;">Close</span>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Site name *</label>
+          <input value="{{ siteDrawerName }}" onChange="{{ onSiteNameChange }}" placeholder="e.g. Viet Long" style="width:100%;min-height:40px;border-radius:7px;border:1px solid {{ siteNameBorder }};padding:0 12px;font-size:14px;outline:none;"/>
+          <sc-if value="{{ siteNameError }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:12px;color:#b3261e;margin:6px 0 0;">Site name is required.</p>
+          </sc-if>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Address</label>
+          <input value="{{ siteDrawerAddress }}" onChange="{{ onSiteAddressChange }}" placeholder="Optional" style="width:100%;min-height:40px;border-radius:7px;border:1px solid #e5e8ee;padding:0 12px;font-size:14px;outline:none;"/>
+        </div>
+        <div>
+          <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;">Notes</label>
+          <textarea value="{{ siteDrawerNotes }}" onChange="{{ onSiteNotesChange }}" placeholder="Optional" style="width:100%;min-height:80px;border-radius:7px;border:1px solid #e5e8ee;padding:10px 12px;font-size:13.5px;outline:none;resize:vertical;font-family:inherit;"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid #e5e8ee;">
+        <div onClick="{{ closeSiteDrawer }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 14px;border-radius:7px;border:1px solid #e5e8ee;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">Cancel</div>
+        <div onClick="{{ saveSite }}" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;background:#1c2b4a;font-size:13px;font-weight:600;color:#ffffff;cursor:pointer;opacity:{{ siteSavingOpacity }};">{{ siteSaveLabel }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2233;color:#ffffff;font-size:13px;font-weight:500;padding:10px 18px;border-radius:8px;box-shadow:0 4px 12px rgba(16,24,40,0.2);z-index:50;">{{ toastMessage }}</div>
+  </sc-if>
+
+  <helmet>
+    <style>
+      @media (min-width: 768px) {
+        .rayims-sidebar { display: flex !important; }
+        .rayims-topbar { display: none !important; }
+        .rayims-bottomnav { display: none !important; }
+        main { padding-bottom: 0 !important; }
+      }
+      @media (max-width: 767px) {
+        .clients-table-wrap { display: none !important; }
+        .clients-cards-wrap { display: flex !important; }
+        .drawer-panel { top: auto !important; left: 0 !important; width: 100% !important; height: 85vh !important; border-radius: 14px 14px 0 0 !important; }
+      }
+    </style>
+  </helmet>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;demoLoading&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;},&quot;demoNoClients&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;}}">
+function tone(kind) {
+  const t = {
+    success: { bg: "#e5f4ec", color: "#1b7a4b" },
+    warning: { bg: "#fcf1d6", color: "#96650a" },
+    danger: { bg: "#fdebea", color: "#b3261e" },
+    neutral: { bg: "#eef0f4", color: "#6b7280" },
+    info: { bg: "#e8f0fe", color: "#1c2b4a" },
+  };
+  return t[kind] || t.neutral;
+}
+
+const CLIENT_TONE = { Active: "success", Inactive: "neutral" };
+const PROJECT_TONE = { Planning: "neutral", Active: "success", "On Hold": "warning", Completed: "success", Archived: "neutral" };
+
+function seedData() {
+  return {
+    clients: [
+      { id: "chinh-long", name: "Chinh Long", status: "Active", createdAt: "12 Jan 2026" },
+      { id: "long-hau", name: "Long Hau Textiles", status: "Active", createdAt: "3 Mar 2026" },
+      { id: "delta-foods", name: "Delta Foods Co.", status: "Active", createdAt: "18 Apr 2026" },
+      { id: "an-phat", name: "An Phat Packaging", status: "Inactive", createdAt: "25 Nov 2025" },
+      { id: "nam-viet", name: "Nam Viet Trading", status: "Active", createdAt: "2 Sep 2026" },
+    ],
+    sites: {
+      "chinh-long": [
+        { id: "s1", name: "Viet Long", address: "Binh Duong Province", inUse: true },
+        { id: "s2", name: "Chinh Long Binh Duong", address: "Binh Duong Province", inUse: true },
+        { id: "s3", name: "Chinh Long Long An", address: "Long An Province", inUse: true },
+        { id: "s4", name: "Chinh Long Ben Cat", address: "Binh Duong Province", inUse: true },
+        { id: "s5", name: "Chinh Long Bac Giang", address: "Bac Giang Province", inUse: true },
+      ],
+      "long-hau": [
+        { id: "s6", name: "Long Hau Plant 1", address: "Long An Province" },
+        { id: "s7", name: "Long Hau Plant 2", address: "Long An Province" },
+      ],
+      "delta-foods": [{ id: "s8", name: "Delta Foods HQ", address: "Ho Chi Minh City" }],
+      "an-phat": [
+        { id: "s9", name: "An Phat Site A", address: "Hai Duong Province" },
+        { id: "s10", name: "An Phat Site B", address: "Hai Duong Province" },
+        { id: "s11", name: "An Phat Site C", address: "Hai Duong Province" },
+      ],
+      "nam-viet": [],
+    },
+    projects: {
+      "chinh-long": [{ name: "Chinh Long – IMS Implementation 2026", status: "Active", start: "3 Feb 2026", linkable: true, href: "Project Workspace Overview.dc.html" }],
+      "long-hau": [{ name: "Long Hau ISO 9001 Rollout", status: "Planning", start: "—", linkable: false, href: "" }],
+      "delta-foods": [],
+      "an-phat": [
+        { name: "An Phat IMS Renewal", status: "On Hold", start: "—", linkable: false, href: "" },
+        { name: "An Phat 14001 Extension", status: "Completed", start: "—", linkable: false, href: "" },
+      ],
+      "nam-viet": [],
+    },
+  };
+}
+
+class Component extends DCLogic {
+  state = {
+    screen: "list",
+    selectedClientId: null,
+    search: "",
+    data: seedData(),
+    confirmDeleteSiteId: null,
+    openMenuSiteId: null,
+    clientDrawer: null,
+    siteDrawer: null,
+    toast: null,
+  };
+
+  showToast(message) {
+    this.setState({ toast: message });
+    setTimeout(() => this.setState((s) => (s.toast === message ? { toast: null } : {})), 2200);
+  }
+
+  openCreateClient() {
+    this.setState({ clientDrawer: { mode: "create", clientId: null, name: "", status: "Active", notes: "", nameError: false, saving: false } });
+  }
+  openEditClientFor(clientId) {
+    const c = this.state.data.clients.find((x) => x.id === clientId);
+    this.setState({ clientDrawer: { mode: "edit", clientId, name: c.name, status: c.status, notes: c.notes || "", nameError: false, saving: false } });
+  }
+  closeClientDrawer() { this.setState({ clientDrawer: null }); }
+  updateClientDrawer(patch) { this.setState((s) => ({ clientDrawer: Object.assign({}, s.clientDrawer, patch) })); }
+  saveClient() {
+    const d = this.state.clientDrawer;
+    if (!d.name.trim()) { this.updateClientDrawer({ nameError: true }); return; }
+    this.updateClientDrawer({ saving: true });
+    setTimeout(() => {
+      this.setState((s) => {
+        const data = s.data;
+        let clients = data.clients;
+        let sites = data.sites;
+        let projects = data.projects;
+        if (d.mode === "create") {
+          const id = "c" + Date.now();
+          clients = clients.concat([{ id: id, name: d.name.trim(), status: d.status, notes: d.notes, createdAt: "Just now" }]);
+          sites = Object.assign({}, sites, { [id]: [] });
+          projects = Object.assign({}, projects, { [id]: [] });
+        } else {
+          clients = clients.map((c) => (c.id === d.clientId ? { id: c.id, name: d.name.trim(), status: d.status, notes: d.notes, createdAt: c.createdAt } : c));
+        }
+        return { data: { clients: clients, sites: sites, projects: projects }, clientDrawer: null };
+      });
+      this.showToast(d.mode === "create" ? "Client added" : "Client saved");
+    }, 550);
+  }
+
+  openCreateSite() {
+    this.setState({ siteDrawer: { mode: "create", siteId: null, name: "", address: "", notes: "", nameError: false, saving: false } });
+  }
+  openEditSiteFor(siteId) {
+    const site = this.state.data.sites[this.state.selectedClientId].find((s) => s.id === siteId);
+    this.setState({ siteDrawer: { mode: "edit", siteId, name: site.name, address: site.address || "", notes: site.notes || "", nameError: false, saving: false }, openMenuSiteId: null });
+  }
+  closeSiteDrawer() { this.setState({ siteDrawer: null }); }
+  toggleSiteMenu(siteId) { this.setState((s) => ({ openMenuSiteId: s.openMenuSiteId === siteId ? null : siteId })); }
+  closeSiteMenus() { this.setState({ openMenuSiteId: null }); }
+  updateSiteDrawer(patch) { this.setState((s) => ({ siteDrawer: Object.assign({}, s.siteDrawer, patch) })); }
+  saveSite() {
+    const d = this.state.siteDrawer;
+    if (!d.name.trim()) { this.updateSiteDrawer({ nameError: true }); return; }
+    this.updateSiteDrawer({ saving: true });
+    setTimeout(() => {
+      this.setState((s) => {
+        const clientId = s.selectedClientId;
+        const current = s.data.sites[clientId];
+        let updated;
+        if (d.mode === "create") {
+          updated = current.concat([{ id: "site" + Date.now(), name: d.name.trim(), address: d.address, notes: d.notes }]);
+        } else {
+          updated = current.map((site) => (site.id === d.siteId ? { id: site.id, name: d.name.trim(), address: d.address, notes: d.notes } : site));
+        }
+        return { data: Object.assign({}, s.data, { sites: Object.assign({}, s.data.sites, { [clientId]: updated }) }), siteDrawer: null };
+      });
+      this.showToast(d.mode === "create" ? "Site added" : "Site saved");
+    }, 550);
+  }
+
+  askDeleteSite(siteId) { this.setState({ confirmDeleteSiteId: siteId, openMenuSiteId: null }); }
+  cancelDeleteSite() { this.setState({ confirmDeleteSiteId: null }); }
+  confirmDeleteSite(siteId) {
+    this.setState((s) => {
+      const clientId = s.selectedClientId;
+      const updated = s.data.sites[clientId].filter((site) => site.id !== siteId);
+      return { data: Object.assign({}, s.data, { sites: Object.assign({}, s.data.sites, { [clientId]: updated }) }), confirmDeleteSiteId: null };
+    });
+    this.showToast("Site removed");
+  }
+
+  renderVals() {
+    const demoLoading = !!this.props.demoLoading;
+    const demoNoClients = !!this.props.demoNoClients;
+    const { screen, selectedClientId, search, data, confirmDeleteSiteId, clientDrawer, siteDrawer, toast } = this.state;
+
+    const navItems = [
+      { label: "Dashboard", enabled: false, active: false },
+      { label: "Clients", enabled: true, active: true },
+      { label: "Projects", enabled: false, active: false },
+      { label: "Frameworks", enabled: false, active: false },
+    ].map((n) => ({
+      label: n.label,
+      title: n.enabled ? "" : "Coming in a later phase",
+      cursor: n.enabled ? "pointer" : "not-allowed",
+      opacity: n.enabled ? 1 : 0.5,
+      color: n.active ? "#1c2b4a" : n.enabled ? "#1a2233" : "#8a93a3",
+      activeBg: n.active ? "#e8f0fe" : "transparent",
+      dotColor: n.active ? "#1c2b4a" : "#c3cad6",
+    }));
+
+    const query = search.trim().toLowerCase();
+    const withCounts = data.clients.map((c) => {
+      const t = tone(CLIENT_TONE[c.status]);
+      return {
+        id: c.id, name: c.name, status: c.status, bg: t.bg, color: t.color,
+        sitesCount: data.sites[c.id].length, projectsCount: data.projects[c.id].length,
+        openDetail: () => this.setState({ screen: "detail", selectedClientId: c.id }),
+        openEdit: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openEditClientFor(c.id); },
+      };
+    });
+    const filteredClients = query ? withCounts.filter((c) => c.name.toLowerCase().includes(query)) : withCounts;
+
+    const showLoading = demoLoading && !demoNoClients;
+    const showEmptyClients = demoNoClients && !demoLoading;
+    const showNoResults = !showLoading && !showEmptyClients && query.length > 0 && filteredClients.length === 0;
+    const showResults = !showLoading && !showEmptyClients && !showNoResults;
+
+    let client = null;
+    if (screen === "detail" && selectedClientId) {
+      const c = data.clients.find((x) => x.id === selectedClientId);
+      const ct = tone(CLIENT_TONE[c.status]);
+      const sitesRaw = data.sites[selectedClientId];
+      const sites = sitesRaw.map((site) => {
+        const isConfirming = confirmDeleteSiteId === site.id;
+        return {
+          id: site.id, name: site.name, address: site.address || "", hasAddress: !!(site.address && site.address.trim()),
+          inUse: !!site.inUse,
+          confirmingBlocked: isConfirming && !!site.inUse,
+          confirmingDeletable: isConfirming && !site.inUse,
+          notConfirming: !isConfirming,
+          menuOpen: this.state.openMenuSiteId === site.id,
+          openEdit: () => this.openEditSiteFor(site.id),
+          askDelete: () => this.askDeleteSite(site.id),
+          cancelDelete: () => this.cancelDeleteSite(),
+          confirmDelete: () => this.confirmDeleteSite(site.id),
+          toggleMenu: () => this.toggleSiteMenu(site.id),
+        };
+      });
+      const projectsRaw = data.projects[selectedClientId];
+      const projects = projectsRaw.map((p) => {
+        const pt = tone(PROJECT_TONE[p.status]);
+        return { name: p.name, status: p.status, start: p.start, bg: pt.bg, color: pt.color, linkable: p.linkable, notLinkable: !p.linkable, href: p.href };
+      });
+      client = {
+        name: c.name, status: c.status, bg: ct.bg, color: ct.color,
+        metaLine: sitesRaw.length + " sites · " + projectsRaw.length + " projects · Added " + c.createdAt,
+        sites, projects, showNoSites: sites.length === 0, showNoProjects: projects.length === 0,
+      };
+    }
+
+    const cd = clientDrawer || {};
+    const sd = siteDrawer || {};
+
+    return {
+      navItems,
+      isList: screen === "list",
+      isDetail: screen === "detail",
+      search,
+      onSearchChange: (e) => this.setState({ search: e.target.value }),
+      clearSearch: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ search: "" }); },
+      clientCountLabel: data.clients.length + (data.clients.length === 1 ? " client" : " clients"),
+      openCreateClient: () => this.openCreateClient(),
+      showLoading, showEmptyClients, showNoResults, showResults,
+      skeletonRows: [{ width: "70%" }, { width: "55%" }, { width: "62%" }, { width: "48%" }],
+      filteredClients,
+      backToList: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ screen: "list", selectedClientId: null }); },
+      client,
+      openEditClient: () => this.openEditClientFor(selectedClientId),
+      openCreateSite: () => this.openCreateSite(),
+      anySiteMenuOpen: !!this.state.openMenuSiteId,
+      closeSiteMenus: () => this.closeSiteMenus(),
+
+      clientDrawerOpen: !!clientDrawer,
+      clientDrawerTitle: cd.mode === "edit" ? "Edit Client" : "Add Client",
+      clientDrawerName: cd.name || "",
+      clientDrawerNotes: cd.notes || "",
+      clientNameError: !!cd.nameError,
+      clientNameBorder: cd.nameError ? "#b3261e" : "#e5e8ee",
+      onClientNameChange: (e) => this.updateClientDrawer({ name: e.target.value, nameError: false }),
+      onClientNotesChange: (e) => this.updateClientDrawer({ notes: e.target.value }),
+      activeBorder: cd.status === "Active" ? "#1c2b4a" : "#e5e8ee",
+      activeBg: cd.status === "Active" ? "#e8f0fe" : "#ffffff",
+      activeColor: cd.status === "Active" ? "#1c2b4a" : "#6b7280",
+      inactiveBorder: cd.status === "Inactive" ? "#1c2b4a" : "#e5e8ee",
+      inactiveBg: cd.status === "Inactive" ? "#e8f0fe" : "#ffffff",
+      inactiveColor: cd.status === "Inactive" ? "#1c2b4a" : "#6b7280",
+      setClientStatusActive: () => this.updateClientDrawer({ status: "Active" }),
+      setClientStatusInactive: () => this.updateClientDrawer({ status: "Inactive" }),
+      saveClient: () => this.saveClient(),
+      closeClientDrawer: () => this.closeClientDrawer(),
+      clientSaveLabel: cd.saving ? "Saving…" : "Save",
+      clientSavingOpacity: cd.saving ? 0.6 : 1,
+
+      siteDrawerOpen: !!siteDrawer,
+      siteDrawerTitle: sd.mode === "edit" ? "Edit Site" : "Add Site",
+      siteDrawerName: sd.name || "",
+      siteDrawerAddress: sd.address || "",
+      siteDrawerNotes: sd.notes || "",
+      siteNameError: !!sd.nameError,
+      siteNameBorder: sd.nameError ? "#b3261e" : "#e5e8ee",
+      onSiteNameChange: (e) => this.updateSiteDrawer({ name: e.target.value, nameError: false }),
+      onSiteAddressChange: (e) => this.updateSiteDrawer({ address: e.target.value }),
+      onSiteNotesChange: (e) => this.updateSiteDrawer({ notes: e.target.value }),
+      saveSite: () => this.saveSite(),
+      closeSiteDrawer: () => this.closeSiteDrawer(),
+      siteSaveLabel: sd.saving ? "Saving…" : "Save",
+      siteSavingOpacity: sd.saving ? 0.6 : 1,
+
+      toastVisible: !!toast,
+      toastMessage: toast || "",
+    };
+  }
+}
+
+</script>
+</body>
+</html>

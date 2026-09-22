@@ -149,6 +149,10 @@ test credentials and the Supabase CLI); test accounts live in the git-ignored
 | TC-P0D-BUILD-001 | Generated database types | `types/database.ts` from the real schema (18 tables + view); clients typed with `Database`; `getStorage` accepts the typed client | Typecheck passes | **PASS** | Hand-written `types/domain.ts` kept: CHECK columns are plain `string` in generated types |
 | TC-P0D-BUILD-002 | lint / typecheck / build | All pass | All pass (Next.js 16.3.5) | **PASS** |  |
 
+> **Note (2026-09-21):** TC-P0D-RLS-003 ("Framework reference data read-only for users") was
+> true when recorded. ADR-016 later made frameworks Admin-writable; TC-P2B-RLS-001 to
+> RLS-003 are the current record. The Phase 0D result above is unchanged.
+
 **NOT TESTED in Phase 0D:** natural 1-hour token expiry; `supabase db reset` on a local
 stack (no Docker); password-reset and email flows (no UI, users are created by an
 admin); behavior after the free-tier inactivity pause; deployment to Vercel; load.
@@ -193,9 +197,61 @@ screen readers; users deleted through the dashboard.
 
 
 ### Phase 2 — Client / Project / Site / Frameworks
-Test cases: *not yet defined.*
-Candidate areas: client/project/site CRUD; project site scope; project
-frameworks; framework tree browse.
+
+#### Phase 2 baseline: Framework administration authorization (executed 2026-09-21)
+
+Run against the hosted project after applying migration `20260921000100_framework_admin_write.sql`, on temporary records
+that were removed afterwards. Result: 9 PASS, 1 NOTE.
+
+| ID | Feature | Expected | Actual | Status | Notes |
+| -- | ------- | -------- | ------ | ------ | ----- |
+| TC-P2B-RLS-001 | Consultant framework access (hosted) | Read frameworks and items allowed; INSERT denied by RLS; UPDATE and DELETE affect 0 rows; seeded data unchanged; cannot change rows created by an admin | As expected (HTTP 200 / 403 `42501` / 0 rows) | **PASS** |  |
+| TC-P2B-RLS-002 | Admin framework access (hosted) | SELECT; INSERT framework, root and child items; UPDATE framework and item; DELETE unreferenced leaf item; DELETE unreferenced framework (cascades only its own items) | As expected | **PASS** | Temporary records `ZZ-P2B-TEST` / `P2B-TEST-*`, removed |
+| TC-P2B-RLS-003 | Anonymous framework access (hosted) | No read and no write on frameworks or framework items | All denied (401 `42501`); anon holds no grants on these tables | **PASS** |  |
+| TC-P2B-INT-001 | Referenced framework delete blocked | Framework assigned to a project cannot be deleted; the assignment survives | HTTP 409 `23503`; assignment intact | **PASS** |  |
+| TC-P2B-INT-002 | Referenced framework item delete blocked | Item linked to a document cannot be deleted; a framework whose item is referenced cannot be deleted; nothing destroyed | HTTP 409 `23503` both; both items intact | **PASS** |  |
+| TC-P2B-INT-003 | Item with children delete blocked | Deleting a parent item is blocked | HTTP 409 `23503` | **PASS** |  |
+| TC-P2B-INT-004 | Editions and uniqueness | A second edition of the same code coexists; duplicate (code, edition) and duplicate item code in a framework rejected; parent from another framework rejected | 201; 409 `23505` twice; 409 `23503` | **PASS** |  |
+| TC-P2B-MIG-001 | Migration and shape | `20260921000100_framework_admin_write.sql` applied; only grants and 6 policies added; regenerated types identical to `types/database.ts` | As expected | **PASS** | Also validated first in a local in-memory Postgres (29/29); local runs are not part of this hosted record |
+| TC-P2B-REG-001 | Phase 0D regression on the hosted project | Anon suite 9/9; database behavior suite 66/66; auth/RLS/storage suite 53/53 with the framework-write attempts removed; catalog suite 37/41 | See notes | **PASS** | The 4 catalog differences are intended: 3 encode the superseded read-only rule (grants, policies, migration count 6) and 1 is the earlier flawed unique-index check (see TC-P0D-SCHEMA-005). Not new failures |
+| TC-P2B-INC-001 | Incident: old test script wrote to seeded data | (Informational) | The Phase 0D step-2 script attempted framework writes as admin, expecting denial; under ADR-016 they succeeded: it renamed ISO 9001, created a framework `X` and retitled the four items with code `4`. Restored by SQL; hosted frameworks and items verified identical to the seed baseline (4 / 149) | **NOTE** | Only `updated_at` on 6 restored rows differs. The regression copy no longer writes to framework tables. Lesson: run write-attempt tests on temporary records only |
+
+#### Phase 2 test specification (application level; NOT yet implemented, NOT TESTED)
+
+These cases are defined for the Phase 2 implementation. They depend on screens and server
+actions that do not exist yet, so **none has been run and none has a result**.
+
+| ID | Feature | Expected | Status |
+| -- | ------- | -------- | ------ |
+| TC-P2-HIER-001 | Self as parent rejected | Parent picker excludes the item; a crafted request setting the parent to itself is rejected by the server | **NOT TESTED** |
+| TC-P2-HIER-002 | Descendant as parent rejected | Parent picker excludes all descendants; a crafted request re-parenting under a descendant is rejected by the server | **NOT TESTED** |
+| TC-P2-HIER-003 | Cycle-safe rendering | A tree containing a cycle (created via SQL in a scratch project) renders without hanging | **NOT TESTED** |
+| TC-P2-FWK-001 | Consultant experience | Library, detail and item search work; no create/edit/delete controls are shown | **NOT TESTED** |
+| TC-P2-FWK-002 | Admin experience | New Framework, overflow, Add Item, Add Sub-item, Edit and controlled Delete are shown; desktop drawer / mobile full screen | **NOT TESTED** |
+| TC-P2-FWK-003 | Forged consultant mutation | A crafted Server Action call by a consultant is refused (0 rows treated as forbidden), data unchanged | **NOT TESTED** |
+| TC-P2-FWK-004 | Delete blocked messages | Referenced framework, referenced item and item with children each explain why deletion is blocked, from real FK state (a seeded framework with no references is deletable) | **NOT TESTED** |
+| TC-P2-FWK-005 | Unreferenced framework delete | Confirmation states the item count; only its own items are removed | **NOT TESTED** |
+| TC-P2-FWK-006 | Editing content in use | Editing a framework or item used by projects shows the notice | **NOT TESTED** |
+| TC-P2-FWK-007 | Duplicate errors | Duplicate (code, edition) and duplicate item code give friendly messages | **NOT TESTED** |
+| TC-P2-FWK-008 | New edition | A new edition of an existing code is created as a separate framework and is not auto-assigned to existing projects | **NOT TESTED** |
+| TC-P2-PRJ-001 | Site belongs to client | The server rejects a site of another client in the project's site scope | **NOT TESTED** |
+| TC-P2-PRJ-002 | Client immutable on edit | The edit page shows the client read-only; a crafted request changing `client_id` is ignored or rejected | **NOT TESTED** |
+| TC-P2-PRJ-003 | Zero sites allowed | A project saves with no sites and shows the guidance | **NOT TESTED** |
+| TC-P2-PRJ-004 | Zero frameworks allowed | A project saves with no frameworks and shows the guidance | **NOT TESTED** |
+| TC-P2-PRJ-005 | Create from Client Detail | Client prefilled and locked | **NOT TESTED** |
+| TC-P2-PRJ-006 | Create from global Projects | Client required and selectable; changing the client resets the site scope | **NOT TESTED** |
+| TC-P2-PRJ-007 | Edit preserves assignments | Existing site and framework assignments are preserved on edit | **NOT TESTED** |
+| TC-P2-PRJ-008 | Select All semantics | Selects currently available sites only; a site added later is not added to existing projects | **NOT TESTED** |
+| TC-P2-PRJ-009 | Site removal blocked by work | Removing a site referenced by project work is refused with a friendly message (needs Phase 3+ data or a temporary fixture) | **NOT TESTED** |
+| TC-P2-CLI-001 | Clients | Create, edit, search; counts of sites and projects; no delete control | **NOT TESTED** |
+| TC-P2-CLI-002 | Sites | Create, edit; delete blocked with an explanation while the site is in any project scope; deletable otherwise | **NOT TESTED** |
+| TC-P2-CLI-003 | No client/project delete | No UI or server action exists for deleting clients or projects | **NOT TESTED** |
+| TC-P2-WSP-001 | Overview real data | Header (name, status, site count, frameworks, Edit); left: Sites, Frameworks; right: Project Information | **NOT TESTED** |
+| TC-P2-WSP-002 | No future-domain content | No upcoming activities, verification progress or issues/actions, no zero values, and none of the strings CONCEPT, FUTURE CONCEPT DATA, IMPLEMENT IN PHASE 2, FUTURE CONCEPT — DO NOT IMPLEMENT YET | **NOT TESTED** |
+| TC-P2-WSP-003 | Other tabs disabled | Plan, Documents, Verification, Issues & Actions, Reports are disabled and non-functional | **NOT TESTED** |
+| TC-P2-UI-001 | Patterns | Simple CRUD is a drawer on desktop and full screen on mobile; Project Setup is a full page; destructive actions sit in overflow menus | **NOT TESTED** |
+| TC-P2-UI-002 | Mobile | 390 px: no horizontal overflow, 44 px targets, 16 px inputs on all new forms | **NOT TESTED** |
+| TC-P2-SEC-001 | RLS regression | Clients, sites, projects, project_sites, project_frameworks keep full authenticated CRUD; anon denied | **NOT TESTED** |
 
 ### Phase 3 — Master Plan / Activities
 Test cases: *not yet defined.*

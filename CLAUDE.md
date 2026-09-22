@@ -31,6 +31,10 @@ relevant documents **before** modifying anything.
 - `framework_items` is client-independent reference data. Never store activity
   data, emissions, calculations, products, installations, metrics or other
   operational data in it.
+- Frameworks and Framework Items are reference/master data **administered by Admin
+  users only**; consultants are read-only (ADR-016). Referenced frameworks/items and
+  items with children cannot be deleted (existing FK integrity). Do not add
+  `is_seeded`, `is_system`, lifecycle, archive, publication or versioning concepts.
 - Do **not** expand V1 scope without explicit approval.
 - Do **not** add: AI / LLM features, realtime, offline sync, billing or
   subscriptions, a client portal, complex RBAC / organizations / teams,
@@ -56,6 +60,41 @@ relevant documents **before** modifying anything.
   `lib/auth/session.ts`. Proxy is not a security boundary.
 - Only relative internal paths may be used as post-login return paths: use
   `safeNextPath()` from `lib/auth/redirect.ts`. Never redirect to a user-supplied URL.
+
+## Approved UI References
+
+Approved Phase 2 UI/UX references are stored in:
+
+`docs/phase-2/`
+
+Approved set:
+
+- `Client and Site Management.dc.html`
+- `Projects List.dc.html`
+- `Project Setup.dc.html`
+- `Project Workspace Overview v1.dc.html` (the FINAL approved Project Workspace; an
+  older variant was superseded and removed from this folder)
+- `Framework Library.dc.html`
+
+Claude Code must review the relevant `.dc.html` design reference before
+implementing a Phase 2 screen.
+
+These files define approved visual layout, hierarchy, interaction intent,
+responsive behavior, and UI states.
+
+They do NOT override:
+- approved database schema
+- business rules
+- RLS/security rules
+- ADR decisions
+- Phase 2 scope
+
+Prototype/demo data and future-concept elements shown in design files must
+not be treated as production requirements unless explicitly included in
+the current implementation phase. Design annotations ("CONCEPT", "FUTURE CONCEPT
+DATA", "IMPLEMENT IN PHASE 2", "FUTURE CONCEPT — DO NOT IMPLEMENT YET") must never
+appear in production. Do not edit the approved `.dc.html` files to remove them; the
+implementation filters them.
 
 ## Next.js 16
 

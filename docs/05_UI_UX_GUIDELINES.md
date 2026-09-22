@@ -1,6 +1,7 @@
 # 05 — UI / UX Guidelines
 
-High-level guidelines only. **Detailed screens are not designed yet.**
+High-level guidelines. Phase 2 screens are specified by the approved references in
+`docs/phase-2/` (see "Phase 2 UI patterns"); screens for later phases are not designed yet.
 
 ## Style
 
@@ -85,7 +86,33 @@ foundation (Phase 0C).
 - Forms are short; validation messages are specific.
 - Basic accessibility: sufficient contrast, visible focus, labelled inputs.
 
+## Phase 2 UI patterns
+
+Approved references live in **`docs/phase-2/`** (`Client and Site Management`,
+`Projects List`, `Project Setup`, `Project Workspace Overview v1`, `Framework Library`,
+all `.dc.html`). They define layout, hierarchy, interaction intent, responsive behavior
+and UI states. They do **not** override the schema, business rules, RLS, ADRs or scope,
+and prototype/demo data is not a requirement.
+
+- **Simple CRUD** (client, site, framework, framework item): **desktop → right-side
+  drawer; mobile → full-screen presentation.**
+- **Project Setup** is a **full page** (one structured page with Project Identity, Site
+  Scope and Framework Assignment), not a drawer, modal or wizard.
+- **Destructive actions are secondary**: per-row overflow (…) menus and confirmations;
+  they never dominate a list. Deletion follows the FK rules (BR-53, BR-58) and explains
+  why a delete is blocked.
+- **Primary navigation** is the row or name (client, project, framework, site row with a
+  chevron); secondary actions live in the overflow.
+- **No fabricated future-domain data.** Do not show placeholder or zero values for
+  activities, verification, issues or actions before their phases (BR-59). Keep the
+  Overview composition so those sections can be added later.
+- **Design annotations never ship**: "CONCEPT", "FUTURE CONCEPT DATA", "IMPLEMENT IN
+  PHASE 2", "FUTURE CONCEPT — DO NOT IMPLEMENT YET", demo emails and prototype counts.
+  The approved `.dc.html` files are not edited to remove them.
+- **Admin controls** on the Framework Library / Detail are shown to Admins only; the
+  library still reads as a reference catalog for everyone.
+
 ## Out of scope for this document
 
 Detailed screen layouts, wireframes, component specifications and the visual
-token set are defined later (Phase 0C design foundation and per-phase work).
+token set for phases after Phase 2 are defined later (per-phase work).

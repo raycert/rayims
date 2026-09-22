@@ -3,6 +3,48 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 2 baseline update (2026-09-21)
+
+Baseline before Phase 2 implementation. **No Phase 2 screen or application code was implemented.**
+
+### Changed
+
+- **ADR-016 (new): framework administration by Admins.** Frameworks and framework items stay
+  reference data; consultants read-only, admins controlled CRUD. ADR-001 and ADR-014 carry
+  pointers; BR-45 is marked superseded (history kept).
+- **Migration `20260921000100_framework_admin_write.sql`:** grants `insert, update, delete` on `frameworks` and
+  `framework_items` to `authenticated` and adds six admin-only RLS policies
+  (`profiles.role = 'admin'`). No columns, indexes, FKs, triggers or functions. Applied to the
+  hosted project; regenerated types are identical.
+- **Docs:** `CLAUDE.md` (design path is `docs/phase-2/`; approved set; framework rule),
+  `01_V1_SCOPE`, `02_ARCHITECTURE`, `03_DATABASE`, `04_BUSINESS_RULES` (BR-52 to BR-60,
+  BR-42/45/49 amended), `05_UI_UX_GUIDELINES` (Phase 2 UI patterns), `06_ROADMAP`,
+  `07_DECISIONS`, `08_TESTING` (Phase 2 baseline results and test specification),
+  `10_RUNBOOK`.
+- **Design references:** `docs/phase-2/` now holds only the five final approved files; the
+  superseded Project Workspace Overview variant was removed. `Project Workspace Overview
+  v1.dc.html` is the approved workspace reference. No `.dc.html` file was edited.
+
+### Verified on the hosted project (see `08_TESTING.md`, TC-P2B-*)
+
+Consultant, admin and anon framework access; referenced and parent-item deletes blocked by FK
+integrity; unreferenced deletes allowed; editions and uniqueness; Phase 0D regression
+(anon 9/9, database behavior 66/66, auth/RLS/storage 53/53, catalog 37/41 with 4 intended
+differences).
+
+### Incident (recorded, resolved)
+
+The old Phase 0D step-2 test script attempted framework writes as admin expecting denial.
+Under ADR-016 they succeeded and modified seeded data (ISO 9001 name, a stray framework `X`,
+four item titles). The data was restored and verified identical to the seed baseline (only
+`updated_at` on six rows differs). The regression copy no longer writes to framework tables.
+
+### Not done (intentionally)
+
+Phase 2 implementation; application-level Phase 2 tests (specified only). Backlog: DB
+hierarchy-cycle trigger; atomic `save_project`; DB guards for site/client consistency and
+immutable project client; client and project deletion; duplicate-as-new-edition; site status.
+
 ## Phase 1 — Authentication & App Shell (2026-09-21)
 
 Completed: 17 PASS, 0 FAIL, 2 NOT TESTED (see `08_TESTING.md`). No database, RLS or framework change.

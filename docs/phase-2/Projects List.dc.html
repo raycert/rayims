@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f3f5f9;}
+@keyframes shimmer{0%{background-position:-300px 0;}100%{background-position:300px 0;}}
+a{color:#1c2b4a;text-decoration:none;}
+a:hover{color:#0f1a30;text-decoration:underline;}
+</style>
+</helmet>
+<div data-screen-label="Projects List" style="min-height:100vh;background:#f3f5f9;color:#1a2233;display:flex;position:relative;">
+
+  <aside style="display:none;width:224px;flex-shrink:0;flex-direction:column;border-right:1px solid #e5e8ee;background:#ffffff;" class="rayims-sidebar">
+    <div style="padding:18px 20px 4px;font-size:16px;font-weight:700;letter-spacing:-0.01em;color:#1c2b4a;">RayIMS</div>
+    <div style="padding:0 20px 14px;font-size:11px;color:#8a93a3;letter-spacing:0.02em;text-transform:uppercase;">Consulting Workspace</div>
+    <nav aria-label="Main" style="flex:1;padding:6px 10px 0;display:flex;flex-direction:column;gap:2px;border-top:1px solid #e5e8ee;padding-top:12px;">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:10px;min-height:38px;padding:0 12px;border-radius:8px;font-size:13.5px;font-weight:500;background:{{ item.activeBg }};color:{{ item.color }};cursor:{{ item.cursor }};opacity:{{ item.opacity }};" title="{{ item.title }}">
+          <span>{{ item.label }}</span>
+        </div>
+      </sc-for>
+    </nav>
+    <div style="border-top:1px solid #e5e8ee;padding:12px;">
+      <p style="font-size:12px;color:#8a93a3;padding:0 12px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">consultant@rayims.io</p>
+      <div style="min-height:34px;display:flex;align-items:center;padding:0 12px;font-size:13px;font-weight:500;color:#6b7280;border-radius:8px;">Sign out</div>
+    </div>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+    <header class="rayims-topbar" style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e8ee;background:#ffffff;padding:10px 16px;">
+      <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em;color:#1c2b4a;">RayIMS</span>
+      <span style="font-size:13px;font-weight:500;color:#6b7280;">Sign out</span>
+    </header>
+
+    <main style="flex:1;padding-bottom:76px;">
+      <div style="max-width:1180px;margin:0 auto;padding:26px 22px 44px;">
+
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;">
+          <div>
+            <h1 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0;color:#111827;">Projects</h1>
+            <p style="font-size:13px;color:#6b7280;margin:4px 0 0;">{{ projectCountLabel }}</p>
+          </div>
+          <a href="Project Setup.dc.html" style="min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;background:#1c2b4a;font-size:13px;font-weight:600;color:#ffffff;">+ New Project</a>
+        </div>
+
+        <div style="margin:16px 0 18px;max-width:320px;">
+          <input value="{{ search }}" onChange="{{ onSearchChange }}" placeholder="Search projects…" style="width:100%;min-height:38px;border-radius:7px;border:1px solid #e5e8ee;background:#ffffff;padding:0 12px;font-size:13.5px;color:#1a2233;outline:none;"/>
+        </div>
+
+        <sc-if value="{{ showLoading }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <sc-for list="{{ skeletonRows }}" as="s" hint-placeholder-count="4">
+              <div style="height:18px;border-radius:4px;background:linear-gradient(90deg,#eef1f5 25%,#f6f7f9 37%,#eef1f5 63%);background-size:400px 100%;animation:shimmer 1.4s infinite linear;width:{{ s.width }};"></div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showEmptyProjects }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:56px 24px;text-align:center;">
+            <h2 style="font-size:15px;font-weight:700;margin:0 0 6px;">No projects yet</h2>
+            <p style="font-size:13.5px;color:#6b7280;margin:0 0 16px;">Create a project to start assigning sites and frameworks.</p>
+            <a href="Project Setup.dc.html" style="display:inline-flex;min-height:36px;align-items:center;justify-content:center;padding:0 16px;border-radius:7px;background:#1c2b4a;font-size:13px;font-weight:600;color:#ffffff;">+ New Project</a>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showNoResults }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:48px 24px;text-align:center;">
+            <p style="font-size:13.5px;color:#6b7280;margin:0 0 8px;">No projects match "{{ search }}".</p>
+            <a href="#" onClick="{{ clearSearch }}" style="font-size:13px;font-weight:600;">Clear search</a>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showResults }}" hint-placeholder-val="{{ true }}">
+          <div class="projects-table-wrap" style="background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);overflow:hidden;">
+            <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
+              <thead>
+                <tr>
+                  <th style="text-align:left;padding:12px 16px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Project</th>
+                  <th style="text-align:left;padding:12px 10px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Client</th>
+                  <th style="text-align:left;padding:12px 10px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Site Scope</th>
+                  <th style="text-align:left;padding:12px 10px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Frameworks</th>
+                  <th style="text-align:left;padding:12px 10px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;">Status</th>
+                  <th style="text-align:right;padding:12px 16px;font-weight:600;color:#8a93a3;font-size:11px;letter-spacing:0.02em;text-transform:uppercase;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ filteredProjects }}" as="p" hint-placeholder-count="4">
+                  <tr>
+                    <td style="padding:12px 16px;border-top:1px solid #eef0f4;">
+                      <a href="{{ p.href }}" title="{{ p.linkTitle }}" style="font-weight:600;color:#1a2233;">{{ p.name }}</a>
+                    </td>
+                    <td style="padding:12px 10px;border-top:1px solid #eef0f4;color:#6b7280;">{{ p.client }}</td>
+                    <td style="padding:12px 10px;border-top:1px solid #eef0f4;color:#6b7280;">{{ p.siteScopeLabel }}</td>
+                    <td style="padding:12px 10px;border-top:1px solid #eef0f4;color:#6b7280;">{{ p.frameworkLabel }}</td>
+                    <td style="padding:12px 10px;border-top:1px solid #eef0f4;">
+                      <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;background:{{ p.bg }};color:{{ p.color }};font-weight:600;font-size:11px;">{{ p.status }}</span>
+                    </td>
+                    <td style="padding:12px 16px;border-top:1px solid #eef0f4;text-align:right;white-space:nowrap;position:relative;">
+                      <span onClick="{{ p.toggleMenu }}" style="font-size:15px;font-weight:700;color:#6b7280;cursor:pointer;padding:2px 8px;border-radius:6px;">⋯</span>
+                      <sc-if value="{{ p.menuOpen }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute;top:36px;right:16px;background:#ffffff;border:1px solid #e5e8ee;border-radius:8px;box-shadow:0 4px 12px rgba(16,24,40,0.14);min-width:140px;z-index:6;overflow:hidden;text-align:left;">
+                          <a href="Project Setup.dc.html" style="display:block;padding:9px 14px;font-size:13px;font-weight:500;color:#1a2233;">Edit Project</a>
+                        </div>
+                      </sc-if>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+
+          <sc-if value="{{ anyMenuOpen }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:5;"></div>
+          </sc-if>
+
+          <div class="projects-cards-wrap" style="display:none;flex-direction:column;gap:10px;">
+            <sc-for list="{{ filteredProjects }}" as="p" hint-placeholder-count="4">
+              <a href="{{ p.href }}" title="{{ p.linkTitle }}" style="display:block;background:#ffffff;border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,0.04),0 1px 3px rgba(16,24,40,0.06);padding:14px 16px;color:#1a2233;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;">
+                  <span style="font-size:14.5px;font-weight:700;">{{ p.name }}</span>
+                  <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;background:{{ p.bg }};color:{{ p.color }};font-weight:600;font-size:11px;flex-shrink:0;">{{ p.status }}</span>
+                </div>
+                <div style="font-size:13px;color:#6b7280;">{{ p.client }}</div>
+                <div style="font-size:12.5px;color:#8a93a3;margin-top:4px;">{{ p.siteScopeLabel }} · {{ p.frameworkLabel }}</div>
+              </a>
+            </sc-for>
+          </div>
+        </sc-if>
+
+      </div>
+    </main>
+  </div>
+
+  <nav aria-label="Main" class="rayims-bottomnav" style="display:flex;position:fixed;inset:auto 0 0 0;border-top:1px solid #e5e8ee;background:#ffffff;justify-content:space-around;padding:4px 4px env(safe-area-inset-bottom);">
+    <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;min-width:64px;border-radius:7px;font-size:11px;font-weight:500;color:{{ item.color }};opacity:{{ item.opacity }};">
+        <span style="width:6px;height:6px;border-radius:1px;background:{{ item.dotColor }};"></span>
+        <span>{{ item.label }}</span>
+      </div>
+    </sc-for>
+  </nav>
+
+  <helmet>
+    <style>
+      @media (min-width: 768px) {
+        .rayims-sidebar { display: flex !important; }
+        .rayims-topbar { display: none !important; }
+        .rayims-bottomnav { display: none !important; }
+        main { padding-bottom: 0 !important; }
+      }
+      @media (max-width: 767px) {
+        .projects-table-wrap { display: none !important; }
+        .projects-cards-wrap { display: flex !important; }
+      }
+    </style>
+  </helmet>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;demoLoading&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;},&quot;demoNoProjects&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;}}">
+function tone(kind) {
+  const t = {
+    success: { bg: "#e5f4ec", color: "#1b7a4b" },
+    warning: { bg: "#fcf1d6", color: "#96650a" },
+    neutral: { bg: "#eef0f4", color: "#6b7280" },
+  };
+  return t[kind] || t.neutral;
+}
+const STATUS_TONE = { Planning: "neutral", Active: "success", "On Hold": "warning", Completed: "success", Archived: "neutral" };
+
+const PROJECTS = [
+  { name: "Chinh Long – IMS Implementation 2026", client: "Chinh Long", status: "Active", sitesInScope: 5, sitesTotal: 5, frameworkCount: 3, href: "Project Workspace Overview.dc.html", real: true },
+  { name: "Long Hau ISO 9001 Rollout", client: "Long Hau Textiles", status: "Planning", sitesInScope: 1, sitesTotal: 2, frameworkCount: 1, href: "", real: false },
+  { name: "An Phat IMS Renewal", client: "An Phat Packaging", status: "On Hold", sitesInScope: 2, sitesTotal: 3, frameworkCount: 2, href: "", real: false },
+  { name: "An Phat 14001 Extension", client: "An Phat Packaging", status: "Completed", sitesInScope: 1, sitesTotal: 3, frameworkCount: 1, href: "", real: false },
+];
+
+class Component extends DCLogic {
+  state = { search: "", openMenuIndex: null };
+
+  renderVals() {
+    const demoLoading = !!this.props.demoLoading;
+    const demoNoProjects = !!this.props.demoNoProjects;
+    const query = this.state.search.trim().toLowerCase();
+
+    const navItems = [
+      { label: "Dashboard", enabled: false, active: false },
+      { label: "Clients", enabled: true, active: false },
+      { label: "Projects", enabled: true, active: true },
+      { label: "Frameworks", enabled: false, active: false },
+    ].map((n) => ({
+      label: n.label,
+      title: n.enabled ? "" : "Coming in a later phase",
+      cursor: n.enabled ? "pointer" : "not-allowed",
+      opacity: n.enabled ? 1 : 0.5,
+      color: n.active ? "#1c2b4a" : n.enabled ? "#1a2233" : "#8a93a3",
+      activeBg: n.active ? "#e8f0fe" : "transparent",
+      dotColor: n.active ? "#1c2b4a" : "#c3cad6",
+    }));
+
+    const all = PROJECTS.map((p, i) => {
+      const t = tone(STATUS_TONE[p.status]);
+      return {
+        name: p.name, client: p.client, status: p.status, bg: t.bg, color: t.color,
+        siteScopeLabel: p.sitesInScope + " of " + p.sitesTotal + " sites",
+        frameworkLabel: p.frameworkCount + (p.frameworkCount === 1 ? " framework" : " frameworks"),
+        href: p.real ? p.href : "#",
+        linkTitle: p.real ? "" : "Project Workspace preview is available for Chinh Long only in this prototype",
+        menuOpen: this.state.openMenuIndex === i,
+        toggleMenu: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState((s) => ({ openMenuIndex: s.openMenuIndex === i ? null : i })); },
+      };
+    });
+    const filteredProjects = query ? all.filter((p) => p.name.toLowerCase().includes(query) || p.client.toLowerCase().includes(query)) : all;
+
+    const showLoading = demoLoading && !demoNoProjects;
+    const showEmptyProjects = demoNoProjects && !demoLoading;
+    const showNoResults = !showLoading && !showEmptyProjects && query.length > 0 && filteredProjects.length === 0;
+    const showResults = !showLoading && !showEmptyProjects && !showNoResults;
+
+    return {
+      navItems,
+      projectCountLabel: PROJECTS.length + (PROJECTS.length === 1 ? " project" : " projects"),
+      search: this.state.search,
+      onSearchChange: (e) => this.setState({ search: e.target.value }),
+      clearSearch: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ search: "" }); },
+      showLoading, showEmptyProjects, showNoResults, showResults,
+      skeletonRows: [{ width: "70%" }, { width: "55%" }, { width: "62%" }, { width: "48%" }],
+      filteredProjects,
+      anyMenuOpen: this.state.openMenuIndex !== null,
+      closeMenus: () => this.setState({ openMenuIndex: null }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

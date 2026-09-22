@@ -76,7 +76,7 @@ RayIMS/
 │  │  ├─ clients/
 │  │  ├─ projects/[projectId]/   overview, sites, plan, documents, verification,
 │  │  │                          issues, actions, reports
-│  │  └─ frameworks/       Read-only reference browser
+│  │  └─ frameworks/       Framework library and detail (consultants browse; Admin administers, ADR-016)
 │  └─ layout.tsx, globals.css
 ├─ components/
 │  ├─ ui/                  Primitives
@@ -125,11 +125,18 @@ Notes:
 - Supabase Auth; `profiles` mirrors `auth.users` (created by trigger).
 - **Public sign-up is disabled.** Users are created by an admin.
 - RLS is **enabled on every table**. The V1 policy is "any authenticated user
-  can access all data" — an internal team workspace. Because tables are exposed
-  through the Supabase API, disabling RLS is not permitted (ADR-014).
+  can access all data" — an internal team workspace — with one exception:
+  **writes to `frameworks` and `framework_items` are Admin-only** (ADR-016). Because
+  tables are exposed through the Supabase API, disabling RLS is not permitted (ADR-014).
 - Every project-owned work entity carries `project_id`, so RLS can later move to
   project-level membership without reshaping tables.
 - The Supabase service/secret key is server-only and never sent to the browser.
+- Framework administration is authorized in the database (admin-only INSERT / UPDATE /
+  DELETE policies on `frameworks` and `framework_items`, based on
+  `profiles.role = 'admin'`; migration `20260921000100_framework_admin_write.sql`). The application also checks the role
+  server-side before mutating, as a usability layer, and treats "0 rows affected" as
+  forbidden; UI visibility alone is never the control. Deletion safety comes from
+  existing FK integrity, and hierarchy-cycle prevention is application-level (ADR-016).
 - `lib/auth/session.ts` (`getCurrentUser`, `requireUser`) verifies the user with
   `getClaims()`, memoized per request. Every server entry point calls it (Proxy is not a
   security boundary). Sign-out is per device (local scope).

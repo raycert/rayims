@@ -20,6 +20,8 @@ are not necessarily clauses.
 never become a catch-all for activity data, emissions, calculations, products,
 installations, ESG metrics or CBAM operational data. Per-project state lives
 elsewhere. Frameworks are seeded and read-only in V1.
+*(Superseded in part by ADR-016: the read-only consequence no longer holds; Admin users
+can administer frameworks. The rest of this decision stands.)*
 **Status:** Approved
 
 ## ADR-002 — PostgreSQL + Supabase
@@ -176,6 +178,7 @@ entity carries `project_id`.
 **Reason:** Internal-only V1 while keeping a path to project-level access.
 **Consequences:** All authenticated users see all data in V1. Future
 collaboration adds membership without reshaping tables.
+*(Clarified by ADR-016: writes to frameworks and framework items are Admin-only.)*
 **Status:** Approved
 
 ## ADR-015 — Human-readable numbering deferred
@@ -186,6 +189,34 @@ Issues/Actions are implemented, if it proves necessary.
 **Reason:** Quick-win scope; correction requested during Phase 0A approval.
 **Consequences:** Issues and actions are identified by title/description and UUID
 until a numbering approach is approved.
+**Status:** Approved
+
+## ADR-016 — Framework administration by Admins
+
+**Decision:** Frameworks and Framework Items remain **reference/master data**
+(client-independent, no project implementation data) but are administered in the app by
+**Admin** users. **Consultants are read-only** (browse and search). **Admins** (`profiles.role
+= 'admin'`) can create, edit and delete under controlled rules. This is enforced in the
+database by Admin-only INSERT / UPDATE / DELETE RLS policies (migration
+`20260921000100_framework_admin_write.sql`); the application also checks the role.
+Deletion is controlled by the existing FK integrity: a **referenced** framework or item
+cannot be deleted, an item **with children** cannot be deleted, and deleting an
+**unreferenced** framework cascades only to **its own** items (and is blocked if one of
+them is referenced). A new edition is a **separate Framework record**. There is **no
+`is_seeded` / `is_system` concept** (seeded frameworks are ordinary rows), and no
+framework lifecycle, archive, publication, approval or versioning system. Hierarchy-cycle
+prevention is **application-level in Phase 2** (the parent picker excludes the item and
+its descendants and the server repeats the check); a database trigger is **deferred**.
+**Reason:** Real consulting work needs new frameworks and editions and corrections without
+a migration per change. The schema already supports it; only authorization changed, so
+no columns, indexes, FKs or triggers were added.
+**Consequences:** Supersedes the "seeded and read-only" consequence of ADR-001 and BR-45,
+and amends BR-49 (Admin-only framework controls). Promoting a user to admin now also
+grants framework write power (see the runbook). Admins can edit content that projects
+already use (the UI warns). An accidentally deleted seeded framework is restorable only by
+SQL or a migration. The database does not prevent hierarchy cycles created by a direct API
+write (backlog trigger). A consultant's UPDATE or DELETE affects 0 rows (no error), so
+server code treats 0 rows as forbidden.
 **Status:** Approved
 
 ---

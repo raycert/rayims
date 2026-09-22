@@ -136,7 +136,8 @@ Product behavior that the schema and UI must respect. Database details are in
 - **BR-41** V1 users are internal (admin / consultant). Public sign-up is
   disabled; users are created by an admin.
 - **BR-42** In V1 any authenticated user can access all data (internal team
-  workspace). RLS remains enabled on every table.
+  workspace), except that writes to framework reference data are Admin-only (BR-52).
+  RLS remains enabled on every table.
 
 ## Numbering
 
@@ -148,7 +149,8 @@ Product behavior that the schema and UI must respect. Database details are in
 
 - **BR-44** Seeded framework data contains clause numbers and short titles only,
   not the text of the standards.
-- **BR-45** Frameworks are read-only to users in V1.
+- **BR-45** *(Superseded by BR-52 / ADR-016.)* Frameworks are read-only to users in V1.
+  This was true until the Phase 2 baseline update.
 
 ## Authentication behavior (Phase 1)
 
@@ -167,7 +169,41 @@ Product behavior that the schema and UI must respect. Database details are in
 - **BR-49** There is **no role-aware UI** in V1: admin and consultant see the same
   navigation and pages. The role is stored on `profiles` and is not fetched to render pages.
   Roles are changed only by an administrator through the runbook.
+  *(Amended by BR-52: the only exception is the Framework Administration controls, which
+  Admins see and consultants do not. The role is read only on framework pages.)*
 - **BR-50** Every server entry point that needs a user verifies it itself through
   `requireUser()` / `getCurrentUser()` (`lib/auth/session.ts`); Proxy alone is not relied on.
 - **BR-51** Users are provisioned by an administrator (`docs/10_RUNBOOK.md`); there is no
   self-service sign-up, password reset or password change in V1.
+
+## Phase 2 rules (Framework administration, project setup, workspace)
+
+- **BR-52** Frameworks and framework items are reference/master data **administered by
+  Admin users**. Consultants can browse and search only. Admins can create, edit and
+  delete (under BR-53). Enforced by database RLS (ADR-016); the application also checks
+  the role, and hides admin controls from consultants.
+- **BR-53** A framework or framework item cannot be deleted while it is **referenced**
+  (framework: assigned to a project; item: referenced by documents, verification items or
+  issues), and an item **with children** cannot be deleted. Referenced state is the real
+  FK state, never "is it seeded". Deleting an unreferenced framework removes only its own
+  items, and is blocked if any of them is referenced.
+- **BR-54** A new framework edition is a **separate framework** (BR-08). There is no
+  framework lifecycle, archive, publication or versioning. Editing a framework or item
+  that projects already use changes what those projects show; the UI warns about it.
+- **BR-55** A framework item's parent can never be the item itself or one of its
+  descendants. The parent picker excludes both, and the server repeats the check.
+- **BR-56** A project may be saved with **zero sites** and with **zero frameworks**
+  (clarifies BR-03). The UI shows informational guidance, not a validation error.
+- **BR-57** A project's client is chosen at creation and is **locked on edit**. Only sites
+  of the project's client can be in its scope (validated server-side). "Select All"
+  selects the sites currently available; sites added later are **not** added to existing
+  projects, and new frameworks are **not** assigned to existing projects automatically.
+  Editing a project preserves its existing site and framework assignments.
+- **BR-58** Client deletion and project deletion are **not available** in Phase 2 (use
+  `inactive` / `archived`), because a project deletion would cascade to its work data.
+  A site can be deleted only while it is in no project's scope (existing FK integrity).
+- **BR-59** The Project Workspace Overview shows **real data only**: sites and
+  frameworks (left), project information (right), and the project header. Upcoming
+  activities, verification progress and issues/actions are not shown until their phases,
+  and no placeholder or zero values are fabricated. Other workspace tabs are disabled.
+- **BR-60** Sites have no status; no per-site status is shown.

@@ -25,8 +25,10 @@ repository, or in chat.**
 
 ## Roles
 
-V1 has two roles, `admin` and `consultant`, with **identical access in the app** (ADR-014).
-The role lives in `public.profiles.role`. New users are `consultant`. Roles can only be
+V1 has two roles, `admin` and `consultant`, with **identical access in the app** (ADR-014),
+except that **only admins can administer frameworks and framework items** (create, edit,
+controlled delete; ADR-016). Consultants can browse and search them. The database enforces
+this. The role lives in `public.profiles.role`. New users are `consultant`. Roles can only be
 changed by an administrator with SQL access (below); the app and the API cannot change
 them, not even for an admin.
 
@@ -50,7 +52,8 @@ after `supabase login` and `supabase link`:
 
 ## Promote (or demote) an admin
 
-Only for an approved person. Then:
+Only for an approved person: an admin can also change framework reference data used by
+every project. Then:
 
 ```sql
 update public.profiles set role = 'admin' where email = '<user email>';
@@ -99,6 +102,7 @@ when attribution matters. Never delete the last admin.
 After any user or settings change:
 
 - [ ] `select email, role from public.profiles;` shows the expected roles, with at least one admin.
+- [ ] Only the intended people are admins (admins can write framework reference data).
 - [ ] The affected user can sign in at the login page and reach the dashboard; sign-out works.
 - [ ] A wrong password shows "Invalid email or password."
 - [ ] `/auth/v1/settings` reports `"disable_signup": true`; anonymous sign-ins are off.

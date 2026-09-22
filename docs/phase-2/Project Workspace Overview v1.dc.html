@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f6f7f9;}
+@keyframes shimmer{0%{background-position:-300px 0;}100%{background-position:300px 0;}}
+a{color:#2a4b8d;text-decoration:none;}
+a:hover{color:#1f3a6e;text-decoration:underline;}
+</style>
+</helmet>
+<div data-screen-label="Project Workspace – Overview" style="min-height:100vh;background:#f6f7f9;color:#1b2130;display:flex;">
+
+  <aside style="display:none;width:224px;flex-shrink:0;flex-direction:column;border-right:1px solid #e2e5ea;background:#ffffff;" class="rayims-sidebar">
+    <div style="padding:16px 20px;font-size:17px;font-weight:600;letter-spacing:-0.01em;">RayIMS</div>
+    <nav aria-label="Main" style="flex:1;padding:0 12px;display:flex;flex-direction:column;gap:2px;">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;border-radius:6px;font-size:14px;font-weight:500;background:{{ item.activeBg }};color:{{ item.color }};cursor:{{ item.cursor }};opacity:{{ item.opacity }};" title="{{ item.title }}">
+          <span style="width:6px;height:6px;border-radius:1px;background:{{ item.dotColor }};flex-shrink:0;"></span>
+          <span>{{ item.label }}</span>
+        </div>
+      </sc-for>
+    </nav>
+    <div style="border-top:1px solid #e2e5ea;padding:12px;">
+      <p style="font-size:12px;color:#5d6879;padding:0 12px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">consultant@rayims.io</p>
+      <div style="min-height:36px;display:flex;align-items:center;padding:0 12px;font-size:13px;font-weight:500;color:#5d6879;border-radius:6px;">Sign out</div>
+    </div>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+    <header class="rayims-topbar" style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e5ea;background:#ffffff;padding:10px 16px;">
+      <span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;">RayIMS</span>
+      <span style="font-size:13px;font-weight:500;color:#5d6879;">Sign out</span>
+    </header>
+
+    <main style="flex:1;padding-bottom:76px;">
+      <div style="max-width:1180px;margin:0 auto;padding:24px 20px 40px;">
+
+        <div style="font-size:13px;color:#5d6879;margin-bottom:10px;">
+          <span title="Project List — coming in Phase 2 build" style="cursor:default;">Projects</span>
+          <span style="margin:0 6px;">/</span>
+          <span style="color:#1b2130;">Chinh Long – IMS Implementation 2026</span>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px;">
+          <h1 style="font-size:22px;font-weight:600;letter-spacing:-0.01em;margin:0;">Chinh Long – IMS Implementation 2026</h1>
+          <div style="min-height:38px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-radius:6px;border:1px solid #e2e5ea;background:#ffffff;font-size:13px;font-weight:500;color:#1b2130;">Edit Project</div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:#5d6879;margin-bottom:22px;">
+          <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;background:#e5f4ec;color:#1b7a4b;font-weight:600;font-size:12px;">Active</span>
+          <span>·</span>
+          <span>5 Sites</span>
+          <span>·</span>
+          <span>ISO 9001:2015</span>
+          <span>·</span>
+          <span>ISO 14001:2015</span>
+          <span>·</span>
+          <span>ISO 45001:2018</span>
+        </div>
+
+        <div style="display:flex;gap:4px;border-bottom:1px solid #e2e5ea;margin-bottom:24px;overflow-x:auto;">
+          <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="6">
+            <div onClick="{{ tab.onClick }}" style="display:flex;align-items:center;gap:6px;min-height:40px;padding:0 4px;margin-bottom:-1px;border-bottom:2px solid {{ tab.borderColor }};font-size:14px;font-weight:500;color:{{ tab.textColor }};cursor:pointer;white-space:nowrap;" title="{{ tab.title }}">
+              <span>{{ tab.label }}</span>
+              <sc-if value="{{ tab.showFutureChip }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:10px;font-weight:600;letter-spacing:0.02em;color:#96650a;background:#fcf1d6;border-radius:3px;padding:1px 5px;">CONCEPT</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:1fr;gap:20px;" class="rayims-overview-grid">
+
+            <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+
+              <section style="background:#ffffff;border:1px solid #e2e5ea;border-radius:8px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e2e5ea;">
+                  <h2 style="font-size:14px;font-weight:600;margin:0;">Sites</h2>
+                  <span style="font-size:12px;color:#5d6879;">5 sites</span>
+                </div>
+                <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+                    <sc-for list="{{ skeletonRows5 }}" as="s" hint-placeholder-count="5">
+                      <div style="height:16px;border-radius:4px;background:linear-gradient(90deg,#eef0f3 25%,#f6f7f9 37%,#eef0f3 63%);background-size:400px 100%;animation:shimmer 1.4s infinite linear;width:{{ s.width }};"></div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ notLoading }}" hint-placeholder-val="{{ true }}">
+                  <div>
+                    <sc-for list="{{ sites }}" as="site" hint-placeholder-count="5">
+                      <div style="display:flex;align-items:center;justify-content:space-between;min-height:40px;padding:0 16px;border-top:1px solid #e2e5ea;font-size:13px;">
+                        <span>{{ site.name }}</span>
+                        <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;background:{{ site.bg }};color:{{ site.color }};font-weight:600;font-size:11px;">{{ site.status }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </section>
+
+              <section style="background:#ffffff;border:1px solid #e2e5ea;border-radius:8px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e2e5ea;">
+                  <h2 style="font-size:14px;font-weight:600;margin:0;">Frameworks</h2>
+                  <span style="font-size:12px;color:#5d6879;">3 assigned</span>
+                </div>
+                <div>
+                  <sc-for list="{{ frameworks }}" as="fw" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;justify-content:space-between;min-height:40px;padding:0 16px;border-top:1px solid #e2e5ea;font-size:13px;">
+                      <span>{{ fw.name }}</span>
+                      <span style="font-size:12px;color:#5d6879;">Reference framework</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </section>
+
+              <section style="background:#ffffff;border:1px solid #e2e5ea;border-radius:8px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e2e5ea;">
+                  <h2 style="font-size:14px;font-weight:600;margin:0;">Upcoming Activities</h2>
+                  <a href="#" title="Master Plan — future concept" style="font-size:12px;">View plan</a>
+                </div>
+                <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+                    <sc-for list="{{ skeletonRows4 }}" as="s" hint-placeholder-count="4">
+                      <div style="height:16px;border-radius:4px;background:linear-gradient(90deg,#eef0f3 25%,#f6f7f9 37%,#eef0f3 63%);background-size:400px 100%;animation:shimmer 1.4s infinite linear;width:{{ s.width }};"></div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ notLoading }}" hint-placeholder-val="{{ true }}">
+                  <div style="overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                      <thead>
+                        <tr>
+                          <th style="text-align:left;padding:8px 16px;border-top:1px solid #e2e5ea;font-weight:600;color:#5d6879;font-size:12px;">Type</th>
+                          <th style="text-align:left;padding:8px 12px;border-top:1px solid #e2e5ea;font-weight:600;color:#5d6879;font-size:12px;">Site</th>
+                          <th style="text-align:left;padding:8px 12px;border-top:1px solid #e2e5ea;font-weight:600;color:#5d6879;font-size:12px;">Date</th>
+                          <th style="text-align:left;padding:8px 12px;border-top:1px solid #e2e5ea;font-weight:600;color:#5d6879;font-size:12px;">Mode</th>
+                          <th style="text-align:left;padding:8px 16px;border-top:1px solid #e2e5ea;font-weight:600;color:#5d6879;font-size:12px;">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <sc-for list="{{ activities }}" as="act" hint-placeholder-count="4">
+                          <tr>
+                            <td style="padding:9px 16px;border-top:1px solid #e2e5ea;">{{ act.type }}</td>
+                            <td style="padding:9px 12px;border-top:1px solid #e2e5ea;color:#5d6879;">{{ act.site }}</td>
+                            <td style="padding:9px 12px;border-top:1px solid #e2e5ea;color:#5d6879;">{{ act.date }}</td>
+                            <td style="padding:9px 12px;border-top:1px solid #e2e5ea;color:#5d6879;">{{ act.mode }}</td>
+                            <td style="padding:9px 16px;border-top:1px solid #e2e5ea;">
+                              <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;background:{{ act.bg }};color:{{ act.color }};font-weight:600;font-size:11px;">{{ act.status }}</span>
+                            </td>
+                          </tr>
+                        </sc-for>
+                      </tbody>
+                    </table>
+                  </div>
+                </sc-if>
+              </section>
+
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+
+              <section style="background:#ffffff;border:1px solid #e2e5ea;border-radius:8px;padding:16px;">
+                <h2 style="font-size:14px;font-weight:600;margin:0 0 12px;">Verification Progress</h2>
+                <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:8px;">
+                  <span style="font-size:22px;font-weight:600;">18</span>
+                  <span style="font-size:13px;color:#5d6879;">/ 40 items verified</span>
+                </div>
+                <div style="height:6px;border-radius:3px;background:#eef0f3;overflow:hidden;">
+                  <div style="height:100%;width:45%;background:#2a4b8d;border-radius:3px;"></div>
+                </div>
+              </section>
+
+              <section style="background:#ffffff;border:1px solid #e2e5ea;border-radius:8px;">
+                <div style="padding:12px 16px;border-bottom:1px solid #e2e5ea;"><h2 style="font-size:14px;font-weight:600;margin:0;">Issues &amp; Actions</h2></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:0 16px;border-top:1px solid #e2e5ea;font-size:13px;">
+                  <span>Open issues</span>
+                  <span style="font-weight:600;color:#b3261e;">4</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:0 16px;border-top:1px solid #e2e5ea;font-size:13px;">
+                  <span>Open actions</span>
+                  <span style="font-weight:600;">9</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:0 16px;border-top:1px solid #e2e5ea;font-size:13px;">
+                  <span>Overdue actions</span>
+                  <span style="font-weight:600;color:#b3261e;">2</span>
+                </div>
+              </section>
+
+              <section style="background:#ffffff;border:1px solid #e2e5ea;border-radius:8px;">
+                <div style="padding:12px 16px;border-bottom:1px solid #e2e5ea;"><h2 style="font-size:14px;font-weight:600;margin:0;">Project</h2></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:0 16px;border-top:1px solid #e2e5ea;font-size:13px;">
+                  <span style="color:#5d6879;">Client</span>
+                  <span>Chinh Long</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:0 16px;border-top:1px solid #e2e5ea;font-size:13px;">
+                  <span style="color:#5d6879;">Status</span>
+                  <span>Active</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:0 16px;border-top:1px solid #e2e5ea;font-size:13px;">
+                  <span style="color:#5d6879;">Start date</span>
+                  <span>3 Feb 2026</span>
+                </div>
+              </section>
+
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isFuture }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="{{ futureScreenLabel }}" style="border:1px dashed #c7cdd6;border-radius:8px;padding:56px 24px;text-align:center;background:#ffffff;">
+            <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:4px;background:#fcf1d6;color:#96650a;font-weight:600;font-size:12px;letter-spacing:0.02em;margin-bottom:14px;">FUTURE CONCEPT — DO NOT IMPLEMENT YET</span>
+            <h2 style="font-size:18px;font-weight:600;margin:0 0 8px;">{{ activeTabLabel }}</h2>
+            <p style="font-size:14px;color:#5d6879;max-width:440px;margin:0 auto;">{{ activeTabDescription }}</p>
+          </div>
+        </sc-if>
+
+      </div>
+    </main>
+  </div>
+
+  <nav aria-label="Main" class="rayims-bottomnav" style="display:flex;position:fixed;inset:auto 0 0 0;border-top:1px solid #e2e5ea;background:#ffffff;justify-content:space-around;padding:4px 4px env(safe-area-inset-bottom);">
+    <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;min-width:64px;border-radius:6px;font-size:11px;font-weight:500;color:{{ item.color }};opacity:{{ item.opacity }};">
+        <span style="width:6px;height:6px;border-radius:1px;background:{{ item.dotColor }};"></span>
+        <span>{{ item.label }}</span>
+      </div>
+    </sc-for>
+  </nav>
+
+  <helmet>
+    <style>
+      @media (min-width: 768px) {
+        .rayims-sidebar { display: flex !important; }
+        .rayims-topbar { display: none !important; }
+        .rayims-bottomnav { display: none !important; }
+        main { padding-bottom: 0 !important; }
+      }
+      @media (min-width: 860px) {
+        .rayims-overview-grid { grid-template-columns: minmax(0,1.7fr) minmax(0,1fr) !important; }
+      }
+    </style>
+  </helmet>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;demoLoading&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;},&quot;showFutureBadges&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;}}">
+const NAV_LABELS = [
+  { key: "dashboard", label: "Dashboard", enabled: false },
+  { key: "clients", label: "Clients", enabled: false },
+  { key: "projects", label: "Projects", enabled: true, active: true },
+  { key: "frameworks", label: "Frameworks", enabled: false },
+];
+
+const TAB_DEFS = [
+  { key: "overview", label: "Overview", future: false, description: "" },
+  { key: "plan", label: "Plan", future: true, description: "Master plan of activities across sites: scheduling, consultants, planned work and site or online mode." },
+  { key: "documents", label: "Documents", future: true, description: "Project document register, versions and review status, project-wide or per site." },
+  { key: "verification", label: "Verification", future: true, description: "Verification items scheduled from document review or created directly on site." },
+  { key: "issues", label: "Issues & Actions", future: true, description: "Issues raised during verification and site work, and the actions tracked against them." },
+  { key: "reports", label: "Reports", future: true, description: "Visit summaries and project reports generated from structured data." },
+];
+
+const SITES = ["Viet Long", "Chinh Long Binh Duong", "Chinh Long Long An", "Chinh Long Ben Cat", "Chinh Long Bac Giang"];
+const FRAMEWORKS = ["ISO 9001:2015", "ISO 14001:2015", "ISO 45001:2018"];
+const ACTIVITIES = [
+  { type: "Site Assessment", site: "Viet Long", date: "24 Sep 2026", mode: "On-site", status: "Planned" },
+  { type: "Document Review", site: "Project-wide", date: "26 Sep 2026", mode: "Online", status: "Planned" },
+  { type: "Internal Audit", site: "Chinh Long Binh Duong", date: "2 Oct 2026", mode: "On-site", status: "Planned" },
+  { type: "Follow-up", site: "Chinh Long Long An", date: "9 Oct 2026", mode: "On-site", status: "In progress" },
+];
+
+function statusTone(label) {
+  const success = { bg: "#e5f4ec", color: "#1b7a4b" };
+  const warning = { bg: "#fcf1d6", color: "#96650a" };
+  const danger = { bg: "#fdebea", color: "#b3261e" };
+  const neutral = { bg: "#eef0f3", color: "#5d6879" };
+  const map = {
+    Active: success, Inactive: neutral,
+    Planned: neutral, "In progress": neutral, Completed: success, Cancelled: neutral,
+  };
+  return map[label] || neutral;
+}
+
+class Component extends DCLogic {
+  state = { activeTab: "overview" };
+
+  setTab(key) {
+    this.setState({ activeTab: key });
+  }
+
+  renderVals() {
+    const loading = !!this.props.demoLoading;
+    const showFutureBadges = this.props.showFutureBadges !== false;
+    const activeTab = this.state.activeTab;
+    const activeTabDef = TAB_DEFS.find((t) => t.key === activeTab) || TAB_DEFS[0];
+
+    const navItems = NAV_LABELS.map((n) => ({
+      label: n.label,
+      title: n.enabled ? "" : "Coming in a later phase",
+      cursor: n.enabled ? "pointer" : "not-allowed",
+      opacity: n.enabled ? 1 : 0.5,
+      color: n.active ? "#2a4b8d" : n.enabled ? "#1b2130" : "#5d6879",
+      dotColor: n.active ? "#2a4b8d" : "#c7cdd6",
+      activeBg: n.active ? "#eef0f3" : "transparent",
+    }));
+
+    const tabs = TAB_DEFS.map((t) => {
+      const active = t.key === activeTab;
+      return {
+        label: t.label,
+        title: t.future ? "Future concept — not implemented in Phase 2" : "",
+        onClick: () => this.setTab(t.key),
+        borderColor: active ? "#2a4b8d" : "transparent",
+        textColor: active ? "#1b2130" : "#5d6879",
+        showFutureChip: t.future && showFutureBadges,
+      };
+    });
+
+    const sites = SITES.map((name) => {
+      const tone = statusTone("Active");
+      return { name, status: "Active", bg: tone.bg, color: tone.color };
+    });
+
+    const frameworks = FRAMEWORKS.map((name) => ({ name }));
+
+    const activities = ACTIVITIES.map((a) => {
+      const tone = statusTone(a.status);
+      return { type: a.type, site: a.site, date: a.date, mode: a.mode, status: a.status, bg: tone.bg, color: tone.color };
+    });
+
+    return {
+      navItems,
+      tabs,
+      sites,
+      frameworks,
+      activities,
+      loading,
+      notLoading: !loading,
+      skeletonRows5: [{ width: "70%" }, { width: "55%" }, { width: "62%" }, { width: "48%" }, { width: "58%" }],
+      skeletonRows4: [{ width: "80%" }, { width: "65%" }, { width: "72%" }, { width: "50%" }],
+      isOverview: activeTab === "overview",
+      isFuture: activeTab !== "overview",
+      activeTabLabel: activeTabDef.label,
+      activeTabDescription: activeTabDef.description,
+      futureScreenLabel: "Project Workspace – " + activeTabDef.label + " (Future Concept)",
+    };
+  }
+}
+
+</script>
+</body>
+</html>
