@@ -39,3 +39,37 @@ export async function requireUser(): Promise<CurrentUser> {
   if (!user) redirect("/login");
   return user;
 }
+
+export type Role = "admin" | "consultant";
+
+/**
+ * The signed-in user's role (`profiles.role`), or null if signed out or the
+ * profile lookup fails. Memoized per request. Framework administration is the
+ * only place V1 is role-aware (BR-49, amended by BR-52) — pages use this to
+ * decide which controls to render; RLS remains the actual authorization.
+ */
+export const getCurrentUserRole = cache(async (): Promise<Role | null> => {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  return data?.role === "admin" || data?.role === "consultant" ? data.role : null;
+});
+
+/**
+ * Like requireUser(), but also requires the Admin role (BR-52 — Framework
+ * administration). Returns a rejection instead of throwing/redirecting: callers
+ * are Server Actions that surface the error as an ordinary form message. "UI
+ * role visibility is not authorization" — RLS is authoritative either way, but
+ * this gives a clear message instead of a silent 0-row RLS no-op.
+ */
+export async function requireAdmin(): Promise<
+  { ok: true; user: CurrentUser } | { ok: false; error: string }
+> {
+  const user = await requireUser();
+  const role = await getCurrentUserRole();
+  if (role !== "admin") {
+    return { ok: false, error: "You don't have permission to do this." };
+  }
+  return { ok: true, user };
+}

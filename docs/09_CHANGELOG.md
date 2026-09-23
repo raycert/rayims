@@ -3,6 +3,85 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 2 Slice 3 — Framework Administration (2026-09-23)
+
+Framework Library, Framework Detail and Admin Framework/Framework Item CRUD implemented.
+**All Phase 2 implementation slices (Clients & Sites, Projects Workspace, Framework
+Administration) are now complete, but Phase 2 acceptance/integration review is still
+pending — Phase 2 is not yet marked complete.** No database, migration or RLS change;
+the 4 seeded frameworks and their 149 seeded framework_items are unchanged.
+
+### Added
+
+- **Framework Library** (`/frameworks`): search (code/edition/name/category), real item
+  counts, canonical `CODE:EDITION` identity everywhere via the shared
+  `formatFrameworkIdentity()`. Admin sees `+ New Framework` and a per-row overflow
+  (Edit/Delete); consultant sees neither — absent, not disabled.
+- **Framework Detail / hierarchy browser** (`/frameworks/[frameworkId]`): breadcrumb,
+  identity header, category, real item count, recursive expand/collapse tree (root
+  sections start expanded), item search that flattens to a match list with an
+  ancestor-path breadcrumb. No invented ISO text — every string comes from the existing
+  seeded rows.
+- **Consultant read-only experience:** browse and search only; every admin control is
+  absent (not disabled) in the Library, Detail and tree rows. Enforced by RLS
+  (ADR-016), not just hidden UI — a direct `POST /rest/v1/frameworks` as consultant
+  returns 403.
+- **Admin Framework CRUD:** create/edit via the existing right-side drawer (desktop) /
+  full-screen (mobile) pattern; a new `requireAdmin()` helper
+  (`lib/auth/session.ts`) backs every mutation. Duplicate `(code, edition)` maps to a
+  friendly message, never a raw Postgres error. A new edition is verified to create a
+  separate row, never overwrite an existing one.
+- **Admin Framework Item CRUD:** Add root item, Add Sub-item (parent pre-filled), Edit,
+  Delete — all through the same drawer pattern; `sort_order` is assigned by the app.
+- **Controlled deletion (BR-53):** a framework assigned to a project, or an item
+  referenced by document/verification/issue data or with children, cannot be deleted —
+  real FK-backed checks, never a demo `referenced` flag. Deleting an unreferenced
+  framework cascades only its own remaining items.
+- **Hierarchy integrity (BR-55):** an item's parent can never be itself or one of its
+  descendants, and never an item from a different framework. Enforced in the parent
+  picker and independently re-checked server-side (verified by bypassing the picker's
+  own filtering).
+- **Framework category humanization:** category is displayed as `Management System`
+  everywhere (Library, Detail) while the stored value stays `management_system`
+  (`humanizeCategory()`, `lib/ui/format.ts`). The Create/Edit Framework drawer's
+  Category field is a select sourced from the catalog's existing distinct values
+  (`listFrameworkCategories()` — no enum, no taxonomy table, no migration), with an
+  "Other…" option for a new value.
+- **Simplified Framework Item form:** Item Type removed from the normal Add/Edit Item
+  UI. New items always get `item_type = "item"` server-side; editing an item never
+  writes `item_type` at all, so a seeded item's real type (e.g. `"clause"`) is never
+  silently overwritten.
+- **Desktop sticky sidebar** (`components/layout/app-shell.tsx`): the shell is pinned to
+  the viewport height at `md:` and up, so the sidebar (brand, nav, user, sign out) stays
+  in place while a long page's content scrolls independently. Mobile is unchanged
+  (whole-page scroll, fixed bottom navigation).
+- **Compact sticky Framework Detail work header:** identity, admin Edit/overflow,
+  search and `+ Add Item` stay reachable while scrolling a long hierarchy (desktop
+  only — `md:sticky`); breadcrumb, the large heading, category and item count scroll
+  away normally. Not sticky on mobile, so it never consumes extra viewport height there.
+- Nav: `Frameworks` enabled in the sidebar/bottom nav.
+
+### Verified
+
+114 Playwright checks across three passes against the hosted project (production
+build): navigation, consultant experience and RLS, admin Framework/Item CRUD, hierarchy
+integrity (self/descendant/cross-framework, bypassing the UI picker), controlled delete
+(referenced framework, referenced item, item-with-children, leaf item), category
+humanization and form behavior, item-type preservation on edit, responsive layouts
+(390–412px), the sticky App Shell (sidebar position/height unchanged and the page never
+scrolls after a 3000px scroll of a 42-item hierarchy; mobile bottom nav stays fixed),
+and regression of Clients/Projects/Project Framework Assignment/Project Workspace
+identity. `npm run lint`, `npm run typecheck`, `npm run build` all pass. All temporary
+`SLICE3-TEST-*` fixtures were removed after each pass; the 4 seeded frameworks and 149
+seeded framework_items were confirmed byte-identical before and after.
+
+### Not done (intentionally)
+
+Framework lifecycle/publication/archive, `is_seeded`/`is_system`, duplicate-as-new-
+edition workflow, GRI/ESG/GHG/CBAM frameworks; project-specific compliance status or
+implementation assessment; Activities, Documents/Evidence, Verification, Issues &
+Actions, Reports; Phase 3+.
+
 ## Phase 2 Slice 2 — Projects Workspace (2026-09-23)
 
 Projects List, Project Setup and Project Workspace Overview implemented. **Phase 2 is

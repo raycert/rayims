@@ -14,9 +14,13 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-dvh md:flex">
+    // md:h-dvh pins the shell to exactly the viewport height at desktop, so the content
+    // column below (not this outer row) is the thing that scrolls — the sidebar, as a
+    // plain stretched flex item that never itself overflows, simply never moves. Mobile
+    // keeps its original min-h-dvh whole-page scroll; nothing below md: changes behavior.
+    <div className="min-h-dvh md:flex md:h-dvh">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
+      <aside className="hidden w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface md:flex">
         <div className="px-5 py-4 text-lg font-semibold tracking-tight">RayIMS</div>
         <nav aria-label="Main" className="flex-1 px-3">
           <NavLinks variant="sidebar" />
@@ -31,7 +35,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col md:h-dvh md:overflow-y-auto">
         {/* Mobile top bar */}
         <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-2 md:hidden">
           <span className="text-base font-semibold tracking-tight">RayIMS</span>
