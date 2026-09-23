@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Toast, useToast } from "@/components/ui/toast";
@@ -102,8 +102,11 @@ export function ClientDetailView({ client }: { client: ClientDetail }) {
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
-        <div className="px-4 py-3.5">
+        <div className="flex items-center justify-between px-4 py-3.5">
           <h2 className="text-sm font-semibold">Projects</h2>
+          <Link href={`/projects/new?clientId=${client.id}`} className={buttonClasses("secondary", "min-h-8 px-3 text-xs")}>
+            + New Project
+          </Link>
         </div>
         {client.projects.length === 0 ? (
           <div className="px-4 pb-6">
@@ -111,16 +114,17 @@ export function ClientDetailView({ client }: { client: ClientDetail }) {
           </div>
         ) : (
           client.projects.map((p) => (
-            <div
+            <Link
               key={p.id}
-              className="flex min-h-[44px] items-center justify-between gap-3 border-t border-border px-4 py-2 text-sm"
+              href={`/projects/${p.id}`}
+              className="flex min-h-[44px] items-center justify-between gap-3 border-t border-border px-4 py-2 text-sm hover:bg-neutral-soft/60"
             >
               <span className="font-semibold">{p.name}</span>
               <div className="flex items-center gap-2.5 whitespace-nowrap">
                 <span className="text-[13px] text-muted">{formatDate(p.startDate)}</span>
                 <StatusBadge label={projectStatusLabel(p.status)} tone={projectStatusTone(p.status)} />
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>

@@ -18,6 +18,6 @@ export type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, enabled: true },
   { href: "/clients", label: "Clients", icon: Building2, enabled: true },
-  { href: "/projects", label: "Projects", icon: FolderKanban, enabled: false },
+  { href: "/projects", label: "Projects", icon: FolderKanban, enabled: true },
   { href: "/frameworks", label: "Frameworks", icon: Library, enabled: false },
 ];

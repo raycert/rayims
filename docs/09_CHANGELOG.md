@@ -3,6 +3,69 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 2 Slice 2 — Projects Workspace (2026-09-23)
+
+Projects List, Project Setup and Project Workspace Overview implemented. **Phase 2 is
+not complete**: Framework Administration UI and Activities/Documents/Verification/
+Issues & Actions/Reports remain unbuilt. No database, migration or RLS change; framework
+seed data unchanged.
+
+### Added
+
+- **Projects List** (`/projects`): search by project or client name, live Site Scope
+  (`n of {client's current site total}`, not a frozen snapshot), framework count,
+  status badge, single "Edit Project" action via overflow menu (per the approved
+  design).
+- **Project Setup** (`components/projects/project-setup-form.tsx`): one shared
+  create/edit form across three entry modes — global create (`/projects/new`), create
+  from Client Detail (`/projects/new?clientId=`, client locked and prefilled) and edit
+  (`/projects/[projectId]/edit`, client immutable per BR-57).
+- **Site Scope:** checkbox list of the selected client's sites, Select all/Clear all,
+  live "n of total selected" count; changing the client during create clears the
+  selection (sites belong to the previous client); zero sites is valid and shown as
+  informational text, never an error (BR-56).
+- **Framework Assignment** (section renamed from "Frameworks" after UI review): catalog
+  grouped by category, each row showing the canonical `CODE:EDITION` identity (e.g.
+  `ISO 9001:2015`) with the descriptive name as secondary text; zero frameworks is
+  valid and informational only (BR-56).
+- **Create Project from Client Detail:** `+ New Project` added to the Client Detail
+  Projects section; project rows there now link to the project's Workspace.
+- **Project Workspace Overview** (`/projects/[projectId]`): breadcrumb, status, real
+  site count and real framework identities in the header; Sites and Frameworks cards
+  (no per-site status badge — no such column exists); a real "Project" info card
+  (client, status, start/end date). The five non-Overview tabs (Plan, Documents,
+  Verification, Issues & Actions, Reports) are visible but inert placeholders — no
+  route, no navigation, no "CONCEPT" label shipped. No fabricated future-domain data
+  (verification progress, issues/actions counts, upcoming activities) was added, per
+  BR-59.
+- **Responsive behavior:** Projects List (table ⇄ cards), Workspace (two-column ⇄
+  single-column grid at 860px) and Setup verified at mobile and desktop widths.
+- **Framework identity normalization:** every screen renders framework identity as
+  `CODE:EDITION` via one shared helper (`formatFrameworkIdentity` in
+  `lib/ui/format.ts`), replacing inconsistent code-only / name-only / no-edition
+  displays found in UI review.
+- **Native date-picker interaction:** Start/End date fields call the native
+  `showPicker()` where supported (feature-detected, try/catch) so clicking anywhere in
+  the field opens the picker, not only the calendar icon; no dependency added, no
+  custom calendar; keyboard interaction and the stored `YYYY-MM-DD` format are
+  unchanged.
+- Nav: `Projects` enabled in the sidebar/bottom nav.
+
+### Verified
+
+Playwright checks against the hosted project (production build) covering: create
+(global and from Client Detail), edit with add/remove site and framework assignments,
+client-side and server-side validation, zero-scope states, responsive layouts, the UI
+review fixes above, and regression of Clients List/Detail, auth and framework RLS
+(ADR-016 — consultants still cannot write frameworks). `npm run lint`,
+`npm run typecheck`, `npm run build` all pass. Temporary test fixtures were removed
+after each pass; framework seed data confirmed unchanged before/after.
+
+### Not done (intentionally)
+
+Framework Administration UI; Activities, Documents, Verification, Issues & Actions,
+Reports; project/client deletion; Phase 3+.
+
 ## Phase 2 baseline update (2026-09-21)
 
 Baseline before Phase 2 implementation. **No Phase 2 screen or application code was implemented.**
