@@ -418,7 +418,15 @@ export function ProjectSetupForm({
         </p>
       ) : null}
 
-      <div className="flex justify-end gap-2.5">
+      {/*
+        Sticky action footer only — breadcrumb/title/Project Identity stay in normal flow.
+        bottom-24 parks it just above the fixed mobile bottom nav (matching <main>'s own
+        pb-24 reservation for that nav in app-shell.tsx); md:bottom-0 sits it flush against
+        the bottom of the desktop scroll container, where there's no competing fixed nav.
+        Sticky (not fixed) means a short form never gets an awkward floating bar — it only
+        pins once scrolling would otherwise carry it past this point.
+      */}
+      <div className="sticky bottom-24 z-10 flex justify-end gap-2.5 border-t border-border bg-background py-3 md:bottom-0">
         <Button type="button" variant="secondary" onClick={handleCancel} disabled={pending}>
           Cancel
         </Button>

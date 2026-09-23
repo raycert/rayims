@@ -3,6 +3,15 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 2 UI polish — Project Setup sticky actions (2026-09-23)
+
+`components/projects/project-setup-form.tsx` only. Create and Edit Project (the shared
+Project Setup form) now share a sticky action footer (Cancel / Create Project or Save
+Changes): on desktop the actions stay available while scrolling a long form; on mobile
+they stay visible just above the fixed bottom navigation, never overlapping it. The
+breadcrumb, page title and Project Identity header remain non-sticky, unchanged. No
+database, migration or RLS change.
+
 ## Phase 2 Slice 3 — Framework Administration (2026-09-23)
 
 Framework Library, Framework Detail and Admin Framework/Framework Item CRUD implemented.
