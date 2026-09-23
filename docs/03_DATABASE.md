@@ -158,7 +158,11 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
   - `id`, `project_id` (FK, NOT NULL), `site_id` (**nullable**)
   - `activity_type` (free text, validated in app — Training, Site Assessment,
     Document Review, Document Support, Consulting, Online Support,
-    Internal Audit, Follow-up)
+    Internal Audit, Follow-up). **Current schema.** *Planned Phase 3A target
+    (ADR-017, not yet implemented):* `activity_type_id uuid NOT NULL
+    REFERENCES activity_types(id) ON DELETE NO ACTION`, a dedicated
+    Admin-configurable reference table. No migration exists yet; this remains
+    free text until Phase 3A ships.
   - `name`, `start_date`, `end_date`
   - `mode` (CHECK `on_site | online`), `planned_days numeric(4,1)`
   - `consultant_id → profiles`, `objectives`, `planned_work`

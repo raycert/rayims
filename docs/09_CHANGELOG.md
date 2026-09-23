@@ -3,6 +3,18 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Pre-Phase 3 — Master Data Design/Audit & ADR-017 (2026-09-23)
+
+Architecture-decision checkpoint, documentation only — **no application or schema
+change**. Completed the pre-Phase-3 Master Data Design/Audit (`06_ROADMAP.md`) and
+recorded **ADR-017**: Activity Type will be Admin-configurable from Phase 3's first
+implementation via a **dedicated `activity_types` reference table**, FK-referenced from
+the existing `activities` table — not a generic `master_data_sets`/`master_data_options`
+mechanism. Generic Master Data is explicitly deferred (revisit only if real duplication
+appears across future similar fields). Every other current status/taxonomy field is
+unchanged. No migration, RLS, or application code has been written yet; Phase 3A
+(Activity Type Foundation) and Phase 3B (Master Plan / Activities) remain not started.
+
 ## Phase 2 — COMPLETE (2026-09-23)
 
 Phase 2 (Client / Project / Site / Frameworks) is formally closed after passing

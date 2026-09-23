@@ -8,7 +8,8 @@
 | 0D    | Supabase Integration & Backend Verification | **COMPLETED** |
 | 1     | Authentication & App Shell                  | **COMPLETED** |
 | 2     | Client / Project / Site / Frameworks        | **COMPLETED** |
-| 3     | Master Plan / Activities                    | Planned       |
+| 3A    | Activity Type Foundation                    | Planned       |
+| 3B    | Master Plan / Activities                    | Planned       |
 | 4     | Verification / Issues / Actions             | Planned       |
 | 5     | Documents / Versions / Reviews              | Planned       |
 | 6     | Visit Summary / Reporting                   | Planned       |
@@ -143,19 +144,35 @@ site/client consistency and immutable project client; client and project deletio
 "duplicate framework as new edition"; site status; full framework lifecycle /
 versioning / archive (excluded by design — ADR-016, not merely deferred).
 
-> **Before Phase 3 implementation: Master Data Design/Audit.** A short architecture
-> checkpoint (not a build phase) to decide, for values such as Activity Type, Issue
-> Category, Document Type, Evidence Type, Priority, Project Status, Action Status,
-> Review Status and Verification Result, which should stay (A) system-controlled
-> states, (B) configurable taxonomy/master data, or (C) reference/master data needing
-> a dedicated module. No master-data tables, Settings UI, or changes to existing
-> enums/status fields are implied by this note — decide, then implement under an
-> explicit follow-up approval.
+> **Pre-Phase-3 Master Data Design/Audit: COMPLETE.** Reviewed every current and
+> planned V1 status/taxonomy field against system-state vs. configurable-Master-Data
+> vs. dedicated-reference-data criteria. **Decision (ADR-017):** Activity Type will be
+> Admin-configurable from Phase 3's first implementation, via a **dedicated
+> `activity_types` reference table** with an FK from the existing `activities` table
+> (`activity_type_id uuid REFERENCES activity_types(id)`), not a generic
+> `master_data_sets`/`master_data_options` mechanism. Every other current
+> status/taxonomy field stays exactly as it is (`03_DATABASE.md`, `04_BUSINESS_RULES.md`
+> unchanged). See ADR-017 for the full analysis and reasoning. **No schema, migration,
+> RLS or application code exists yet** — this is a recorded decision, not an
+> implementation.
 
-## Phase 3 — Master Plan / Activities
+## Phase 3A — Activity Type Foundation
 
-Activity planning and list/detail views; project-wide and site-specific
-activities; no drag-and-drop.
+Not started. Scope (per ADR-017): the `activity_types` table, seeded with the 8
+documented starting values (training, site_assessment, document_review,
+document_support, consulting, online_support, internal_audit, follow_up); Admin-only
+write / authenticated-read RLS mirroring Framework Administration (ADR-016); a minimal
+Admin "Activity Types" list screen (add, edit label/description, reorder,
+activate/deactivate). Out of scope: Document Type, Issue Category, Evidence Type,
+Report Type, multilingual labels, organization-specific options, bulk import,
+drag-and-drop ordering, audit log, label version history, approval workflow — none of
+these are implied or required by Phase 3A.
+
+## Phase 3B — Master Plan / Activities
+
+Not started. Activity planning and list/detail views; project-wide and site-specific
+activities; no drag-and-drop. `activities.activity_type_id` references the Phase 3A
+`activity_types` table.
 
 ## Phase 4 — Verification / Issues / Actions
 

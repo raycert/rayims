@@ -219,6 +219,114 @@ write (backlog trigger). A consultant's UPDATE or DELETE affects 0 rows (no erro
 server code treats 0 rows as forbidden.
 **Status:** Approved
 
+## ADR-017 — Activity Type as Dedicated FK-Referenced Master Data
+
+**Context:** Phase 2 is closed. The `activities` table already exists in the Core schema
+(created in Phase 0C/0D) with `activity_type text not null` — free text, validated only
+in the application (ADR-012) — and **zero Activity rows currently exist** (Phase 3 has
+not been implemented). ADR-012 allowed taxonomies to stay free text and explicitly
+anticipated that "a lookup table can be introduced later without changing stored
+values." Activity Type is now required to be Admin-configurable from Phase 3's first
+implementation (Master Data Design/Audit checkpoint, `06_ROADMAP.md`). Three designs
+were evaluated: (A) a stable text key validated against a generic Master Data catalog;
+(B) an FK to a generic `master_data_options` table; (C) an FK to a dedicated
+`activity_types` table. Design B's plain FK cannot guarantee a referenced option
+actually belongs to the `activity_type` set (a `document_type` option would satisfy the
+same FK) — closing that gap needs a composite FK or a trigger, both of which are more
+complex than simply not needing to close the gap. A dedicated table (C) gives direct
+referential *and* semantic integrity with the least mechanism.
+
+**Decision:** Introduce a dedicated table, `activity_types`, conceptually:
+`id uuid PK`, `key text UNIQUE NOT NULL`, `label text NOT NULL`,
+`description text` (nullable), `sort_order integer`, `is_active boolean NOT NULL`,
+`created_at`, `updated_at`. Change the existing `activities` table from
+`activity_type text NOT NULL` to `activity_type_id uuid NOT NULL REFERENCES
+activity_types(id) ON DELETE NO ACTION`. This is a **future, not-yet-implemented**
+change to an existing column — no migration has been written yet (Phase 3A).
+
+**Key vs. label:** `key` is the stable machine identity, set once at creation and not
+editable through the normal Admin UI afterward (an application convention, not a DB
+constraint — the same pattern already used for BR-57's immutable project client).
+`label` is user-facing business vocabulary, freely Admin-editable at any time; changing
+it never changes an Activity's identity or any stored `activity_type_id`.
+
+**Active / inactive:** `is_active = true` options are offered when creating or editing
+an Activity. `is_active = false` options are **not** offered for new assignment, but any
+existing Activity that already references an inactive type remains valid and continues
+to display it normally.
+
+**Delete:** a referenced `activity_types` row cannot be hard-deleted (`ON DELETE NO
+ACTION`, the same convention already used for `project_frameworks.framework_id →
+frameworks`). An unreferenced row may be hard-deleted. The normal retirement path is
+**deactivate, not delete**.
+
+**Historical label semantics:** RayIMS V1 does **not** snapshot Activity Type labels.
+An Activity always displays the *current* label from `activity_types` — if an Admin
+renames "Site Assessment" to "On-site Assessment," every existing Activity that used
+that type immediately shows the new label. This matches how every other status/label in
+RayIMS already resolves (no per-row snapshot exists anywhere in the current schema) and
+avoids denormalization or a label-version-history table that nothing in V1 scope
+justifies. If the *meaning* of a type materially changes (not just its wording), the
+correct action is a **new key** plus deactivating the old one — never repurposing an
+existing key's meaning.
+
+**Authorization:** read is available to every authenticated user (needed to render
+existing Activities); Admin may create, edit label/description/sort order,
+activate/deactivate, and delete (only when unreferenced); Consultant is read-only. This
+follows the established Framework Administration authorization/RLS shape (ADR-016) —
+`authenticated read` plus Admin-only write policies gated on `profiles.role = 'admin'`.
+RLS is not implemented by this ADR; it is recorded here as the intended shape for the
+future Phase 3A migration.
+
+**Initial Activity Types (seed candidates for Phase 3A, not yet seeded):** `training`
+(Training), `site_assessment` (Site Assessment), `document_review` (Document Review),
+`document_support` (Document Support), `consulting` (Consulting), `online_support`
+(Online Support), `internal_audit` (Internal Audit), `follow_up` (Follow-up). These are
+ordinary reference values, not system-controlled workflow states — Admin may add more
+later.
+
+**System-state boundary:** this decision does **not** make any workflow state
+configurable. `profiles.role`, `clients.status`, `projects.status`,
+`activities.status`, `activities.mode`, `document_reviews.status`,
+`verification_items.result`, `issues.status`, `priority` (issues/actions/verification
+items), and `actions.status` remain exactly as specified in `03_DATABASE.md`, controlled
+by application/database business logic, `text + CHECK`, unaffected by this ADR.
+
+**Generic Master Data boundary:** RayIMS is **not** introducing a generic
+`master_data_sets` / `master_data_options` mechanism at this time. Activity Type is
+currently the only concrete configurable taxonomy Phase 3 needs, and a dedicated table
+gives simpler, stronger integrity than a generic one would without additional machinery
+(§ analysis above). `documents.document_type`, `frameworks.category`, and
+`framework_items.item_type` are **not** changed by this ADR and remain free text under
+ADR-012. Future concepts such as Issue Category, Evidence Type, or Report Type remain
+undecided until their modules require them — no schema is created for them here. If
+several similar configurable taxonomies later create real, observed duplication, RayIMS
+may revisit a generic mechanism through a **separate** future ADR; this ADR does not
+pre-decide that outcome.
+
+**Domain boundary:** this mechanism must never become a catch-all for future Carbon
+(emission sources, activity data, emission factors, GHG results), ESG (indicators,
+metrics, targets), or CBAM (installations, production processes, goods, precursors,
+embedded emissions) concepts — those require dedicated domain models (ADR-010) when
+implemented, not a row in a small lookup table.
+
+**Reason:** A plain FK to a generic options table cannot, by itself, prove a referenced
+option belongs to the correct set; every way to close that gap (composite FK, trigger)
+costs more than a dedicated table, which closes it for free and matches the one
+reference-data pattern RayIMS already uses (Frameworks: a dedicated table, not a generic
+one).
+
+**Consequences:** Establishes RayIMS's first small dedicated-lookup-table pattern
+(distinct from Frameworks' hierarchical one). A future second field of the same shape
+(`document_type`, Phase 5) should default to the same dedicated-table pattern unless a
+later ADR finds real cause to generalize. This **refines** ADR-012 for the single
+`activity_type` field — exercising ADR-012's own anticipated "a lookup table can be
+introduced later" allowance — without superseding ADR-012 globally: stable workflow
+states and every other current free-text taxonomy remain governed by ADR-012 unchanged.
+No schema, migration, RLS, or application code exists yet; this ADR records the decision
+for the future Phase 3A implementation.
+**Status:** Approved
+
 ---
 
 ## Open Items (history)
