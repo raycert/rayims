@@ -7,7 +7,7 @@
 | 0C    | Foundation Implementation                   | **COMPLETED** |
 | 0D    | Supabase Integration & Backend Verification | **COMPLETED** |
 | 1     | Authentication & App Shell                  | **COMPLETED** |
-| 2     | Client / Project / Site / Frameworks        | Planned (baseline updated) |
+| 2     | Client / Project / Site / Frameworks        | **COMPLETED** |
 | 3     | Master Plan / Activities                    | Planned       |
 | 4     | Verification / Issues / Actions             | Planned       |
 | 5     | Documents / Versions / Reviews              | Planned       |
@@ -104,7 +104,7 @@ Delivered:
 Placeholders that intentionally remain until their phase: dashboard metrics (Phase 7);
 Clients / Projects / Frameworks navigation (disabled, Phase 2).
 
-## Phase 2 — Client / Project / Site / Frameworks [Planned; baseline updated]
+## Phase 2 — Client / Project / Site / Frameworks [COMPLETED]
 
 Scope: Clients, Sites (client-level), Projects, Project Setup (identity, site scope,
 framework assignment; full page), Project Workspace **Overview with real data only**
@@ -113,15 +113,44 @@ and **Framework Administration for Admins** (create, edit, controlled delete; AD
 UI references: `docs/phase-2/`. The other workspace tabs (Plan, Documents,
 Verification, Issues & Actions, Reports) are disabled until their phases.
 
-**Baseline update (done, before implementation):** ADR-016 and the document amendments;
-migration `20260921000100_framework_admin_write.sql` (Admin-only framework writes) applied and verified on the hosted
-project; approved design set reduced to the final files. No Phase 2 screen has been
-implemented yet.
+**Baseline update:** ADR-016 and the document amendments; migration
+`20260921000100_framework_admin_write.sql` (Admin-only framework writes) applied and
+verified on the hosted project; approved design set reduced to the final files.
 
-Intentionally deferred from Phase 2 (backlog): DB trigger against framework hierarchy
-cycles; atomic `save_project` function; DB guards for site/client consistency and
-immutable project client; client and project deletion; "duplicate framework as new
-edition"; site status.
+**Delivered (three slices + UI polish):**
+
+- Clients and Sites (client-level, reusable across projects)
+- Project Setup: identity, Site Scope, Framework Assignment (shared create/edit form)
+- Project Workspace: real data only (sites, frameworks, project information)
+- Framework Library and Framework Detail (hierarchy browser)
+- Framework hierarchy administration (Admin create/edit/controlled delete, cycle-safe
+  parent picker enforced client- and server-side)
+- Admin / Consultant framework authorization (ADR-016; RLS-backed, not UI-only)
+- Responsive Phase 2 UX across every screen (desktop table ⇄ mobile card/full-screen
+  patterns)
+- Sticky desktop App Shell (fixed sidebar, independently scrolling content)
+- Sticky Framework Detail work header (compact, desktop only)
+- Sticky Project Setup action footer (desktop and mobile, above the bottom nav)
+
+**Integration / Acceptance review (2026-09-23): PASS.** 157/157 acceptance checks
+(hosted Supabase, production build, Playwright/Edge, 1280×800 and 390/412px), 0 P0
+findings, 0 P1 findings. Full results: `08_TESTING.md`. Seed Framework catalog (4
+frameworks / 149 items) and existing user data verified unchanged before and after.
+
+Intentionally deferred from Phase 2 (backlog, not blockers — still open): DB trigger
+against framework hierarchy cycles; atomic `save_project` function; DB guards for
+site/client consistency and immutable project client; client and project deletion;
+"duplicate framework as new edition"; site status; full framework lifecycle /
+versioning / archive (excluded by design — ADR-016, not merely deferred).
+
+> **Before Phase 3 implementation: Master Data Design/Audit.** A short architecture
+> checkpoint (not a build phase) to decide, for values such as Activity Type, Issue
+> Category, Document Type, Evidence Type, Priority, Project Status, Action Status,
+> Review Status and Verification Result, which should stay (A) system-controlled
+> states, (B) configurable taxonomy/master data, or (C) reference/master data needing
+> a dedicated module. No master-data tables, Settings UI, or changes to existing
+> enums/status fields are implied by this note — decide, then implement under an
+> explicit follow-up approval.
 
 ## Phase 3 — Master Plan / Activities
 

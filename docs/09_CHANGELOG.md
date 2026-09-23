@@ -3,6 +3,27 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 2 — COMPLETE (2026-09-23)
+
+Phase 2 (Client / Project / Site / Frameworks) is formally closed after passing
+Integration / Acceptance review: **157/157 acceptance checks, 0 P0 findings, 0 P1
+findings.** Full result in `08_TESTING.md`; roadmap status in `06_ROADMAP.md`.
+
+- Clients & Sites completed (Slice 1)
+- Projects and Project Workspace completed (Slice 2)
+- Framework Library and Framework Administration completed (Slice 3)
+- Phase 2 responsive/sticky UI polish completed (desktop App Shell, Framework Detail
+  work header, Project Setup action footer)
+- Integration acceptance: PASS — verified the full Client → Site → Project →
+  Framework workflow, Admin and Consultant authorization, hierarchy integrity, RLS,
+  responsive behavior, and data integrity against the real hosted project
+- Seed Framework catalog (4 frameworks / 149 items) and existing user data confirmed
+  unchanged before and after acceptance testing
+- No database, migration or RLS change during acceptance or this close
+
+**Phase 3 (Master Plan / Activities) has not started.** A Master Data Design/Audit
+checkpoint is planned before Phase 3 implementation begins (`06_ROADMAP.md`).
+
 ## Phase 2 UI polish — Project Setup sticky actions (2026-09-23)
 
 `components/projects/project-setup-form.tsx` only. Create and Edit Project (the shared

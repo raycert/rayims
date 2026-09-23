@@ -19,6 +19,11 @@ observed.
 - Add automated tests only where they pay for themselves (Quick-Win principle).
 - When a test fails, record it as FAIL with the actual result; do not edit the
   expected result to match.
+- **Streaming routes:** when a route streams through `loading.tsx` (Next.js 16
+  Suspense), a visibility assertion right after navigation can run before the real
+  content replaces the skeleton. Wait for the expected UI state (e.g. `waitFor({state:
+  "visible"})` on the specific element) rather than an immediate `isVisible()` check,
+  which does not retry.
 
 ## Test case ID convention
 
@@ -216,10 +221,27 @@ that were removed afterwards. Result: 9 PASS, 1 NOTE.
 | TC-P2B-REG-001 | Phase 0D regression on the hosted project | Anon suite 9/9; database behavior suite 66/66; auth/RLS/storage suite 53/53 with the framework-write attempts removed; catalog suite 37/41 | See notes | **PASS** | The 4 catalog differences are intended: 3 encode the superseded read-only rule (grants, policies, migration count 6) and 1 is the earlier flawed unique-index check (see TC-P0D-SCHEMA-005). Not new failures |
 | TC-P2B-INC-001 | Incident: old test script wrote to seeded data | (Informational) | The Phase 0D step-2 script attempted framework writes as admin, expecting denial; under ADR-016 they succeeded: it renamed ISO 9001, created a framework `X` and retitled the four items with code `4`. Restored by SQL; hosted frameworks and items verified identical to the seed baseline (4 / 149) | **NOTE** | Only `updated_at` on 6 restored rows differs. The regression copy no longer writes to framework tables. Lesson: run write-attempt tests on temporary records only |
 
-#### Phase 2 test specification (application level; NOT yet implemented, NOT TESTED)
+#### Phase 2 Integration / Acceptance checkpoint (executed 2026-09-23)
 
-These cases are defined for the Phase 2 implementation. They depend on screens and server
-actions that do not exist yet, so **none has been run and none has a result**.
+Result: **PASS — 157/157 acceptance checks, 0 P0 findings, 0 P1 findings.** Hosted
+Supabase, production build, Playwright/Edge, desktop 1280×800 and mobile 390/412px.
+Covered: Admin acceptance; Consultant acceptance; the integrated Client → Site →
+Project → Site Scope → Framework Assignment → Project Workspace → Framework Library →
+Framework Detail workflow; Framework hierarchy protections (self/descendant/cross-
+framework parent, controlled delete); RLS behavior (direct write probes, not just UI
+inspection); responsive acceptance; seed integrity (4 frameworks / 149 items, verified
+unchanged before/after); existing "Test 1" user-data integrity (verified unchanged
+before/after); temporary-fixture cleanup; `lint`/`typecheck`/`build`. All fixtures used
+the `P2-ACCEPT-` prefix and were removed afterward. This checkpoint exercised the
+candidate areas listed in the `TC-P2-*` table below at an integration level; those
+individual case IDs were not formalized one-by-one and remain marked NOT TESTED for
+that reason, not because the behavior is unverified.
+
+#### Phase 2 test specification (application level; candidate areas, not individually formalized)
+
+These cases were defined at the start of the Phase 2 implementation as candidate focus
+areas. They were exercised via the Phase 2 Integration/Acceptance checkpoint above
+rather than run one-by-one against these specific IDs.
 
 | ID | Feature | Expected | Status |
 | -- | ------- | -------- | ------ |
