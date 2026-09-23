@@ -17,11 +17,13 @@ export function NavLinks({ variant }: { variant: "sidebar" | "bottom" }) {
         const classes = cn(
           "flex items-center rounded-md text-sm font-medium",
           bottom
-            ? "min-h-14 min-w-16 flex-col justify-center gap-0.5 px-2 text-xs"
+            ? "min-h-14 min-w-16 flex-col justify-center gap-1 px-2 text-[13px]"
             : "min-h-11 gap-3 px-3",
           active ? "bg-neutral-soft text-primary" : "text-muted",
           enabled && !active && "hover:bg-neutral-soft hover:text-foreground",
-          !enabled && "cursor-not-allowed opacity-50",
+          // Disabled ("coming later") items stay visually distinct from enabled ones, but
+          // opacity-50 alone read as nearly invisible; opacity-60 keeps that same intent legible.
+          !enabled && "cursor-not-allowed opacity-60",
         );
 
         return (

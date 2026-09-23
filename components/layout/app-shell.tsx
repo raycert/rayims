@@ -23,7 +23,7 @@ export function AppShell({
         </nav>
         <div className="space-y-1 border-t border-border p-3">
           {email ? (
-            <p className="truncate px-3 text-xs text-muted" title={email}>
+            <p className="truncate px-3 text-[13px] text-muted" title={email}>
               {email}
             </p>
           ) : null}
