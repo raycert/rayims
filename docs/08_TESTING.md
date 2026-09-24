@@ -275,10 +275,41 @@ rather than run one-by-one against these specific IDs.
 | TC-P2-UI-002 | Mobile | 390 px: no horizontal overflow, 44 px targets, 16 px inputs on all new forms | **NOT TESTED** |
 | TC-P2-SEC-001 | RLS regression | Clients, sites, projects, project_sites, project_frameworks keep full authenticated CRUD; anon denied | **NOT TESTED** |
 
-### Phase 3 — Master Plan / Activities
+### Phase 3A — Activity Type Foundation (executed 2026-09-24)
+
+Result: **PASS — 60/60 acceptance checks, 0 failures.** Hosted Supabase, production
+build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px. Covered: navigation
+(desktop sidebar + mobile bottom nav, 5 items, no overflow at either mobile width);
+Admin CRUD (list/search, create with key-format and duplicate-key validation, key
+auto-suggested from label and reviewable before save, edit preserves key, deactivate/
+reactivate, delete); referenced-delete blocked with a temporary fixture (Activity Type
+→ temporary Client → Project → Activity, all `P3A-ACCEPT-` prefixed, FK `NO ACTION`
+verified, then cleaned up in correct order and delete re-verified to succeed);
+Consultant read-only UI (no admin controls rendered) and direct RLS probes (insert/
+update/delete all blocked, zero rows affected); anon access; responsive (390px/412px,
+Create drawer full-screen); Phase 2 regression (Clients, Projects, Framework Library/
+Detail/Admin, Consultant Framework read-only, sticky App Shell). All temporary
+`P3A-ACCEPT-*` fixtures removed afterward; Framework seed (4/149) and existing "Test 1"
+data confirmed unchanged before and after.
+
+One issue was found and fixed **during** this acceptance pass (not a pre-existing app
+defect — introduced by this migration and caught before commit): the new
+`activity_types` table initially carried full default `anon` privileges from table
+creation (this project still auto-grants new tables at the Postgres default-privilege
+level; every other table was explicitly revoked-then-granted, this one wasn't). RLS
+already blocked all anon reads/writes throughout, so no data was ever exposed — verified
+directly (`anon` SELECT returned `200 []`, not real rows, even before the fix). Fixed
+with `20260924000200_activity_types_anon_revoke.sql`; re-verified `anon` now gets the
+identical `401` / `42501 permission denied` response `frameworks` gets, and authenticated
+read/write were unaffected by the correction.
+
+`npm run lint`, `npm run typecheck`, `npm run build` all pass. `git diff --check` clean.
+
+### Phase 3B — Master Plan / Activities
 Test cases: *not yet defined.*
 Candidate areas: project-wide vs site activity; site must be in project scope;
-modes and statuses.
+modes and statuses; Activity Type picker sourced from `activity_types`
+(`is_active = true`, ordered by `sort_order`).
 
 ### Phase 4 — Verification / Issues / Actions
 Test cases: *not yet defined.*

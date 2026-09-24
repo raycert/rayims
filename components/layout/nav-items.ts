@@ -3,6 +3,7 @@ import {
   FolderKanban,
   LayoutDashboard,
   Library,
+  Tags,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,4 +21,5 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/clients", label: "Clients", icon: Building2, enabled: true },
   { href: "/projects", label: "Projects", icon: FolderKanban, enabled: true },
   { href: "/frameworks", label: "Frameworks", icon: Library, enabled: true },
+  { href: "/activity-types", label: "Activity Types", icon: Tags, enabled: true },
 ];

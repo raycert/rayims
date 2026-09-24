@@ -131,7 +131,7 @@ export type Database = {
       }
       activities: {
         Row: {
-          activity_type: string
+          activity_type_id: string
           consultant_id: string | null
           created_at: string
           created_by: string | null
@@ -151,7 +151,7 @@ export type Database = {
           work_performed: string | null
         }
         Insert: {
-          activity_type: string
+          activity_type_id: string
           consultant_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -171,7 +171,7 @@ export type Database = {
           work_performed?: string | null
         }
         Update: {
-          activity_type?: string
+          activity_type_id?: string
           consultant_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -191,6 +191,13 @@ export type Database = {
           work_performed?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "activities_activity_type_id_fkey"
+            columns: ["activity_type_id"]
+            isOneToOne: false
+            referencedRelation: "activity_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "activities_consultant_id_fkey"
             columns: ["consultant_id"]
@@ -220,6 +227,39 @@ export type Database = {
             referencedColumns: ["project_id", "site_id"]
           },
         ]
+      }
+      activity_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       attachments: {
         Row: {

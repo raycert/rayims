@@ -8,8 +8,8 @@
 | 0D    | Supabase Integration & Backend Verification | **COMPLETED** |
 | 1     | Authentication & App Shell                  | **COMPLETED** |
 | 2     | Client / Project / Site / Frameworks        | **COMPLETED** |
-| 3A    | Activity Type Foundation                    | Planned       |
-| 3B    | Master Plan / Activities                    | Planned       |
+| 3A    | Activity Type Foundation                    | **COMPLETED** |
+| 3B    | Master Plan / Activities                    | Planned — NEXT |
 | 4     | Verification / Issues / Actions             | Planned       |
 | 5     | Documents / Versions / Reviews              | Planned       |
 | 6     | Visit Summary / Reporting                   | Planned       |
@@ -156,23 +156,44 @@ versioning / archive (excluded by design — ADR-016, not merely deferred).
 > RLS or application code exists yet** — this is a recorded decision, not an
 > implementation.
 
-## Phase 3A — Activity Type Foundation
+## Phase 3A — Activity Type Foundation [COMPLETED]
 
-Not started. Scope (per ADR-017): the `activity_types` table, seeded with the 8
-documented starting values (training, site_assessment, document_review,
-document_support, consulting, online_support, internal_audit, follow_up); Admin-only
-write / authenticated-read RLS mirroring Framework Administration (ADR-016); a minimal
-Admin "Activity Types" list screen (add, edit label/description, reorder,
-activate/deactivate). Out of scope: Document Type, Issue Category, Evidence Type,
-Report Type, multilingual labels, organization-specific options, bulk import,
-drag-and-drop ordering, audit log, label version history, approval workflow — none of
-these are implied or required by Phase 3A.
+Delivered (per ADR-017): the `activity_types` table, seeded with the 8 documented
+starting values (training, site_assessment, document_review, document_support,
+consulting, online_support, internal_audit, follow_up); Admin-only write /
+authenticated-read RLS mirroring Framework Administration (ADR-016); the existing
+`activities.activity_type` (free text) replaced by `activity_type_id` (FK, NO ACTION —
+safe because `activities` had zero rows); an "Activity Types" list screen (search,
+create, edit label/description/sort order, activate/deactivate, controlled delete) with
+key immutable after creation both in the UI and the server-side update path; navigation
+entry (`Tags` icon) alongside Frameworks on desktop sidebar and mobile bottom nav (5
+items fit both 390px and 412px without overflow).
 
-## Phase 3B — Master Plan / Activities
+**Verified (2026-09-24): 60/60 acceptance checks** (hosted Supabase, production build,
+Playwright/Edge, 1280×800, 390px, 412px) — Admin CRUD, Consultant read-only, direct RLS
+probes (insert/update/delete blocked, anon denied at the grant layer), referenced-delete
+blocked / unreferenced-delete allowed (temporary fixtures only), responsive, Phase 2
+regression. Full results: `08_TESTING.md`.
+
+**Finding fixed during acceptance (P1, in-scope):** the new `activity_types` table
+initially inherited full default privileges for `anon` at creation time (a legacy
+per-table default on this project, unlike every other table which went through an
+explicit revoke-then-grant). RLS already blocked all anon access throughout — no data
+was exposed — but the grant layer didn't match the project's documented "anon gets
+nothing" model. Fixed with a follow-up migration
+(`20260924000200_activity_types_anon_revoke.sql`); verified `anon` now gets the exact
+same `401 permission denied` as `frameworks`.
+
+Out of scope (unchanged): Document Type, Issue Category, Evidence Type, Report Type,
+multilingual labels, organization-specific options, bulk import, drag-and-drop ordering,
+audit log, label version history, approval workflow.
+
+## Phase 3B — Master Plan / Activities [NEXT]
 
 Not started. Activity planning and list/detail views; project-wide and site-specific
 activities; no drag-and-drop. `activities.activity_type_id` references the Phase 3A
-`activity_types` table.
+`activity_types` table (already implemented — no further schema change needed for the
+Activity Type side of this phase).
 
 ## Phase 4 — Verification / Issues / Actions
 

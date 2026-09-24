@@ -7,6 +7,14 @@ export function clientStatusTone(status: string): Tone {
   return status === "active" ? "success" : "neutral";
 }
 
+/** For real `is_active boolean` columns (e.g. activity_types), not a text status. */
+export function activeStatusLabel(isActive: boolean): string {
+  return isActive ? "Active" : "Inactive";
+}
+export function activeStatusTone(isActive: boolean): Tone {
+  return isActive ? "success" : "neutral";
+}
+
 const PROJECT_LABELS: Record<string, string> = {
   planning: "Planning",
   active: "Active",

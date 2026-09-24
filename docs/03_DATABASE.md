@@ -151,18 +151,35 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Delete:** `project_id` CASCADE; `framework_id` NO ACTION (a framework in use
   cannot be deleted).
 
+### activity_types
+- **Purpose:** dedicated, Admin-configurable reference data for `activities.activity_type_id`
+  (ADR-017, Phase 3A). Not the generic `master_data_sets`/`master_data_options` mechanism
+  considered and rejected in ADR-017.
+- **Fields:** `id`, `key` (text, UNIQUE, stable — immutable after creation by application
+  convention, not a DB constraint), `label` (text, Admin-editable), `description`
+  (nullable), `sort_order`, `is_active boolean NOT NULL DEFAULT true`, timestamps.
+- **Seed (8 rows, Phase 3A):** `training`, `site_assessment`, `document_review`,
+  `document_support`, `consulting`, `online_support`, `internal_audit`, `follow_up`.
+  Admin may add more; being a starting value carries no special protection (no
+  `is_seeded`/`is_system` concept — same principle as Frameworks, ADR-016).
+- **Delete:** a row referenced by any `activities` row cannot be deleted (NO ACTION).
+  Normal retirement is `is_active = false`, not delete. An inactive type stays valid and
+  visible on any Activity that already uses it; it is excluded from new-entry pickers
+  (Phase 3B).
+- **Historical labels:** not snapshotted — a label rename is visible immediately on every
+  Activity that uses that type (ADR-017; matches how every other status/label in RayIMS
+  already resolves).
+- **RLS:** `authenticated read`; Admin-only insert/update/delete (`profiles.role = 'admin'`),
+  the same shape as Framework Administration (ADR-016).
+
 ### activities
 - **Purpose:** project work (the master plan). A "site visit" is an activity with
   `mode = on_site`; there is no separate visits table.
 - **Fields:**
   - `id`, `project_id` (FK, NOT NULL), `site_id` (**nullable**)
-  - `activity_type` (free text, validated in app — Training, Site Assessment,
-    Document Review, Document Support, Consulting, Online Support,
-    Internal Audit, Follow-up). **Current schema.** *Planned Phase 3A target
-    (ADR-017, not yet implemented):* `activity_type_id uuid NOT NULL
-    REFERENCES activity_types(id) ON DELETE NO ACTION`, a dedicated
-    Admin-configurable reference table. No migration exists yet; this remains
-    free text until Phase 3A ships.
+  - `activity_type_id` (FK → `activity_types`, NOT NULL) — Admin-configurable
+    reference data (ADR-017, Phase 3A). Replaces the originally-planned free-text
+    `activity_type` column; there is no Activity list/create UI yet (Phase 3B).
   - `name`, `start_date`, `end_date`
   - `mode` (CHECK `on_site | online`), `planned_days numeric(4,1)`
   - `consultant_id → profiles`, `objectives`, `planned_work`
@@ -466,6 +483,7 @@ project-owned.
 | Project-owned children `project_id` → `projects` (`project_sites`, `project_frameworks`, `activities`, `documents`, `verification_items`, `issues`, `actions`, `files`, `attachments`) | CASCADE |
 | `project_sites.site_id` → `sites`                                   | NO ACTION   |
 | `project_frameworks.framework_id` → `frameworks`                    | NO ACTION   |
+| `activities.activity_type_id` → `activity_types` (ADR-017)          | NO ACTION   |
 | `framework_items.framework_id` → `frameworks`                       | CASCADE     |
 | `framework_items` self-reference (`parent_id`)                      | NO ACTION   |
 | `document_framework_items.framework_item_id`, `verification_items.framework_item_id`, `issues.framework_item_id` → `framework_items` | NO ACTION |

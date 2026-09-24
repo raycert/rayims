@@ -3,6 +3,74 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 3A — Activity Type Foundation (2026-09-24)
+
+Implements ADR-017. **Result: 60/60 acceptance checks, 0 P0, 1 P1 (found and fixed
+during acceptance).** Full result in `08_TESTING.md`; roadmap status in
+`06_ROADMAP.md`. Phase 3B (Master Plan / Activities) has not started.
+
+### Added
+
+- **`activity_types` table** (migration `20260924000100_activity_type_foundation.sql`):
+  dedicated reference table — `id`, unique `key`, `label`, nullable `description`,
+  `sort_order`, `is_active` (default `true`), timestamps. Seeded with exactly the 8
+  documented values (training, site_assessment, document_review, document_support,
+  consulting, online_support, internal_audit, follow_up), all active. RLS mirrors
+  Framework Administration (ADR-016): authenticated read; Admin-only insert/update/
+  delete; consultant writes blocked at the RLS layer, not just hidden in the UI.
+- **`activities.activity_type_id`** replaces the old `activity_type` free-text column
+  in the same migration statement (`activities` had zero rows, verified immediately
+  beforehand) — FK to `activity_types(id)`, `NO ACTION`, matching the codebase's
+  existing implicit-default FK convention.
+- **Activity Types admin screen** (`/activity-types`): list (search over label/key/
+  description; default order `sort_order` then `label`), Admin-only "+ New Activity
+  Type" and row actions (Edit / Activate–Deactivate / Delete); consultant sees the
+  list with all admin controls absent, not disabled. Create/Edit uses the established
+  drawer (desktop) / full-screen (mobile) pattern.
+- **Key immutability:** Key is editable only at create (with a live label→key
+  auto-suggestion the Admin can review before saving); the Edit form shows Key
+  read-only, and the server-side update action has no `key` field in its schema at
+  all, so a changed key can never be written regardless of client input.
+- **Controlled delete:** an Activity Type referenced by an Activity is blocked with a
+  friendly message (23503 mapped, never a raw Postgres error); an unreferenced type
+  (including the 8 seeds, since no Activities exist yet) can be deleted. No
+  `is_seeded`/`is_system`/`protected` flag — deletability is purely reference-state
+  driven, identical philosophy to Framework Administration.
+- Nav: `Activity Types` (`Tags` icon) added alongside `Frameworks` on the desktop
+  sidebar and mobile bottom nav; 5 items verified to fit both 390px and 412px without
+  overflow.
+
+### Fixed (found during acceptance, P1, in-scope)
+
+- `activity_types` initially inherited full default `anon` privileges at table-creation
+  time (a legacy per-table default on this hosted project; every other table had gone
+  through an explicit revoke-then-grant that a table created later doesn't inherit).
+  RLS already blocked all anon access — no data was ever exposed — but the grant layer
+  didn't match the project's documented "anon gets nothing" model. Fixed with
+  `20260924000200_activity_types_anon_revoke.sql`; verified `anon` now gets the same
+  `401 permission denied` response as `frameworks`, and `authenticated`'s grant set now
+  exactly matches (select/insert/update/delete only).
+
+### Verified
+
+Hosted Supabase, production build, Playwright/Edge, 1280×800 desktop, 390px and 412px
+mobile: Admin CRUD, key-format and duplicate-key validation, key preserved on edit,
+activate/deactivate, referenced-delete blocked using a temporary `P3A-ACCEPT-` fixture
+(Activity Type → Client → Project → Activity) then fully cleaned up, unreferenced-delete
+allowed; consultant read-only UI and direct RLS probes (insert/update/delete blocked,
+zero rows affected); anon access; responsive layouts; Phase 2 regression (Clients,
+Projects, Framework Library/Detail/Admin, consultant framework read-only, sticky App
+Shell). `npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check`
+clean. Test 1 data, the 4/149 Framework seed, and the 8 Activity Type seeds confirmed
+unchanged before and after; zero `P3A-ACCEPT` residue left in the hosted project.
+
+### Not done (intentionally)
+
+Activities list, Master Plan, Activity create/edit, scheduling, calendar, Activity
+filters, Activity Type selection inside an Activity form, visit planning, verification
+linkage, Activity reporting — all Phase 3B. Generic Master Data mechanism (deferred per
+ADR-017, not decided).
+
 ## Pre-Phase 3 — Master Data Design/Audit & ADR-017 (2026-09-23)
 
 Architecture-decision checkpoint, documentation only — **no application or schema
