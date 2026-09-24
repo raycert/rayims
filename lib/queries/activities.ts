@@ -68,8 +68,9 @@ function mapActivityRow(a: RawActivityRow, siteNameById: Map<string, string>): A
 /** Resolves site names for a project's activities without N+1: activities.site_id has
  *  no direct FK to `sites` (only the composite FK to `project_sites`), so this joins
  *  against the project's own site scope in application code, the same way
- *  `getProjectWorkspace` resolves sites for the Overview tab. */
-async function siteNameMap(
+ *  `getProjectWorkspace` resolves sites for the Overview tab. Exported: verification_items
+ *  has the identical site_id shape and reuses this rather than duplicating it. */
+export async function siteNameMap(
   supabase: Awaited<ReturnType<typeof createClient>>,
   projectId: string,
 ): Promise<Map<string, string>> {

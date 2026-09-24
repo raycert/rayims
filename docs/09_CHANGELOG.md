@@ -3,6 +3,85 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 4A — Verification foundation + Project Verification workspace (2026-09-24)
+
+First implementation slice of Phase 4. **Result: 73/73 acceptance checks, 0 P0/P1
+findings.** Full result in `08_TESTING.md`; roadmap status in `06_ROADMAP.md`. Phase
+4B (Activity verification + mobile execution) has not started. No database migration —
+the Phase 4 pre-implementation review confirmed `verification_items` already supported
+the full V1 model.
+
+### Added
+
+- **Project Verification workspace** (`/projects/[projectId]/verification`): the
+  Project Workspace's inert "Verification" tab is now live. Desktop table / mobile
+  cards, search (question/framework/target activity/site), and Site/Target
+  Activity/Result/Framework filters. Read-only in the sense that matters most:
+  `result` is displayed but never editable here — execution is Phase 4B.
+- **Deterministic planning order**: pending before completed, then Target Activity
+  `start_date`/`start_time` (undated last), then priority high→medium→low, then
+  question A–Z. Applied in application code after one query, not as repeated
+  round trips — PostgREST cannot express "order by a related table's columns" as a
+  single-query `.order()` on the parent table.
+- **Create/Edit Verification Item** (`components/verification/verification-item-form-drawer.tsx`):
+  the established drawer(desktop)/full-screen(mobile) pattern. Fields: Check/Question,
+  Priority, Scope (Project-wide/Specific site), Target Activity, Framework
+  Requirement. Deliberately excludes Result, Observation, Verified Activity/By/At —
+  those are Phase 4B's execution mutation, not this one.
+- **Site inheritance** (BR-73): selecting a site-specific Target Activity replaces the
+  Site field with a locked, read-only box showing that Activity's site — enforced in
+  the UI (the interactive Site select is removed from the DOM entirely while locked,
+  not merely disabled) and independently server-side
+  (`validateSiteAndTargetActivity` in `lib/mutations/verification-items.ts`). A
+  project-wide Target Activity leaves Site freely chosen. Removing or changing the
+  Target Activity never silently clears an already-set site.
+- **Framework Requirement scoping and historical preservation** (BR-74): the picker
+  offers only Framework Items from Frameworks currently assigned to the project,
+  grouped by Framework identity; an existing item's Framework Item that's since been
+  unassigned stays visible and selectable (marked "not currently assigned"), is never
+  silently cleared, and is never offered to a *different* item as a new choice —
+  mirroring ADR-017's inactive-Activity-Type philosophy.
+- **Execution-field separation** (BR-72): the planning mutation's UPDATE statement
+  never references `result`, `notes`, `verified_activity_id`, `verified_by` or
+  `verified_at` — structural preservation, not merely validated away. Proven at the
+  database level: editing only `question` on a fully-executed fixture item left every
+  execution field byte-identical afterward.
+- `lib/queries/activities.ts`: exported `siteNameMap` (was private) for reuse by
+  `verification_items`, which has the identical site-resolution need (`site_id` has
+  no direct FK to `sites`, only the composite FK to `project_sites`).
+- `lib/mutations/scope-validation.ts` (new, not a Server Action file): extracted
+  `siteInProjectScope` out of `lib/mutations/activities.ts` for reuse by
+  `verification-items.ts` — deliberately kept out of any `"use server"` file, since
+  exporting a plain helper from one also exposes it as its own callable Server Action.
+
+### Fixed (found during acceptance, in-scope, no P0/P1)
+
+`getVerificationFormCatalog` initially took a single "current Framework Item" id
+parameter, copying Activity Detail's per-record catalog shape — but the Verification
+workspace is a *list*, where different rows can each reference a different
+historically-unassigned Framework Item simultaneously; a single-value parameter
+couldn't serve every row's Edit form correctly. Fixed by deriving the complete set of
+historically-referenced-but-unassigned Framework Items from the project's actual
+verification items in one additional query, rather than one parameterized value.
+
+### Verified
+
+Hosted Supabase, production build, Playwright/Edge, 1280×800 desktop, 390px/412px
+mobile: full Create/Edit matrix, exact ordering across an 11-row fixture set,
+execution-field preservation, the complete historical-Framework regression,
+validation (including values injected past the picker to prove server-side defense in
+depth), project-scope isolation, Admin/Consultant parity, anon denial, responsive,
+regression. `npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff
+--check` clean. All `P4A-ACCEPT-*` fixtures removed and confirmed at zero residue;
+Test 1, the 4/149 Framework seed and the 8 Activity Type seeds confirmed unchanged;
+the real `activities` and `verification_items` tables remained empty throughout.
+
+### Not done (intentionally)
+
+Result editing, Observation capture, `verified_activity_id` assignment, mobile onsite
+execution, Issues, Actions, evidence upload, controlled delete for verification
+items, Project Overview widgets — Phase 4B and later.
+
 ## Phase 3B-3 — Status / Cancel / Delete + Phase 3B close (2026-09-24)
 
 Third and final implementation slice of Phase 3B. **Result: 76/78 acceptance checks on

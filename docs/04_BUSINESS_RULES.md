@@ -157,6 +157,24 @@ Product behavior that the schema and UI must respect. Database details are in
   the verification item. The item does not store the issue.
 - **BR-28** Result *Follow-up Required* leads to carrying the item over to a
   later activity as a new item whose `follows_item_id` references the original.
+- **BR-72** Planning fields (`question`, `priority`, `site_id`, `target_activity_id`,
+  `framework_item_id`) and execution fields (`result`, `notes`,
+  `verified_activity_id`, `verified_by`, `verified_at`) are edited through separate
+  mutations. The Phase 4A planning form/mutation never reads or writes the execution
+  fields, even if a tampered request includes them — an already-executed item's
+  execution data survives a planning edit unchanged. Execution editing is Phase 4B.
+- **BR-73** If a verification item's `target_activity_id` refers to a **site-specific**
+  Activity, `site_id` must equal that Activity's site — enforced server-side, not only
+  by the picker. If the target Activity is **project-wide** (`site_id` NULL), the
+  item's site is freely chosen (project-wide or any site in the project's scope).
+  Removing or changing the Target Activity never silently clears an already-set
+  `site_id`; the user's last valid site choice is preserved until they change it.
+- **BR-74** `framework_item_id` must belong to a Framework currently assigned to the
+  project (`project_frameworks`) when **newly selected**. An existing item whose
+  Framework Item's Framework has since been unassigned keeps its current mapping
+  (shown, editable-away, never silently cleared) — the same historical-preservation
+  principle as ADR-017's inactive Activity Type handling — but that no-longer-assigned
+  item is never offered to a *different* record as a new choice.
 
 ## Issues and actions
 

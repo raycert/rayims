@@ -57,3 +57,35 @@ export function activityStatusLabel(status: string): string {
 export function activityStatusTone(status: string): Tone {
   return ACTIVITY_STATUS_TONES[status] ?? "neutral";
 }
+
+/** Shared low/medium/high vocabulary (verification_items, issues, actions). */
+const PRIORITY_LABELS: Record<string, string> = { low: "Low", medium: "Medium", high: "High" };
+const PRIORITY_TONES: Record<string, Tone> = { low: "neutral", medium: "warning", high: "danger" };
+
+export function priorityLabel(priority: string): string {
+  return PRIORITY_LABELS[priority] ?? priority;
+}
+export function priorityTone(priority: string): Tone {
+  return PRIORITY_TONES[priority] ?? "neutral";
+}
+
+/** null = Pending (not yet verified) — never rendered as a raw null/blank. */
+const VERIFICATION_RESULT_LABELS: Record<string, string> = {
+  verified_ok: "Verified OK",
+  issue_identified: "Issue Identified",
+  follow_up_required: "Follow-up Required",
+};
+const VERIFICATION_RESULT_TONES: Record<string, Tone> = {
+  verified_ok: "success",
+  issue_identified: "danger",
+  follow_up_required: "warning",
+};
+
+export function verificationResultLabel(result: string | null): string {
+  if (!result) return "Pending";
+  return VERIFICATION_RESULT_LABELS[result] ?? result;
+}
+export function verificationResultTone(result: string | null): Tone {
+  if (!result) return "neutral";
+  return VERIFICATION_RESULT_TONES[result] ?? "neutral";
+}

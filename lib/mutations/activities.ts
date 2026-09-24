@@ -5,26 +5,8 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { ACTIVITY_STATUSES, activityCreateSchema, activityUpdateSchema } from "@/lib/validation/activities";
+import { siteInProjectScope, type SupabaseServerClient } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseClient>>;
-
-/** A site can only be chosen if it's actually in this project's scope (project_sites). */
-async function siteInProjectScope(
-  supabase: SupabaseServerClient,
-  projectId: string,
-  siteId: string | null,
-): Promise<boolean> {
-  if (!siteId) return true;
-  const { data, error } = await supabase
-    .from("project_sites")
-    .select("site_id")
-    .eq("project_id", projectId)
-    .eq("site_id", siteId)
-    .maybeSingle();
-  if (error) return false;
-  return !!data;
-}
 
 async function consultantExists(supabase: SupabaseServerClient, consultantId: string | null): Promise<boolean> {
   if (!consultantId) return true;

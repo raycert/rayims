@@ -464,11 +464,68 @@ verified correct by direct query in both cases. No P0 finding at any point in Ph
 `planned_days` empty-string coercion bug) were found during acceptance and fixed
 before commit.
 
-### Phase 4 — Verification / Issues / Actions
+### Phase 4A — Verification foundation + Project Verification workspace (executed 2026-09-24)
+
+Result: **PASS — 73/73 acceptance checks, 0 failures.** Hosted Supabase, production
+build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px.
+
+Covered: the Project Workspace's "Verification" tab live (Documents/Issues &
+Actions/Reports still inert); the exact deterministic planning order (pending before
+completed, then Target Activity start_date/start_time, then priority high→medium→low,
+then question A–Z) verified against an 11-row fixture set covering every tiebreak
+level, not just the spec's example; read-only Result display (Pending/Verified
+OK/Issue Identified/Follow-up Required); the full Create matrix — project-wide with no
+Target Activity/Framework, plain site-specific, a site-specific Target Activity
+(Site auto-fills and **locks**, replaced by a read-only box with an explanatory note),
+a project-wide Target Activity with both Project-wide and Specific-site scope allowed,
+and a Framework-mapped item (picker scoped to the project's assigned Frameworks only);
+the full Edit matrix — question/priority edits, changing a locked Target Activity from
+one site-specific Activity to another (Site follows), site-specific → project-wide
+Target Activity (Site **unlocks but keeps its value**), removing the Target Activity
+entirely (Site unlocks and remains), and Framework mapping add/change/remove;
+**execution-field preservation** proven at the database level — a fixture item with
+`result`, `notes`, `verified_activity_id`, `verified_by` and `verified_at` all
+populated had only its `question` changed through the 4A planning form, and every
+execution field was confirmed byte-identical afterward; the full historical-Framework
+regression (an item's Framework Item whose Framework was removed from the project
+still displays and remains selected, its optgroup marked "not currently assigned",
+saving unchanged succeeds, it is never silently cleared, no *other* unassigned item is
+offered, and changing to a currently-assigned item succeeds); validation (blank
+question, a site outside the project's scope and a Target Activity outside the project
+both rejected via values injected past the picker's own filtering — real server-side
+defense in depth, not just a UI restriction); project-scope isolation between two
+temporary projects; Admin/Consultant parity and anon denial; responsive (locked-site
+state included); regression (Clients, Projects, Frameworks, Activity Types, Project
+Workspace Overview, Master Plan).
+
+**Finding fixed during acceptance (in-scope, no P0/P1):** the Verification workspace's
+shared form catalog initially accepted only a single "current Framework Item" id
+(mirroring Activity Detail's per-record catalog pattern) — but the workspace is a list
+of many items, each potentially referencing a *different* historically-unassigned
+Framework Item at once, so a single-value parameter couldn't correctly serve every
+row's Edit form. Fixed by deriving the full set of historically-referenced-but-
+unassigned Framework Items from the project's actual verification items in one query.
+
+One planned check (site-specific Target Activity + a mismatched Site injected past the
+picker) turned out to be **unreachable through the UI by construction**: selecting a
+site-specific Target Activity removes the Site `<select>` from the DOM entirely
+(replaced by the locked read-only box), leaving no client-side element to inject a
+mismatched value into. The equivalent server-side rule
+(`validateSiteAndTargetActivity` in `lib/mutations/verification-items.ts`) was verified
+by code inspection instead — it runs unconditionally on every create/update regardless
+of what the UI sends.
+
+`npm run lint`, `npm run typecheck`, `npm run build` all pass. `git diff --check`
+clean. All `P4A-ACCEPT-*` fixtures (1 client, 3 sites, 2 projects, 2 Framework
+assignments, 4 activities, ~16 verification items) were removed afterward and
+confirmed at zero residue; Test 1, the 4/149 Framework seed and the 8 Activity Type
+seeds confirmed unchanged; the real `activities` and `verification_items` tables
+remained empty throughout.
+
+### Phase 4B — Activity verification + mobile execution
 Test cases: *not yet defined.*
-Candidate areas: manual verification item; schedule to activity A, complete in
-activity B; issue from verification; standalone action; overdue derivation; first
-photo upload and attachment.
+Candidate areas: schedule to activity A, complete in activity B; result quick-entry;
+Observation capture; Issue Identified → Create Issue handoff; mobile execution flow.
 
 ### Phase 5 — Documents / Versions / Reviews
 Test cases: *not yet defined.*

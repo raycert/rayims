@@ -1,0 +1,217 @@
+import { createClient } from "@/lib/supabase/server";
+import { formatFrameworkIdentity } from "@/lib/ui/format";
+import { siteNameMap } from "./activities";
+
+export type VerificationItemRow = {
+  id: string;
+  projectId: string;
+  question: string;
+  priority: string;
+  /** null = Pending (not yet verified). Read-only in 4A — execution is Phase 4B. */
+  result: string | null;
+  siteId: string | null;
+  siteName: string | null;
+  targetActivityId: string | null;
+  targetActivityName: string | null;
+  targetActivityStartDate: string | null;
+  targetActivityStartTime: string | null;
+  frameworkItemId: string | null;
+  /** "8.1 — Operational planning and control" */
+  frameworkItemLabel: string | null;
+  /** "ISO 9001:2015" */
+  frameworkIdentity: string | null;
+};
+
+const VERIFICATION_ITEM_COLUMNS =
+  "id, project_id, question, priority, result, site_id, target_activity_id, framework_item_id, framework_items(id, code, title, framework_id, frameworks(code, edition)), activities!verification_items_target_activity_id_fkey(id, name, start_date, start_time, site_id)";
+
+type RawVerificationItemRow = {
+  id: string;
+  project_id: string;
+  question: string;
+  priority: string;
+  result: string | null;
+  site_id: string | null;
+  target_activity_id: string | null;
+  framework_item_id: string | null;
+  framework_items: { id: string; code: string | null; title: string; framework_id: string; frameworks: { code: string; edition: string } | null } | null;
+  activities: { id: string; name: string; start_date: string | null; start_time: string | null; site_id: string | null } | null;
+};
+
+function mapRow(v: RawVerificationItemRow, siteMap: Map<string, string>): VerificationItemRow {
+  return {
+    id: v.id,
+    projectId: v.project_id,
+    question: v.question,
+    priority: v.priority,
+    result: v.result,
+    siteId: v.site_id,
+    siteName: v.site_id ? (siteMap.get(v.site_id) ?? null) : null,
+    targetActivityId: v.target_activity_id,
+    targetActivityName: v.activities?.name ?? null,
+    targetActivityStartDate: v.activities?.start_date ?? null,
+    targetActivityStartTime: v.activities?.start_time ?? null,
+    frameworkItemId: v.framework_item_id,
+    frameworkItemLabel: v.framework_items ? [v.framework_items.code, v.framework_items.title].filter(Boolean).join(" — ") : null,
+    frameworkIdentity: v.framework_items?.frameworks
+      ? formatFrameworkIdentity(v.framework_items.frameworks.code, v.framework_items.frameworks.edition)
+      : null,
+  };
+}
+
+/**
+ * Deterministic planning order (Phase 4A review, §11): pending before completed,
+ * then Target Activity start_date/start_time (undated last), then priority
+ * high->medium->low, then question A-Z. This orders by a related table's columns
+ * (the target Activity's date/time), which PostgREST cannot express as a single-query
+ * `.order()` on the parent table — so it's applied here in application code after the
+ * one query returns, not as repeated database round trips.
+ */
+function compareVerificationItems(a: VerificationItemRow, b: VerificationItemRow): number {
+  const aPending = a.result === null;
+  const bPending = b.result === null;
+  if (aPending !== bPending) return aPending ? -1 : 1;
+
+  const aDate = a.targetActivityStartDate;
+  const bDate = b.targetActivityStartDate;
+  if (aDate !== bDate) {
+    if (aDate === null) return 1;
+    if (bDate === null) return -1;
+    return aDate < bDate ? -1 : 1;
+  }
+
+  const aTime = a.targetActivityStartTime;
+  const bTime = b.targetActivityStartTime;
+  if (aTime !== bTime) {
+    if (aTime === null) return 1;
+    if (bTime === null) return -1;
+    return aTime < bTime ? -1 : 1;
+  }
+
+  const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
+  const aRank = rank[a.priority] ?? 1;
+  const bRank = rank[b.priority] ?? 1;
+  if (aRank !== bRank) return aRank - bRank;
+
+  return a.question.localeCompare(b.question);
+}
+
+/** Project Verification workspace is always Project-scoped — no global query. */
+export async function listVerificationItems(projectId: string): Promise<VerificationItemRow[]> {
+  const supabase = await createClient();
+  const [itemsRes, siteMap] = await Promise.all([
+    supabase
+      .from("verification_items")
+      .select(VERIFICATION_ITEM_COLUMNS)
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: true }),
+    siteNameMap(supabase, projectId),
+  ]);
+  if (itemsRes.error) throw new Error("Could not load verification items.");
+
+  return (itemsRes.data ?? []).map((v) => mapRow(v, siteMap)).sort(compareVerificationItems);
+}
+
+export type VerificationSiteOption = { id: string; name: string };
+export type VerificationActivityOption = {
+  id: string;
+  name: string;
+  startDate: string | null;
+  startTime: string | null;
+  /** null = project-wide Activity — a new Verification Item's site is NOT locked to it. */
+  siteId: string | null;
+};
+export type VerificationFrameworkItemOption = {
+  id: string;
+  label: string;
+  frameworkIdentity: string;
+  /** false = the item's framework is not currently assigned to the project — only
+   *  possible for the current value of an existing item (historical preservation). */
+  inAssignedScope: boolean;
+};
+
+export type VerificationFormCatalog = {
+  sites: VerificationSiteOption[];
+  activities: VerificationActivityOption[];
+  frameworkItems: VerificationFrameworkItemOption[];
+};
+
+/**
+ * One catalog serves the whole Verification workspace list, whose items may each
+ * reference a DIFFERENT framework item that's since become unassigned — unlike
+ * Activity Detail's per-record catalog (one "current" value to preserve), this
+ * fetches every framework_item_id actually referenced by the project's verification
+ * items and includes whichever of those aren't in the current assignment, so any
+ * item's Edit form can preserve its historical selection (§26).
+ */
+export async function getVerificationFormCatalog(projectId: string): Promise<VerificationFormCatalog> {
+  const supabase = await createClient();
+  const [sitesRes, activitiesRes, assignedRes, referencedRes] = await Promise.all([
+    supabase.from("project_sites").select("sites(id, name)").eq("project_id", projectId),
+    supabase
+      .from("activities")
+      .select("id, name, start_date, start_time, site_id")
+      .eq("project_id", projectId)
+      .order("start_date", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true }),
+    supabase
+      .from("project_frameworks")
+      .select("frameworks(code, edition, framework_items(id, code, title))")
+      .eq("project_id", projectId),
+    supabase.from("verification_items").select("framework_item_id").eq("project_id", projectId).not("framework_item_id", "is", null),
+  ]);
+  if (sitesRes.error) throw new Error("Could not load the project's sites.");
+  if (activitiesRes.error) throw new Error("Could not load the project's activities.");
+  if (assignedRes.error) throw new Error("Could not load the project's frameworks.");
+  if (referencedRes.error) throw new Error("Could not load the project's verification items.");
+
+  const frameworkItems: VerificationFrameworkItemOption[] = [];
+  const assignedIds = new Set<string>();
+  for (const row of assignedRes.data ?? []) {
+    const fw = row.frameworks;
+    if (!fw) continue;
+    const identity = formatFrameworkIdentity(fw.code, fw.edition);
+    for (const item of fw.framework_items ?? []) {
+      assignedIds.add(item.id);
+      frameworkItems.push({
+        id: item.id,
+        label: [item.code, item.title].filter(Boolean).join(" — "),
+        frameworkIdentity: identity,
+        inAssignedScope: true,
+      });
+    }
+  }
+
+  const referencedIds = new Set((referencedRes.data ?? []).map((r) => r.framework_item_id).filter((id): id is string => !!id));
+  const historicalIds = [...referencedIds].filter((id) => !assignedIds.has(id));
+  if (historicalIds.length > 0) {
+    const { data: historical, error } = await supabase
+      .from("framework_items")
+      .select("id, code, title, frameworks(code, edition)")
+      .in("id", historicalIds);
+    if (error) throw new Error("Could not load historical framework items.");
+    for (const item of historical ?? []) {
+      if (!item.frameworks) continue;
+      frameworkItems.push({
+        id: item.id,
+        label: [item.code, item.title].filter(Boolean).join(" — "),
+        frameworkIdentity: formatFrameworkIdentity(item.frameworks.code, item.frameworks.edition),
+        inAssignedScope: false,
+      });
+    }
+  }
+
+  return {
+    sites: (sitesRes.data ?? [])
+      .map((r) => r.sites)
+      .filter((s): s is NonNullable<typeof s> => s !== null),
+    activities: (activitiesRes.data ?? []).map((a) => ({
+      id: a.id,
+      name: a.name,
+      startDate: a.start_date,
+      startTime: a.start_time,
+      siteId: a.site_id,
+    })),
+    frameworkItems,
+  };
+}

@@ -13,7 +13,9 @@
 | — 3B-1 | Foundation + Master Plan (read)            | **COMPLETED** |
 | — 3B-2 | Create / Edit + Activity Detail            | **COMPLETED** |
 | — 3B-3 | Status / Cancel / Delete + final 3B acceptance | **COMPLETED** |
-| 4     | Verification / Issues / Actions             | Planned — NEXT |
+| 4     | Verification / Issues / Actions             | **IN PROGRESS** |
+| — 4A  | Verification foundation + workspace        | **COMPLETED** |
+| — 4B  | Activity verification + mobile execution   | Planned — NEXT |
 | 5     | Documents / Versions / Reviews              | Planned       |
 | 6     | Visit Summary / Reporting                   | Planned       |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
@@ -302,11 +304,58 @@ described in `01_V1_SCOPE.md` item 6, with no schema beyond the Phase 3B-1
 `start_time`/`end_time` addition and no new RLS/grants beyond what `activities`
 already had since Phase 0C/0D.
 
-## Phase 4 — Verification / Issues / Actions
+## Phase 4 — Verification / Issues / Actions [IN PROGRESS]
 
 Verification items (manual, scheduled, completed with result, carry-over),
 issues, actions, open-action surfacing data. First evidence upload and
 attachments (files registry, storage integration) land here.
+
+### Phase 4A — Verification foundation + Project Verification workspace [COMPLETED]
+
+Delivered (per the Phase 4 pre-implementation review): no schema change —
+`verification_items` already supported the full V1 planning/execution model. The
+Project Workspace's inert "Verification" tab is now live
+(`/projects/[projectId]/verification`); desktop table / mobile cards with search and
+Site/Target Activity/Result/Framework filters; deterministic planning order (pending
+before completed, then Target Activity date/time, then priority, then question —
+applied in application code, since it orders by a related table's columns that
+PostgREST cannot express in one query's `.order()`); Create/Edit for **planning
+fields only** (`question`, `priority`, `site_id`, `target_activity_id`,
+`framework_item_id`) — Result is read-only in 4A, execution is Phase 4B, and the
+planning mutation never touches `result`/`notes`/`verified_activity_id`/
+`verified_by`/`verified_at` even under a tampered request (BR-72). The approved
+site-inheritance rule (BR-73) is enforced both in the UI (the Site field is replaced
+by a locked read-only box while a site-specific Target Activity is selected) and
+server-side (independent of what the picker sent). Framework Requirement is optional,
+scoped to the project's currently assigned Frameworks, with historical preservation
+for an item whose Framework was since unassigned (BR-74) — the workspace-level
+catalog resolves every framework item actually referenced across the whole list, not
+just one record, since (unlike Activity Detail) a list page can have many different
+"current" historical values at once.
+
+**Verified (2026-09-24): 73/73 acceptance checks** (hosted Supabase, production
+build, Playwright/Edge, 1280×800, 390px, 412px) — full Create/Edit matrix (project-
+wide, site-specific, target-site-specific with locked site, target-project-wide with
+both scope options, framework-mapped), the exact deterministic ordering verified
+against an 11-row fixture set (not just a spec example), execution-field preservation
+proven at the database level after a planning-only edit, the full historical-Framework
+regression (current item preserved/marked/re-selectable, no other unassigned item
+offered), project-scope isolation, Admin/Consultant parity, anon denial, and
+regression across Clients/Projects/Frameworks/Activity Types/Overview/Master Plan.
+Full results: `08_TESTING.md`.
+
+**Finding fixed during acceptance (in-scope):** the initial `getVerificationFormCatalog`
+design took a single "current framework item" parameter (mirroring Activity Detail's
+per-record catalog) — but the Verification workspace is a *list* page, where different
+rows can each reference a *different* historically-unassigned Framework Item at the
+same time. Fixed by deriving the full set of historically-referenced-but-unassigned
+Framework Items from the project's actual verification items in one query, instead of
+one parameterized value.
+
+### Phase 4B — Activity verification + mobile execution [NEXT]
+
+Not started. Result editing from Activity Detail's Verification section, Observation
+capture, `verified_activity_id` assignment, mobile onsite execution UX.
 
 ## Phase 5 — Documents / Versions / Reviews
 
