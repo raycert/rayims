@@ -11,7 +11,8 @@
 | 3A    | Activity Type Foundation                    | **COMPLETED** |
 | 3B    | Master Plan / Activities                    | **IN PROGRESS** |
 | — 3B-1 | Foundation + Master Plan (read)            | **COMPLETED** |
-| — 3B-2 | Create / Edit + Activity Detail            | Planned — NEXT |
+| — 3B-2 | Create / Edit + Activity Detail            | **COMPLETED** |
+| — 3B-3 | Status / Cancel / Delete + final 3B acceptance | Planned — NEXT |
 | 4     | Verification / Issues / Actions             | Planned       |
 | 5     | Documents / Versions / Reviews              | Planned       |
 | 6     | Visit Summary / Reporting                   | Planned       |
@@ -216,11 +217,49 @@ name), project-scope isolation between two temporary projects, site integrity
 inactive type still displays correctly), Admin/Consultant read parity, responsive,
 Phase 2/3A regression. Full results: `08_TESTING.md`.
 
-### Phase 3B-2 — Create / Edit + Activity Detail [NEXT]
+### Phase 3B-2 — Create / Edit + Activity Detail [COMPLETED]
 
-Not started. Activity create/edit form, Activity Detail screen
-(`/projects/[projectId]/activities/[activityId]`), status change, and the
-application-level referenced-delete-blocked / Cancel-instead lifecycle.
+Delivered: Activity create/edit (shared drawer/full-screen form, desktop/mobile) from
+the Master Plan's `+ New Activity` and from Activity Detail's `Edit Activity`; the
+dedicated `/projects/[projectId]/activities/[activityId]` route (Master Plan rows/cards
+now navigate there); server-side date/time validation (BR-64); Activity Type picker
+behavior — active-only on create, current-inactive-preserved on edit, no other inactive
+type ever offered (BR-65); Activity Detail's Plan/Outcome separation with unrestricted
+Outcome editing (BR-66); `createActivity`/`updateActivity` Server Actions using
+`requireUser()` (not `requireAdmin()` — Activities follow the Clients/Projects/Sites
+authorization model, not Framework Administration's, BR-67), with `project_id` always
+taken from trusted route context and re-verified against the existing row on update, so
+a Project A update request can never reach a Project B Activity.
+
+**Verified (2026-09-24): 68/68 acceptance checks** (hosted Supabase, production build,
+Playwright/Edge, 1280×800, 390px, 412px) — create/edit for every combination in the
+approved review's fixture set (project-wide/site-specific, on-site/online,
+unassigned/assigned consultant, same-day and multi-day schedules, planned_days,
+Objectives/Planned Work, Outcome editing), all listed date/time and reference-integrity
+validations rejected with friendly messages (including three injected past the UI
+picker — inactive type, out-of-scope site, nonexistent consultant — server-side defense
+in depth), the full inactive-Activity-Type-on-edit regression (§26 of the review),
+cross-project protection, Admin/Consultant parity, Master Plan reflecting create/edit
+(including re-ordering after a schedule change), responsive, Phase 2/3A/3B-1
+regression. Full results: `08_TESTING.md`.
+
+**Findings:** one real validation bug found and fixed during this slice (P1, in-scope —
+`z.coerce.number()` on an empty `planned_days` field coerced to `0`, not `undefined`,
+before ever reaching the "not provided" branch, since `Number("")` is `0` in
+JavaScript; fixed with `z.preprocess` so the empty-string case is intercepted before
+coercion runs). One pre-existing, cross-cutting platform behavior noted as BACKLOG, not
+fixed in this slice: `notFound()` returns HTTP 200 (not 404) with the not-found page
+rendered — confirmed identical on the pre-existing Framework/Client/Project detail
+routes, not something Activity Detail introduced; no data is exposed either way. One
+report-only typo from the Phase 3B-1 report was confirmed harmless (a multi-day fixture
+example was mistakenly written "29 Sep 2026 – 31 Sep 2026" in that report's prose; the
+actual fixture data and UI both used the real, valid range 29–31 **Oct** 2026 — no code
+or data defect).
+
+### Phase 3B-3 — Status / Cancel / Delete + final Phase 3B acceptance [NEXT]
+
+Not started. Status lifecycle actions, the application-level referenced-delete-blocked
+/ Cancel-instead policy, and the final, complete Phase 3B acceptance pass.
 
 ## Phase 4 — Verification / Issues / Actions
 

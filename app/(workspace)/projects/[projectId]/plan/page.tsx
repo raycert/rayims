@@ -3,7 +3,7 @@ import { MasterPlanView } from "@/components/projects/master-plan-view";
 import { ProjectWorkspaceHeader } from "@/components/projects/project-workspace-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { getProjectWorkspace } from "@/lib/queries/projects";
-import { listActivities } from "@/lib/queries/activities";
+import { getActivityFormCatalog, listActivities } from "@/lib/queries/activities";
 
 export async function generateMetadata({
   params,
@@ -24,12 +24,15 @@ export default async function ProjectPlanPage({
   const project = await getProjectWorkspace(projectId);
   if (!project) notFound();
 
-  const activities = await listActivities(projectId);
+  const [activities, catalog] = await Promise.all([
+    listActivities(projectId),
+    getActivityFormCatalog(projectId),
+  ]);
 
   return (
     <PageContainer>
       <ProjectWorkspaceHeader project={project} activeTab="plan" />
-      <MasterPlanView activities={activities} />
+      <MasterPlanView projectId={projectId} activities={activities} catalog={catalog} />
     </PageContainer>
   );
 }

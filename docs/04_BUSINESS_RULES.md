@@ -55,6 +55,29 @@ Product behavior that the schema and UI must respect. Database details are in
 - **BR-63** An activity is overdue (derived, never stored) when its effective end date
   (`end_date` if set, else `start_date`) is before today and its status is not
   `completed` or `cancelled` — the same derivation principle as BR-34 for actions.
+- **BR-64** Activity date/time validation (Phase 3B-2, server-authoritative — never a
+  raw database error): `start_time` requires `start_date`; `end_time` requires some
+  date context (`start_date` or `end_date`); when both dates are set, `end_date >=
+  start_date`; when the effective end date equals `start_date` (a same-day activity)
+  and both times are set, `end_time` must be after `start_time`; a multi-day activity
+  (`end_date` differs from `start_date`) never compares times across days.
+  `planned_days`, when supplied, must be greater than 0.
+- **BR-65** An Activity's `activity_type_id` picker offers only `is_active = true`
+  types on create; an inactive type can never be newly selected (create or edit).
+  On edit, an Activity's *current* type stays visible/selectable even if it has since
+  been deactivated, clearly marked inactive — no other inactive type is ever offered.
+  Enforced server-side independent of the picker (ADR-017).
+- **BR-66** Activity Detail visually separates **Plan** (`objectives`, `planned_work`
+  — the intended work) from **Outcome / Visit Summary** (`work_performed`,
+  `next_steps` — what actually happened). Outcome fields are editable at any time,
+  with no restriction tied to the activity's date or status — a consultant may draft
+  outcome text before or after the planned date (Phase 3B-2).
+- **BR-67** Activities follow the same authorization model as Clients/Projects/Sites,
+  not the Framework Administration admin-only model (ADR-016 does not apply here):
+  Admin and Consultant have identical full CRUD (create, edit, reassign consultant,
+  change status) on any Activity in any project (BR-42). An Activity's `project_id`
+  is always taken from trusted route context, never from form input; a request naming
+  one project can never read or mutate an Activity belonging to another (Phase 3B-2).
 
 ## Documents and reviews
 

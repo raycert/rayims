@@ -337,12 +337,68 @@ its pre-existing state).
 
 `npm run lint`, `npm run typecheck`, `npm run build` all pass. `git diff --check` clean.
 
-### Phase 3B-2 — Create / Edit + Activity Detail
-Test cases: *not yet defined.*
-Candidate areas: Activity create/edit validation (including the date/time rules in
-`04_BUSINESS_RULES.md` BR-62); Activity Detail screen; status change; referenced-delete
-blocked / Cancel instead; Activity Type picker sourced from `activity_types`
-(`is_active = true`, ordered by `sort_order`).
+### Phase 3B-2 — Create / Edit + Activity Detail (executed 2026-09-24)
+
+Result: **PASS — 68/68 acceptance checks, 0 failures.** Hosted Supabase, production
+build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px. Covered: Create (via
+Master Plan's `+ New Activity`) and Edit (via Activity Detail's `Edit Activity`) for
+every combination in the approved review's fixture set — project-wide + online +
+unassigned + date-only; site-specific + on-site + assigned consultant with a same-day
+09:00–12:00 window; a second same-day 13:00–15:00 activity (proving both same-day
+windows validate and order correctly against each other); a multi-day activity
+(15:00 on day one → 10:00 the next day, confirming times are never compared across
+days); an undated activity; `planned_days = 0.5`; Objectives + Planned Work; and an
+Outcome edit (Work Performed + Next Steps) with no date/status gating. Date/time
+validation (BR-64) confirmed rejecting: 09:00–09:00 same-day, 12:00→09:00 same-day
+(end before start), a start time with no start date, and an end date before the start
+date — each with the friendly inline message, never a raw error. `planned_days ≤ 0`
+rejected the same way. Server-side defense in depth confirmed by injecting values past
+the UI picker's own filtering (a real client-tampering scenario, not just a UI gap): an
+inactive Activity Type on create, a site outside the project's scope, and a nonexistent
+consultant id were all independently rejected by the mutation itself with friendly
+messages. The full inactive-Activity-Type-on-edit regression (create with an active
+type, deactivate it as Admin, reopen: Activity Detail and the Edit picker both still
+show its current label marked Inactive, a *different* inactive type is never offered,
+saving unchanged succeeds, and changing to an active type succeeds) — BR-65. Master
+Plan integration: newly created activities appear; editing an activity's schedule
+reorders its row correctly; editing its site updates the displayed site label; the
+list correctly renders Project-wide/Unassigned and a multi-day date range without
+times. Cross-project protection: Project A's route with Project B's Activity id
+renders the not-found page with zero Activity data exposed (checked by page content,
+not HTTP status — see Findings). Admin/Consultant parity confirmed (both see Create
+and Edit — Activities follow the Clients/Projects/Sites authorization model, not
+Framework Administration's, BR-67). Responsive (390px/412px: Master Plan, Create form,
+Activity Detail, no horizontal overflow, mobile bottom nav intact). Phase 2/3A/3B-1
+regression (Clients, Projects, Frameworks, Activity Types, Project Workspace Overview
+all still load).
+
+All temporary `P3B2-ACCEPT-*` fixtures (1 client, 2 projects, 2 sites, 2 temporary
+Activity Types, 10 activities) were removed afterward and confirmed at zero
+residue; Test 1, the Framework seed (4/149) and the 8 Activity Type seeds were
+confirmed unchanged before and after, and the real `activities` table remained empty
+throughout (matching its pre-existing state).
+
+`npm run lint`, `npm run typecheck`, `npm run build` all pass. `git diff --check` clean.
+
+**Findings:**
+- **P1, fixed:** `plannedDaysField`'s zod schema used `z.union([z.coerce.number(),
+  z.literal("")])` for an optional field — but `Number("")` is `0` in JavaScript, so
+  `z.coerce.number()` silently "succeeded" on an empty input as `0` before the union
+  ever reached the `literal("")` branch, making an *unfilled* Planned Days field fail
+  validation ("must be greater than 0") instead of being treated as not provided.
+  Fixed with `z.preprocess` intercepting `""` before coercion runs.
+- **BACKLOG, not fixed (pre-existing, cross-cutting, out of Phase 3B-2 scope):**
+  `notFound()` renders the not-found page correctly but returns HTTP 200, not 404.
+  Confirmed identical on the pre-existing `/clients/[id]`, `/projects/[id]` and
+  `/frameworks/[id]` routes — not introduced by Activity Detail. No data is exposed
+  either way (content-based verification, not status-code-based, is what the
+  acceptance check above actually relies on).
+- **NO CHANGE:** the Phase 3B-1 final report's prose describing the multi-day test
+  fixture said "29 Sep 2026 – 31 Sep 2026" (September has no 31st day). Confirmed a
+  report-only typo — the actual fixture used the real, valid range 29–31 **Oct** 2026
+  (`supabase/migrations` were never involved; this was test-fixture SQL, and Postgres'
+  `date` type would have rejected an actual invalid calendar date outright). No code or
+  data defect.
 
 ### Phase 4 — Verification / Issues / Actions
 Test cases: *not yet defined.*

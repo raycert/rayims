@@ -1,12 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Toast, useToast } from "@/components/ui/toast";
 import { activityStatusLabel, activityStatusTone } from "@/lib/ui/status-tones";
 import { activityModeLabel, formatActivityDateTime } from "@/lib/ui/format";
-import type { ActivityPlanRow } from "@/lib/queries/activities";
+import { ActivityFormDrawer } from "@/components/activities/activity-form-drawer";
+import type { ActivityFormCatalog, ActivityPlanRow } from "@/lib/queries/activities";
 
 const STATUS_VALUES = ["planned", "in_progress", "completed", "cancelled"] as const;
 const PROJECT_WIDE = "Project-wide";
@@ -21,17 +25,23 @@ function isOverdue(activity: ActivityPlanRow): boolean {
   return effectiveEnd < today;
 }
 
-/**
- * Read-only Master Plan for Phase 3B-1: Project-scoped list of Activities. No create,
- * edit, status change or delete yet (Phase 3B-2) — rows are informational only, so they
- * are not clickable (Activity Detail does not exist yet; a dead link would be worse than
- * no link).
- */
-export function MasterPlanView({ activities }: { activities: ActivityPlanRow[] }) {
+/** Project-scoped Master Plan: search/filter over Activities, create, and navigate to Activity Detail. */
+export function MasterPlanView({
+  projectId,
+  activities,
+  catalog,
+}: {
+  projectId: string;
+  activities: ActivityPlanRow[];
+  catalog: ActivityFormCatalog;
+}) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [creating, setCreating] = useState(false);
+  const { message, show } = useToast();
 
   const siteOptions = useMemo(
     () => Array.from(new Set(activities.map((a) => a.siteName ?? PROJECT_WIDE))).sort(),
@@ -69,6 +79,16 @@ export function MasterPlanView({ activities }: { activities: ActivityPlanRow[] }
     setStatusFilter("all");
   }
 
+  function openActivity(id: string) {
+    router.push(`/projects/${projectId}/activities/${id}`);
+  }
+
+  function handleCreated(msg: string) {
+    setCreating(false);
+    router.refresh();
+    show(msg);
+  }
+
   return (
     <div>
       <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
@@ -78,6 +98,9 @@ export function MasterPlanView({ activities }: { activities: ActivityPlanRow[] }
             {activities.length} {activities.length === 1 ? "activity" : "activities"}
           </p>
         </div>
+        <Button type="button" onClick={() => setCreating(true)}>
+          + New Activity
+        </Button>
       </div>
 
       {activities.length > 0 ? (
@@ -90,18 +113,8 @@ export function MasterPlanView({ activities }: { activities: ActivityPlanRow[] }
               aria-label="Search activities"
             />
           </div>
-          <FilterSelect
-            label="Site"
-            value={siteFilter}
-            onChange={setSiteFilter}
-            options={siteOptions}
-          />
-          <FilterSelect
-            label="Type"
-            value={typeFilter}
-            onChange={setTypeFilter}
-            options={typeOptions}
-          />
+          <FilterSelect label="Site" value={siteFilter} onChange={setSiteFilter} options={siteOptions} />
+          <FilterSelect label="Type" value={typeFilter} onChange={setTypeFilter} options={typeOptions} />
           <FilterSelect
             label="Status"
             value={statusFilter}
@@ -115,7 +128,12 @@ export function MasterPlanView({ activities }: { activities: ActivityPlanRow[] }
         <div className="rounded-lg border border-border bg-surface shadow-sm">
           <EmptyState
             title="No activities planned yet"
-            description="Once activities are added to this project, they will appear here in planned order."
+            description="Add the first activity to start this project's Master Plan."
+            action={
+              <Button type="button" onClick={() => setCreating(true)}>
+                + New Activity
+              </Button>
+            }
           />
         </div>
       ) : filtered.length === 0 ? (
@@ -165,7 +183,15 @@ export function MasterPlanView({ activities }: { activities: ActivityPlanRow[] }
                 {filtered.map((a) => {
                   const overdue = isOverdue(a);
                   return (
-                    <tr key={a.id} className="border-t border-border">
+                    <tr
+                      key={a.id}
+                      tabIndex={0}
+                      onClick={() => openActivity(a.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") openActivity(a.id);
+                      }}
+                      className="cursor-pointer border-t border-border hover:bg-neutral-soft/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2"
+                    >
                       <td className="px-4 py-3 whitespace-nowrap">
                         {formatActivityDateTime(a.startDate, a.startTime, a.endDate, a.endTime)}
                         {overdue ? <span className="ml-1.5 text-xs font-semibold text-danger">Overdue</span> : null}
@@ -174,7 +200,7 @@ export function MasterPlanView({ activities }: { activities: ActivityPlanRow[] }
                       <td className="px-2.5 py-3 text-muted">{a.activityTypeLabel}</td>
                       <td className="px-2.5 py-3 text-muted">{a.siteName ?? PROJECT_WIDE}</td>
                       <td className="px-2.5 py-3 text-muted">{activityModeLabel(a.mode)}</td>
-                      <td className="px-2.5 py-3 text-muted">{a.consultantName ?? "—"}</td>
+                      <td className="px-2.5 py-3 text-muted">{a.consultantName ?? "Unassigned"}</td>
                       <td className="px-4 py-3">
                         <StatusBadge label={activityStatusLabel(a.status)} tone={activityStatusTone(a.status)} />
                       </td>
@@ -190,7 +216,16 @@ export function MasterPlanView({ activities }: { activities: ActivityPlanRow[] }
             {filtered.map((a) => {
               const overdue = isOverdue(a);
               return (
-                <div key={a.id} className="rounded-lg border border-border bg-surface p-3.5 shadow-sm">
+                <div
+                  key={a.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openActivity(a.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") openActivity(a.id);
+                  }}
+                  className="cursor-pointer rounded-lg border border-border bg-surface p-3.5 shadow-sm focus-visible:outline-2 focus-visible:outline-primary"
+                >
                   <div className="mb-1.5 flex items-start justify-between gap-2">
                     <div className="text-[12.5px] text-muted">
                       {formatActivityDateTime(a.startDate, a.startTime, a.endDate, a.endTime)}
@@ -203,8 +238,7 @@ export function MasterPlanView({ activities }: { activities: ActivityPlanRow[] }
                     {a.activityTypeLabel} · {a.siteName ?? PROJECT_WIDE}
                   </div>
                   <div className="mt-1 text-[12.5px] text-muted">
-                    {activityModeLabel(a.mode)}
-                    {a.consultantName ? ` · ${a.consultantName}` : ""}
+                    {activityModeLabel(a.mode)} · {a.consultantName ?? "Unassigned"}
                   </div>
                 </div>
               );
@@ -212,6 +246,17 @@ export function MasterPlanView({ activities }: { activities: ActivityPlanRow[] }
           </div>
         </>
       )}
+
+      {creating ? (
+        <ActivityFormDrawer
+          mode="create"
+          projectId={projectId}
+          catalog={catalog}
+          onClose={() => setCreating(false)}
+          onSaved={handleCreated}
+        />
+      ) : null}
+      <Toast message={message} />
     </div>
   );
 }
@@ -232,6 +277,7 @@ function FilterSelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
       aria-label={`Filter by ${label}`}
       className="min-h-9 rounded-md border border-border bg-surface px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
     >

@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import type { MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, openNativePicker as openDatePicker } from "@/lib/utils";
 import { createProject, updateProject } from "@/lib/mutations/projects";
 import { PROJECT_STATUSES } from "@/lib/constants/values";
 import { projectStatusLabel } from "@/lib/ui/status-tones";
@@ -14,25 +13,6 @@ import { formatFrameworkIdentity, humanizeCategory } from "@/lib/ui/format";
 import type { ClientOption, ExistingProject, FrameworkOption, SiteOption } from "@/lib/queries/projects";
 
 type Mode = "create-global" | "create-for-client" | "edit";
-
-/**
- * Native <input type="date"> only reliably opens its picker when the calendar icon is
- * clicked; clicking elsewhere in the field just places a text cursor. showPicker() makes
- * a click anywhere in the field open it too. Feature-detected (Firefox/Safari lack it as
- * of this writing) and wrapped in try/catch (throws if not called from a direct user
- * gesture in some browser states) — the native click-to-focus/type behavior is the
- * fallback either way, so this is purely additive.
- */
-function openDatePicker(e: MouseEvent<HTMLInputElement>) {
-  const input = e.currentTarget as HTMLInputElement & { showPicker?: () => void };
-  if (typeof input.showPicker === "function") {
-    try {
-      input.showPicker();
-    } catch {
-      // Fallback: default click-to-focus behavior still applies.
-    }
-  }
-}
 
 export function ProjectSetupForm({
   mode,

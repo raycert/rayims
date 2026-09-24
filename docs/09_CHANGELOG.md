@@ -3,6 +3,91 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 3B-2 — Create / Edit + Activity Detail (2026-09-24)
+
+Second implementation slice of Phase 3B. **Result: 68/68 acceptance checks, 1 P1
+finding (found and fixed).** Full result in `08_TESTING.md`; roadmap status in
+`06_ROADMAP.md`. Phase 3B-3 (Status/Cancel/Delete + final Phase 3B acceptance) has not
+started.
+
+### Added
+
+- **Activity create/edit** (`components/activities/activity-form-drawer.tsx`): the
+  established drawer(desktop)/full-screen(mobile) pattern, opened from the Master
+  Plan's `+ New Activity` and from Activity Detail's `Edit Activity`. Fields grouped
+  into Activity / Scope & Delivery / Schedule / Plan sections, plus Status and
+  Outcome (Work Performed, Next Steps) on Edit only — Create stays intentionally
+  shorter (BR-66). Scope is a Project-wide/Specific-site toggle, never a bare "Site:
+  None" picker; the site list is always this project's own scope.
+- **`lib/mutations/activities.ts`** (`createActivity`, `updateActivity`): use
+  `requireUser()`, not `requireAdmin()` — Activities follow the Clients/Projects/Sites
+  authorization model, not Framework Administration's (BR-67). `project_id` is always
+  a trusted route/prop value; `updateActivity` re-verifies the existing row's
+  `project_id` before touching anything and repeats it in the UPDATE's own WHERE
+  clause as defense in depth, so a Project A update request can never reach a Project
+  B Activity.
+- **`lib/validation/activities.ts`**: server-authoritative date/time rules (BR-64) via
+  a shared `superRefine`; an Activity Type must be active to be newly selected on
+  create, and on edit an inactive *current* type may be kept but never newly chosen
+  for a different inactive one (BR-65) — enforced independently server-side, not just
+  by what the picker offers.
+- **Activity Detail** (`/projects/[projectId]/activities/[activityId]`,
+  `components/activities/activity-detail-view.tsx`): a dedicated route (not a
+  drawer) showing the activity's identity/schedule/site/mode/consultant/status header
+  and two visually separate sections — Plan (Objectives, Planned Work) and Outcome /
+  Visit Summary (Work Performed, Next Steps) — with a restrained "Not set." treatment
+  for empty fields, never a large empty card. Outcome fields are editable with no
+  date- or status-based restriction (BR-66). `getActivity(projectId, activityId)`
+  returns null (→ `notFound()`) whenever the id/project pair doesn't match, so a
+  cross-project URL can never distinguish "wrong id" from "right id, wrong project."
+- **Master Plan integration:** rows/cards now navigate to Activity Detail (Phase 3B-1
+  intentionally left them inert); the list re-renders in correct chronological order
+  after a schedule edit and reflects any name/site/type/consultant/status change.
+
+### Fixed (found during acceptance, P1, in-scope)
+
+`plannedDaysField`'s validation used `z.union([z.coerce.number(), z.literal("")])` for
+an optional numeric field. `Number("")` is `0` in JavaScript, so `z.coerce.number()`
+silently "succeeded" on an empty input as `0` before the union ever reached the
+`literal("")` branch — an unfilled Planned Days field failed validation ("must be
+greater than 0") instead of being treated as not provided. Fixed with `z.preprocess`
+intercepting the empty string before coercion runs.
+
+### Verified
+
+Hosted Supabase, production build, Playwright/Edge, 1280×800 desktop, 390px/412px
+mobile: create/edit across the approved review's full fixture set (project-wide,
+site-specific, on-site, online, unassigned/assigned consultant, same-day and
+multi-day schedules, `planned_days`, Objectives/Planned Work, Outcome editing); every
+listed date/time and reference-integrity validation, including three checks performed
+by injecting a value past the UI picker's own filtering (inactive type, out-of-scope
+site, nonexistent consultant) to prove server-side defense in depth, not just a UI
+restriction; the full inactive-Activity-Type-on-edit regression; Master Plan
+integration; cross-project protection (content-based, not status-code — see Findings
+below); Admin/Consultant parity; responsive; Phase 2/3A/3B-1 regression. `npm run
+lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All
+`P3B2-ACCEPT-*` fixtures removed and confirmed at zero residue; Test 1, the 4/149
+Framework seed and the 8 Activity Type seeds confirmed unchanged; the real `activities`
+table remained empty throughout.
+
+### Findings
+
+- **P1, fixed:** the `planned_days` validation bug above.
+- **BACKLOG, pre-existing, not introduced by this slice:** `notFound()` across this
+  app (confirmed on the pre-existing Framework/Client/Project detail routes, not just
+  the new Activity Detail route) renders the not-found page correctly but returns HTTP
+  200, not 404. No data is exposed either way; fixing it would touch shared
+  error-boundary behavior well outside "Activity create/edit + detail," so it's left
+  for a dedicated pass rather than silently absorbed into this slice.
+- **NO CHANGE:** the Phase 3B-1 report's prose said "29 Sep 2026 – 31 Sep 2026" for a
+  multi-day fixture (no such date exists). Confirmed a report-only typo — the actual
+  fixture and UI used the real, valid 29–31 **Oct** 2026 range. No code or data defect.
+
+### Not done (intentionally)
+
+Status change beyond a plain edit, cancel, delete, referenced-delete protection —
+Phase 3B-3.
+
 ## Phase 3B-1 — Foundation + Master Plan (read) (2026-09-24)
 
 First implementation slice of Phase 3B. **Result: 54/54 acceptance checks, 0 P0/P1
