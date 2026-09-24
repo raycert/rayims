@@ -2,28 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Toast, useToast } from "@/components/ui/toast";
 import { activityStatusLabel, activityStatusTone } from "@/lib/ui/status-tones";
-import { activityModeLabel, formatActivityDateTime } from "@/lib/ui/format";
+import { activityModeLabel, formatActivityDateTime, isActivityOverdue } from "@/lib/ui/format";
 import { ActivityFormDrawer } from "@/components/activities/activity-form-drawer";
 import type { ActivityFormCatalog, ActivityPlanRow } from "@/lib/queries/activities";
 
 const STATUS_VALUES = ["planned", "in_progress", "completed", "cancelled"] as const;
 const PROJECT_WIDE = "Project-wide";
-
-/** end_date if present, else start_date; overdue when that date is in the past and the
- *  activity is not completed/cancelled. String comparison avoids timezone parsing. */
-function isOverdue(activity: ActivityPlanRow): boolean {
-  if (activity.status === "completed" || activity.status === "cancelled") return false;
-  const effectiveEnd = activity.endDate ?? activity.startDate;
-  if (!effectiveEnd) return false;
-  const today = new Date().toISOString().slice(0, 10);
-  return effectiveEnd < today;
-}
 
 /** Project-scoped Master Plan: search/filter over Activities, create, and navigate to Activity Detail. */
 export function MasterPlanView({
@@ -181,7 +172,8 @@ export function MasterPlanView({
               </thead>
               <tbody>
                 {filtered.map((a) => {
-                  const overdue = isOverdue(a);
+                  const overdue = isActivityOverdue(a);
+                  const cancelled = a.status === "cancelled";
                   return (
                     <tr
                       key={a.id}
@@ -190,7 +182,10 @@ export function MasterPlanView({
                       onKeyDown={(e) => {
                         if (e.key === "Enter") openActivity(a.id);
                       }}
-                      className="cursor-pointer border-t border-border hover:bg-neutral-soft/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2"
+                      className={cn(
+                        "cursor-pointer border-t border-border hover:bg-neutral-soft/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2",
+                        cancelled && "opacity-60",
+                      )}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
                         {formatActivityDateTime(a.startDate, a.startTime, a.endDate, a.endTime)}
@@ -214,7 +209,8 @@ export function MasterPlanView({
           {/* Mobile cards */}
           <div className="flex flex-col gap-2.5 md:hidden">
             {filtered.map((a) => {
-              const overdue = isOverdue(a);
+              const overdue = isActivityOverdue(a);
+              const cancelled = a.status === "cancelled";
               return (
                 <div
                   key={a.id}
@@ -224,7 +220,10 @@ export function MasterPlanView({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") openActivity(a.id);
                   }}
-                  className="cursor-pointer rounded-lg border border-border bg-surface p-3.5 shadow-sm focus-visible:outline-2 focus-visible:outline-primary"
+                  className={cn(
+                    "cursor-pointer rounded-lg border border-border bg-surface p-3.5 shadow-sm focus-visible:outline-2 focus-visible:outline-primary",
+                    cancelled && "opacity-60",
+                  )}
                 >
                   <div className="mb-1.5 flex items-start justify-between gap-2">
                     <div className="text-[12.5px] text-muted">

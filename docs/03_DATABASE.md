@@ -526,6 +526,15 @@ Notes:
   remain in object storage until removed by the application/cleanup script.
 - `NULL` on the profile-reference columns is permitted; none of them is
   structurally required.
+- **Deleting an `activities` row directly is not the same as deleting an Activity
+  through the application (Phase 3B-3).** The FK behavior above (SET NULL on
+  `verification_items`/`issues`/`actions`, CASCADE on `attachments`) is what Postgres
+  itself would do to a standalone `activities` delete — but the application's
+  `deleteActivity` never relies on it. It checks, before deleting, whether the
+  Activity is referenced by any of those five paths and blocks the delete entirely if
+  so, directing the user to Cancel (`status = cancelled`) instead. This matters most
+  for `attachments`, which is CASCADE: without the application check, deleting a
+  referenced Activity would silently remove its evidence rows.
 
 ## Framework administration (ADR-016)
 

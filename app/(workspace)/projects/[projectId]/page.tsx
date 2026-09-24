@@ -3,6 +3,7 @@ import { ProjectWorkspaceView } from "@/components/projects/project-workspace-vi
 import { ProjectWorkspaceHeader } from "@/components/projects/project-workspace-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { getProjectWorkspace } from "@/lib/queries/projects";
+import { listUpcomingActivities } from "@/lib/queries/activities";
 
 export async function generateMetadata({
   params,
@@ -23,10 +24,12 @@ export default async function ProjectWorkspacePage({
   const project = await getProjectWorkspace(projectId);
   if (!project) notFound();
 
+  const upcomingActivities = await listUpcomingActivities(projectId);
+
   return (
     <PageContainer>
       <ProjectWorkspaceHeader project={project} activeTab="overview" />
-      <ProjectWorkspaceView project={project} />
+      <ProjectWorkspaceView project={project} upcomingActivities={upcomingActivities} />
     </PageContainer>
   );
 }

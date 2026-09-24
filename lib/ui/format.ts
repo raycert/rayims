@@ -47,3 +47,22 @@ export function formatActivityDateTime(
   if (start) return `${formatDate(startDate)} · ${start}`;
   return formatDate(startDate);
 }
+
+/**
+ * Overdue is derived, never stored (BR-63): effective end date is `endDate` if set,
+ * else `startDate`; overdue when that date is before today and status is not
+ * completed/cancelled. An undated activity is never overdue. Clock time is not
+ * considered — a today's activity isn't overdue because its end_time already passed.
+ * String comparison avoids timezone parsing.
+ */
+export function isActivityOverdue(activity: {
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+}): boolean {
+  if (activity.status === "completed" || activity.status === "cancelled") return false;
+  const effectiveEnd = activity.endDate ?? activity.startDate;
+  if (!effectiveEnd) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  return effectiveEnd < today;
+}

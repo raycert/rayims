@@ -400,6 +400,70 @@ throughout (matching its pre-existing state).
   `date` type would have rejected an actual invalid calendar date outright). No code or
   data defect.
 
+### Phase 3B-3 — Status / Cancel / Delete + final Phase 3B acceptance (executed 2026-09-24)
+
+Result: **PASS — 76/78 acceptance checks on the live run, 0 real failures.** Hosted
+Supabase, production build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px.
+
+Covered: full Chinh Long IMS end-to-end scenario (Site Assessment – Viet Long
+09:00–12:00, Consulting – Viet Long 13:00–15:00 same day, Document Review project-wide
+online the next day — verified chronological order); Outcome (Work Performed/Next
+Steps) editing via Edit Activity; the quick status control (`planned → in_progress →
+completed → planned`, each change reflected immediately in both Activity Detail and
+Master Plan, no automatic date-driven transitions); **Cancel Activity** (confirmation
+message explicitly states the activity is kept with its history, status becomes
+Cancelled, Plan/Outcome data untouched, Activity Detail remains reachable, a
+future-dated cancelled activity is correctly not overdue, and reactivating
+`cancelled → planned` works as an ordinary status change with no special ceremony);
+unreferenced delete (confirmation required, activity removed from both the database
+and Master Plan, its Detail route no longer resolves); **all 5 real reference paths to
+`activities.id`** — `verification_items.target_activity_id`,
+`verification_items.verified_activity_id`, `issues.activity_id`, `actions.activity_id`,
+`attachments.activity_id` — individually attempted and blocked with the friendly
+business message (never a raw FK/constraint error), then independently re-verified at
+the database level: all 5 activities intact, every reference row intact, no FK nulled,
+no attachment/evidence row deleted; the 7-point overdue matrix (past+planned →
+overdue, past+in_progress → overdue, past+completed → not overdue, past+cancelled →
+not overdue, today+planned → not overdue, future+planned → not overdue,
+undated+planned → not overdue); cancelled-row de-emphasis, filterability and
+searchability; cross-project protection (content-based check, consistent with the
+pre-existing app-wide `notFound()` behavior documented in Phase 3B-2); Project
+Workspace Overview's new Upcoming Activities widget (inclusion of future
+planned/in_progress, exclusion of future-completed/cancelled/past/undated, `View Plan`
+link, and the compact empty state on a project with zero activities); Admin/Consultant
+parity (both reach status/Cancel/Delete controls identically) and anon denial;
+responsive (Master Plan, Activity Detail, Edit form — no horizontal overflow, mobile
+header not overcrowded, bottom nav clear); full regression (Clients, Projects,
+Frameworks, Activity Types, Project Workspace Overview).
+
+Of the 78 checks, 2 did not pass on the live run and were both confirmed as
+test-script bugs, not application defects, by independent direct queries against the
+same live data immediately afterward: a `LIKE 'P3B3-ACCEPT-%-Ref'` pattern in the
+verification script required a hyphen that the fixture names ("...TargetRef" etc.)
+didn't have — a direct query confirmed all 5 referenced Activities were genuinely
+still present; and a Playwright locator counting anchor tags inside the Upcoming
+Activities section also counted the section's own "View Plan" link alongside the
+activity rows — a direct REST query against the exact production query confirmed
+exactly 3 rows returned, matching the `limit(3)`.
+
+`npm run lint`, `npm run typecheck`, `npm run build` all pass. `git diff --check`
+clean. All `P3B3-ACCEPT*` fixtures (1 client, 3 sites, 3 projects incl. one
+zero-activity project for the empty-state check, ~20 activities, plus one
+verification_items/issues/actions/files/attachments row each for the reference
+matrix) were removed afterward and confirmed at zero residue; Test 1, the 4/149
+Framework seed and the 8 Activity Type seeds confirmed unchanged; the real
+`activities` table remained empty throughout.
+
+## Phase 3B — Master Plan / Activities: full acceptance CLOSED
+
+Combined across 3B-1 (54/54), 3B-2 (68/68) and 3B-3 (76/78, both non-passes
+independently confirmed as test-script issues): **198/200 acceptance checks pass**,
+with the 2 non-passes fully accounted for and the underlying application behavior
+verified correct by direct query in both cases. No P0 finding at any point in Phase
+3B; the two P1 findings (Phase 3A's anon-grant gap does not apply here — Phase 3B-2's
+`planned_days` empty-string coercion bug) were found during acceptance and fixed
+before commit.
+
 ### Phase 4 — Verification / Issues / Actions
 Test cases: *not yet defined.*
 Candidate areas: manual verification item; schedule to activity A, complete in

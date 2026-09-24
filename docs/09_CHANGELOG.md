@@ -3,6 +3,78 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 3B-3 — Status / Cancel / Delete + Phase 3B close (2026-09-24)
+
+Third and final implementation slice of Phase 3B. **Result: 76/78 acceptance checks on
+the live run; the 2 non-passes were test-script bugs, independently re-confirmed
+correct by direct query.** Full result in `08_TESTING.md`; roadmap status in
+`06_ROADMAP.md`. **Phase 3B is now CLOSED.** No database migration in this slice.
+
+### Added
+
+- **Status control** (Activity Detail header): a single quick-change control
+  (Planned/In Progress/Completed) — the one primary status-changing interaction
+  (BR-68). Removed the Status field from the Edit Activity drawer (it lived there
+  since Phase 3B-2) to avoid two competing controls for the same thing.
+- **Cancel Activity**: its own explicitly labeled, confirmed action in Activity
+  Detail's overflow menu (not one of the quick-status buttons) — `status =
+  "cancelled"`, nothing else touched. A cancelled Activity may be changed back to any
+  other status through the normal quick status control, no special ceremony
+  (BR-68/BR-69).
+- **Delete Activity**: controlled, application-level delete in the overflow menu.
+  Checks — *before* deleting — whether the Activity is referenced by any of the 5
+  real FK paths found in the schema (`verification_items.target_activity_id`,
+  `verification_items.verified_activity_id`, `issues.activity_id`,
+  `actions.activity_id`, `attachments.activity_id`), and blocks with a friendly
+  business message if so, never relying on the database's own SET NULL/CASCADE
+  behavior — `attachments` is CASCADE and would otherwise silently remove evidence
+  (BR-70).
+- **Overdue badge** on Activity Detail, alongside the existing Master Plan indicator;
+  cancelled rows now visually de-emphasized (opacity) in Master Plan while staying
+  fully searchable, filterable and openable.
+- **Upcoming Activities** (Project Workspace Overview, new section): at most 3
+  activities where `status NOT IN (completed, cancelled)` and `start_date >= today`,
+  ordered `start_date → start_time → name`, via a scoped/limited query — never the
+  whole Master Plan just to show 3 rows. Compact empty state; `View Plan` link
+  (BR-71).
+- `lib/mutations/activities.ts`: `setActivityStatus` (the single status-changing
+  mutation — Cancel is simply this call with `status="cancelled"`, no separate
+  mutation, no `cancelled_at`) and `deleteActivity` (`requireUser()`, not
+  `requireAdmin()`, same as every other Activity mutation).
+- `lib/queries/activities.ts`: `listUpcomingActivities`; refactored the shared
+  row-mapping/site-name-resolution logic out of `listActivities` so both queries
+  reuse it instead of duplicating it.
+
+### Verified
+
+Hosted Supabase, production build, Playwright/Edge, 1280×800 desktop, 390px/412px
+mobile: the full Chinh Long IMS end-to-end scenario from the task brief (create,
+chronological order, Outcome edit, full status cycle, Cancel + reactivate,
+unreferenced delete, all 5 reference paths individually blocked and verified intact
+at the database level), the complete 7-point overdue matrix, cancelled-row display,
+cross-project protection, Upcoming Activities, Admin/Consultant parity, anon denial,
+responsive, full regression. `npm run lint`, `npm run typecheck`, `npm run build`
+pass; `git diff --check` clean. All `P3B3-ACCEPT*` fixtures removed and confirmed at
+zero residue across 9 tables; Test 1, the 4/149 Framework seed and the 8 Activity
+Type seeds confirmed unchanged; the real `activities` table remained empty throughout.
+
+### Findings
+
+- **NO CHANGE (test-script bugs, not app defects):** a `LIKE` pattern typo and a
+  locator that counted a navigation link alongside the rows it meant to count — both
+  found during acceptance, both independently re-verified against the live data to
+  confirm the actual application behavior was correct in each case. See
+  `08_TESTING.md` for detail.
+- **BACKLOG (unchanged, not touched in this slice):** the app-wide `notFound()` →
+  HTTP 200 behavior noted in Phase 3B-2 remains outstanding, out of scope here.
+
+### Not done (intentionally — future phases)
+
+Status history/audit trail, workflow transition restrictions, `cancelled_at` /
+`cancellation_reason`, calendar view, drag/drop scheduling, recurrence, notifications,
+multi-consultant assignment, `activity_frameworks` junction, Storage object deletion
+as part of Activity delete, analytics/charts/KPIs on the Overview.
+
 ## Phase 3B-2 — Create / Edit + Activity Detail (2026-09-24)
 
 Second implementation slice of Phase 3B. **Result: 68/68 acceptance checks, 1 P1

@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, openNativePicker } from "@/lib/utils";
-import { activityStatusLabel } from "@/lib/ui/status-tones";
-import { ACTIVITY_STATUSES } from "@/lib/validation/activities";
 import { createActivity, updateActivity } from "@/lib/mutations/activities";
 import type { ActivityDetail, ActivityFormCatalog } from "@/lib/queries/activities";
 
@@ -41,7 +39,6 @@ export function ActivityFormDrawer({
   const [plannedDays, setPlannedDays] = useState(activity?.plannedDays != null ? String(activity.plannedDays) : "");
   const [objectives, setObjectives] = useState(activity?.objectives ?? "");
   const [plannedWork, setPlannedWork] = useState(activity?.plannedWork ?? "");
-  const [status, setStatus] = useState(activity?.status ?? "planned");
   const [workPerformed, setWorkPerformed] = useState(activity?.workPerformed ?? "");
   const [nextSteps, setNextSteps] = useState(activity?.nextSteps ?? "");
 
@@ -77,7 +74,10 @@ export function ActivityFormDrawer({
       plannedDays,
       objectives,
       plannedWork,
-      ...(mode === "edit" ? { status, workPerformed, nextSteps } : {}),
+      // Status has its own dedicated control on Activity Detail (Phase 3B-3) — this
+      // form never changes it, but the update schema still requires a value, so the
+      // activity's current (unedited) status rides along unchanged.
+      ...(mode === "edit" ? { status: activity!.status, workPerformed, nextSteps } : {}),
     };
 
     startTransition(async () => {
@@ -405,22 +405,6 @@ export function ActivityFormDrawer({
 
         {mode === "edit" ? (
           <>
-            {/* Section: Status */}
-            <div className="space-y-4 border-t border-border pt-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Status</h3>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-base text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary md:text-sm"
-              >
-                {ACTIVITY_STATUSES.map((value) => (
-                  <option key={value} value={value}>
-                    {activityStatusLabel(value)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {/* Section: Outcome / Visit Summary */}
             <div className="space-y-4 border-t border-border pt-4">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Outcome / Visit Summary</h3>

@@ -22,38 +22,29 @@ export type ActivityPlanRow = {
   status: string;
 };
 
-/**
- * Master Plan is always Project-scoped — there is no global listActivities().
- * Two queries (activities + the project's sites), not N+1: activities.site_id has no
- * direct FK to `sites` (only the composite FK to `project_sites`), so the site name is
- * resolved by joining against the project's own site scope in application code, the same
- * way `getProjectWorkspace` resolves sites for the Overview tab.
- * Default order matches the Master Plan's planning sequence, not insertion order:
- * start_date, then start_time, then name — undated activities sort last.
- */
-export async function listActivities(projectId: string): Promise<ActivityPlanRow[]> {
-  const supabase = await createClient();
-  const [activitiesRes, sitesRes] = await Promise.all([
-    supabase
-      .from("activities")
-      .select(
-        "id, project_id, site_id, name, start_date, start_time, end_date, end_time, planned_days, mode, status, activity_type_id, consultant_id, activity_types(label, is_active), profiles!activities_consultant_id_fkey(display_name)",
-      )
-      .eq("project_id", projectId)
-      .order("start_date", { ascending: true, nullsFirst: false })
-      .order("start_time", { ascending: true, nullsFirst: false })
-      .order("name", { ascending: true }),
-    supabase.from("project_sites").select("sites(id, name)").eq("project_id", projectId),
-  ]);
-  if (activitiesRes.error) throw new Error("Could not load activities.");
-  if (sitesRes.error) throw new Error("Could not load the project's sites.");
+const ACTIVITY_LIST_COLUMNS =
+  "id, project_id, site_id, name, start_date, start_time, end_date, end_time, planned_days, mode, status, activity_type_id, consultant_id, activity_types(label, is_active), profiles!activities_consultant_id_fkey(display_name)";
 
-  const siteNameById = new Map<string, string>();
-  for (const row of sitesRes.data ?? []) {
-    if (row.sites) siteNameById.set(row.sites.id, row.sites.name);
-  }
+type RawActivityRow = {
+  id: string;
+  project_id: string;
+  site_id: string | null;
+  name: string;
+  start_date: string | null;
+  start_time: string | null;
+  end_date: string | null;
+  end_time: string | null;
+  planned_days: number | null;
+  mode: string;
+  status: string;
+  activity_type_id: string;
+  consultant_id: string | null;
+  activity_types: { label: string; is_active: boolean } | null;
+  profiles: { display_name: string | null } | null;
+};
 
-  return (activitiesRes.data ?? []).map((a) => ({
+function mapActivityRow(a: RawActivityRow, siteNameById: Map<string, string>): ActivityPlanRow {
+  return {
     id: a.id,
     projectId: a.project_id,
     name: a.name,
@@ -71,7 +62,73 @@ export async function listActivities(projectId: string): Promise<ActivityPlanRow
     consultantId: a.consultant_id,
     consultantName: a.profiles?.display_name ?? null,
     status: a.status,
-  }));
+  };
+}
+
+/** Resolves site names for a project's activities without N+1: activities.site_id has
+ *  no direct FK to `sites` (only the composite FK to `project_sites`), so this joins
+ *  against the project's own site scope in application code, the same way
+ *  `getProjectWorkspace` resolves sites for the Overview tab. */
+async function siteNameMap(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string,
+): Promise<Map<string, string>> {
+  const { data, error } = await supabase.from("project_sites").select("sites(id, name)").eq("project_id", projectId);
+  if (error) throw new Error("Could not load the project's sites.");
+  const map = new Map<string, string>();
+  for (const row of data ?? []) {
+    if (row.sites) map.set(row.sites.id, row.sites.name);
+  }
+  return map;
+}
+
+/**
+ * Master Plan is always Project-scoped — there is no global listActivities().
+ * Default order matches the Master Plan's planning sequence, not insertion order:
+ * start_date, then start_time, then name — undated activities sort last.
+ */
+export async function listActivities(projectId: string): Promise<ActivityPlanRow[]> {
+  const supabase = await createClient();
+  const [activitiesRes, siteMap] = await Promise.all([
+    supabase
+      .from("activities")
+      .select(ACTIVITY_LIST_COLUMNS)
+      .eq("project_id", projectId)
+      .order("start_date", { ascending: true, nullsFirst: false })
+      .order("start_time", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true }),
+    siteNameMap(supabase, projectId),
+  ]);
+  if (activitiesRes.error) throw new Error("Could not load activities.");
+
+  return (activitiesRes.data ?? []).map((a) => mapActivityRow(a, siteMap));
+}
+
+/**
+ * Project Workspace Overview's small "Upcoming Activities" widget (Phase 3B-3).
+ * Rule: status not in (completed, cancelled) AND start_date >= today, ordered
+ * start_date -> start_time -> name, limited server-side (never fetches the whole
+ * Master Plan just to show 3 rows). Undated activities are never "upcoming".
+ */
+export async function listUpcomingActivities(projectId: string, limit = 3): Promise<ActivityPlanRow[]> {
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const [activitiesRes, siteMap] = await Promise.all([
+    supabase
+      .from("activities")
+      .select(ACTIVITY_LIST_COLUMNS)
+      .eq("project_id", projectId)
+      .gte("start_date", today)
+      .not("status", "in", "(completed,cancelled)")
+      .order("start_date", { ascending: true, nullsFirst: false })
+      .order("start_time", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true })
+      .limit(limit),
+    siteNameMap(supabase, projectId),
+  ]);
+  if (activitiesRes.error) throw new Error("Could not load upcoming activities.");
+
+  return (activitiesRes.data ?? []).map((a) => mapActivityRow(a, siteMap));
 }
 
 export type ActivityDetail = ActivityPlanRow & {

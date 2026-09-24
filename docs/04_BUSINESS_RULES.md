@@ -78,6 +78,31 @@ Product behavior that the schema and UI must respect. Database details are in
   change status) on any Activity in any project (BR-42). An Activity's `project_id`
   is always taken from trusted route context, never from form input; a request naming
   one project can never read or mutate an Activity belonging to another (Phase 3B-2).
+- **BR-68** Activity status changes are manual only; no date or time automatically
+  changes a status. Any status may follow any other (e.g. `completed → in_progress`,
+  `cancelled → planned`) — V1 has no transition matrix and no workflow engine.
+  Activity Detail's one quick status control is the single interaction for
+  Planned/In Progress/Completed; **Cancel** (`status = cancelled`) is its own
+  explicitly labeled, confirmed action, not offered a second way (Phase 3B-3).
+- **BR-69** Cancel means `status = cancelled`. It is not delete: identity, schedule,
+  Plan, Outcome and every reference to the Activity are preserved unchanged. A
+  cancelled Activity remains in the Master Plan (searchable, filterable, openable,
+  visually de-emphasized only) and may later be changed back to any other status
+  through the normal status control — no `cancelled_at`, no irreversible model
+  (Phase 3B-3).
+- **BR-70** An Activity may be deleted only while **unreferenced**. Referenced means:
+  targeted by `verification_items.target_activity_id`, completed-in via
+  `verification_items.verified_activity_id`, the origin of an `issues.activity_id` or
+  `actions.activity_id`, or carrying an `attachments.activity_id`. This is an
+  application-level check performed *before* the delete runs — never inferred from
+  the database's own FK behavior, since `attachments.activity_id` is `ON DELETE
+  CASCADE` and would otherwise silently remove evidence. A blocked delete shows a
+  friendly business message directing the user to Cancel instead, never a raw FK/DB
+  error (Phase 3B-3).
+- **BR-71** Project Workspace Overview's "Upcoming Activities" shows at most 3
+  activities where `status NOT IN (completed, cancelled)` and `start_date >= today`,
+  ordered `start_date → start_time → name`. Undated activities are never "upcoming".
+  A compact empty state is shown when none qualify (Phase 3B-3).
 
 ## Documents and reviews
 

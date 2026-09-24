@@ -1,9 +1,10 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
-import { activityCreateSchema, activityUpdateSchema } from "@/lib/validation/activities";
+import { ACTIVITY_STATUSES, activityCreateSchema, activityUpdateSchema } from "@/lib/validation/activities";
 import { fieldErrorsFrom, type ActionResult } from "./types";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseClient>>;
@@ -200,5 +201,107 @@ export async function updateActivity(
 
   revalidatePath(`/projects/${projectId}/plan`);
   revalidatePath(`/projects/${projectId}/activities/${activityId}`);
+  return { ok: true, data: undefined };
+}
+
+const statusSchema = z.enum(ACTIVITY_STATUSES);
+
+/**
+ * The single status-changing path — used both for the Activity Detail header's quick
+ * status control and for Cancel (Cancel is simply this call with status="cancelled",
+ * after the UI's own confirmation step; there is no separate cancel-specific mutation,
+ * no cancelled_at, no transition matrix — any status may follow any other, BR-12).
+ */
+export async function setActivityStatus(
+  projectId: string,
+  activityId: string,
+  status: string,
+): Promise<ActionResult> {
+  await requireUser();
+
+  const parsed = statusSchema.safeParse(status);
+  if (!parsed.success) return { ok: false, error: "Invalid status." };
+
+  const supabase = await createSupabaseClient();
+  const { data, error } = await supabase
+    .from("activities")
+    .update({ status: parsed.data })
+    .eq("id", activityId)
+    .eq("project_id", projectId)
+    .select("id");
+  if (error) return { ok: false, error: "Couldn't update the status. Try again." };
+  if (!data || data.length === 0) return { ok: false, error: "This Activity could not be found." };
+
+  revalidatePath(`/projects/${projectId}/plan`);
+  revalidatePath(`/projects/${projectId}/activities/${activityId}`);
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Every current reference path to activities.id (verified against the real schema,
+ * not assumed): verification_items.target_activity_id, verification_items
+ * .verified_activity_id, issues.activity_id, actions.activity_id,
+ * attachments.activity_id. attachments is CASCADE at the DB level — deleting the
+ * Activity would silently remove its evidence rows — so this application-level check
+ * treats an Activity with attachments as referenced and blocks delete, the same as
+ * the SET NULL paths; the database's own delete behavior is never relied on here.
+ */
+async function activityIsReferenced(supabase: SupabaseServerClient, activityId: string): Promise<boolean> {
+  const checks = await Promise.all([
+    supabase.from("verification_items").select("id", { count: "exact", head: true }).eq("target_activity_id", activityId),
+    supabase.from("verification_items").select("id", { count: "exact", head: true }).eq("verified_activity_id", activityId),
+    supabase.from("issues").select("id", { count: "exact", head: true }).eq("activity_id", activityId),
+    supabase.from("actions").select("id", { count: "exact", head: true }).eq("activity_id", activityId),
+    supabase.from("attachments").select("id", { count: "exact", head: true }).eq("activity_id", activityId),
+  ]);
+  for (const result of checks) {
+    if (result.error) throw new Error("Could not check whether this Activity is referenced.");
+    if ((result.count ?? 0) > 0) return true;
+  }
+  return false;
+}
+
+const REFERENCED_MESSAGE =
+  "This activity is already referenced by project records and cannot be deleted. Cancel the activity instead to preserve project history.";
+
+/**
+ * Controlled delete: allowed only when the Activity is genuinely unreferenced.
+ * Checked in the application BEFORE the delete runs (activityIsReferenced), not
+ * inferred from whatever the database's FK behavior happens to do — attachments would
+ * otherwise CASCADE silently. The 23503 catch below is defense in depth for a
+ * same-instant race between the check and the delete, not the primary mechanism.
+ */
+export async function deleteActivity(projectId: string, activityId: string): Promise<ActionResult> {
+  await requireUser();
+
+  const supabase = await createSupabaseClient();
+
+  const { data: existing, error: existingError } = await supabase
+    .from("activities")
+    .select("id, project_id")
+    .eq("id", activityId)
+    .maybeSingle();
+  if (existingError) return { ok: false, error: "Couldn't delete the Activity. Try again." };
+  if (!existing || existing.project_id !== projectId) {
+    return { ok: false, error: "This Activity could not be found." };
+  }
+
+  if (await activityIsReferenced(supabase, activityId)) {
+    return { ok: false, error: REFERENCED_MESSAGE };
+  }
+
+  const { data, error } = await supabase
+    .from("activities")
+    .delete()
+    .eq("id", activityId)
+    .eq("project_id", projectId)
+    .select("id");
+  if (error) {
+    if (error.code === "23503") return { ok: false, error: REFERENCED_MESSAGE };
+    return { ok: false, error: "Couldn't delete the Activity. Try again." };
+  }
+  if (!data || data.length === 0) return { ok: false, error: "This Activity could not be found." };
+
+  revalidatePath(`/projects/${projectId}/plan`);
   return { ok: true, data: undefined };
 }

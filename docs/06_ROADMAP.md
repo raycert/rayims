@@ -9,11 +9,11 @@
 | 1     | Authentication & App Shell                  | **COMPLETED** |
 | 2     | Client / Project / Site / Frameworks        | **COMPLETED** |
 | 3A    | Activity Type Foundation                    | **COMPLETED** |
-| 3B    | Master Plan / Activities                    | **IN PROGRESS** |
+| 3B    | Master Plan / Activities                    | **COMPLETED** |
 | — 3B-1 | Foundation + Master Plan (read)            | **COMPLETED** |
 | — 3B-2 | Create / Edit + Activity Detail            | **COMPLETED** |
-| — 3B-3 | Status / Cancel / Delete + final 3B acceptance | Planned — NEXT |
-| 4     | Verification / Issues / Actions             | Planned       |
+| — 3B-3 | Status / Cancel / Delete + final 3B acceptance | **COMPLETED** |
+| 4     | Verification / Issues / Actions             | Planned — NEXT |
 | 5     | Documents / Versions / Reviews              | Planned       |
 | 6     | Visit Summary / Reporting                   | Planned       |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
@@ -256,10 +256,51 @@ example was mistakenly written "29 Sep 2026 – 31 Sep 2026" in that report's pr
 actual fixture data and UI both used the real, valid range 29–31 **Oct** 2026 — no code
 or data defect).
 
-### Phase 3B-3 — Status / Cancel / Delete + final Phase 3B acceptance [NEXT]
+### Phase 3B-3 — Status / Cancel / Delete + final Phase 3B acceptance [COMPLETED]
 
-Not started. Status lifecycle actions, the application-level referenced-delete-blocked
-/ Cancel-instead policy, and the final, complete Phase 3B acceptance pass.
+Delivered: a single quick-change status control on Activity Detail (Planned/In
+Progress/Completed — Cancel is deliberately not one of these buttons, so cancelling is
+never offered two competing ways); **Cancel Activity** as its own confirmed action
+(`status = cancelled`, no data touched, reversible through the normal status control —
+no `cancelled_at`); **Delete Activity** as a controlled, application-level delete —
+blocked whenever the Activity is referenced by `verification_items
+.target_activity_id`/`.verified_activity_id`, `issues.activity_id`,
+`actions.activity_id` or `attachments.activity_id` (checked *before* the delete runs,
+not inferred from the database's own CASCADE/SET NULL behavior — `attachments` is
+CASCADE and would otherwise silently remove evidence), with a friendly business
+message, never a raw FK error; both actions live in Activity Detail's overflow menu
+next to Edit, keeping the header to one primary button on mobile. Master Plan now
+shows a restrained overdue badge and de-emphasizes (not hides) cancelled rows, both
+already established in Phase 3B-1/3B-2 and re-verified here across a full overdue
+matrix. Project Workspace Overview gained a small **Upcoming Activities** widget
+(`status NOT IN (completed, cancelled) AND start_date >= today`, ordered
+`start_date → start_time → name`, limit 3, scoped query — not the whole Master Plan)
+with a "View Plan" link and a compact empty state. No schema change, no new RLS/grants.
+
+**Verified (2026-09-24): 76/78 acceptance checks on the live run** (hosted Supabase,
+production build, Playwright/Edge, 1280×800, 390px, 412px) — the full Chinh Long IMS
+end-to-end scenario (3 activities, chronological ordering, Outcome editing,
+planned→in_progress→completed→planned, Cancel with confirmation and reactivation,
+unreferenced delete, all 5 reference paths individually blocked with the reference
+rows verified intact at the database level afterward), the full 7-point overdue
+matrix, cancelled-row display/filter/search, Project A/B cross-project protection
+(content-based, consistent with the pre-existing app-wide `notFound()` behavior),
+Upcoming Activities (inclusion/exclusion rules, limit, empty state), Admin/Consultant
+parity, anon denial, responsive, full regression. The 2 non-passes were both confirmed
+as test-script bugs (a stray hyphen in a SQL `LIKE` pattern, and a locator counting the
+"View Plan" link alongside the 3 activity rows it was scoped over) — independently
+re-verified correct by direct query against the same live data immediately afterward:
+all 5 referenced Activities intact, and the Upcoming Activities query confirmed
+returning exactly 3 rows. Full results: `08_TESTING.md`.
+
+## Phase 3B — Master Plan / Activities: CLOSED
+
+All three slices (3B-1 read foundation, 3B-2 create/edit/detail, 3B-3 status/cancel/
+delete + Overview integration) are complete and verified against the real hosted
+project. `activities` now supports the full V1-scope planning/execution lifecycle
+described in `01_V1_SCOPE.md` item 6, with no schema beyond the Phase 3B-1
+`start_time`/`end_time` addition and no new RLS/grants beyond what `activities`
+already had since Phase 0C/0D.
 
 ## Phase 4 — Verification / Issues / Actions
 
