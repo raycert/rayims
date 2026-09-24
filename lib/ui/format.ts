@@ -15,3 +15,35 @@ export function formatDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
+
+/** "14:30:00" (Postgres time) -> "14:30". Never renders "00:00" for a null value. */
+export function formatTime(time: string | null): string | null {
+  if (!time) return null;
+  return time.slice(0, 5);
+}
+
+export function activityModeLabel(mode: string): string {
+  return mode === "on_site" ? "On-site" : mode === "online" ? "Online" : mode;
+}
+
+/**
+ * Compact Master Plan date/time cell. A multi-day range (end_date differs from
+ * start_date) shows dates only — mixing in times would produce an unreadable string.
+ * A same-day activity shows the date plus a time range or single start time when set.
+ */
+export function formatActivityDateTime(
+  startDate: string | null,
+  startTime: string | null,
+  endDate: string | null,
+  endTime: string | null,
+): string {
+  if (!startDate) return "Undated";
+  if (endDate && endDate !== startDate) {
+    return `${formatDate(startDate)} – ${formatDate(endDate)}`;
+  }
+  const start = formatTime(startTime);
+  const end = formatTime(endTime);
+  if (start && end) return `${formatDate(startDate)} · ${start}–${end}`;
+  if (start) return `${formatDate(startDate)} · ${start}`;
+  return formatDate(startDate);
+}

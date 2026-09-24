@@ -136,6 +136,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           end_date: string | null
+          end_time: string | null
           id: string
           mode: string
           name: string
@@ -146,6 +147,7 @@ export type Database = {
           project_id: string
           site_id: string | null
           start_date: string | null
+          start_time: string | null
           status: string
           updated_at: string
           work_performed: string | null
@@ -156,6 +158,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           end_date?: string | null
+          end_time?: string | null
           id?: string
           mode: string
           name: string
@@ -166,6 +169,7 @@ export type Database = {
           project_id: string
           site_id?: string | null
           start_date?: string | null
+          start_time?: string | null
           status?: string
           updated_at?: string
           work_performed?: string | null
@@ -176,6 +180,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           end_date?: string | null
+          end_time?: string | null
           id?: string
           mode?: string
           name?: string
@@ -186,6 +191,7 @@ export type Database = {
           project_id?: string
           site_id?: string | null
           start_date?: string | null
+          start_time?: string | null
           status?: string
           updated_at?: string
           work_performed?: string | null

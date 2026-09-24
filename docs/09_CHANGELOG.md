@@ -3,6 +3,69 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 3B-1 — Foundation + Master Plan (read) (2026-09-24)
+
+First implementation slice of Phase 3B. **Result: 54/54 acceptance checks, 0 P0/P1
+findings.** Full result in `08_TESTING.md`; roadmap status in `06_ROADMAP.md`. Phase
+3B-2 (Create/Edit + Activity Detail) has not started.
+
+### Added
+
+- **`activities.start_time` / `end_time`** (migration
+  `20260924000300_activities_time_fields.sql`): nullable `time` columns, purely
+  additive — no backfill, no change to existing dates, `activity_type_id`, FK
+  behavior, RLS or grants. Applied safely regardless of row count (the migration does
+  not assume `activities` is empty, unlike Phase 3A's one-time column swap).
+- **`listActivities(projectId)`** (`lib/queries/activities.ts`): Project-scoped only —
+  no global activities query or route exists. Two queries (activities + the project's
+  sites), not N+1: `activities.site_id` has no direct FK to `sites` (only the
+  composite FK to `project_sites`), so the site name is resolved the same way
+  `getProjectWorkspace` already resolves it for the Overview tab. Default order:
+  `start_date` → `start_time` → `name`, nulls last.
+- **Master Plan** (`/projects/[projectId]/plan`): the Project Workspace's Plan tab is
+  now live, showing a read-only desktop table / mobile cards over the project's
+  Activities, with search (name/type/site/consultant) and Site/Type/Status filters.
+  Documents/Verification/Issues & Actions/Reports remain inert. A shared
+  `ProjectWorkspaceHeader` component (extracted from the former inline Overview
+  header) keeps Overview and Plan visually identical apart from the active tab and the
+  content below.
+- **Display conventions:** project-wide activities show "Project-wide" (never blank);
+  `mode`/`status` show humanized labels, never raw `on_site`/`planned`; a multi-day
+  date range shows dates only (no times, avoiding an unreadable string); Activity Type
+  label is resolved live from `activity_types` (ADR-017 — no snapshot), so an activity
+  referencing a now-inactive type still displays correctly and is never hidden.
+- **Overdue indicator:** derived only (`effective end date < today AND status NOT IN
+  (completed, cancelled)`, effective end date = `end_date` if set else `start_date`) —
+  never stored, no fifth status.
+- **No new RLS or grants:** `activities` already had `for all to authenticated using
+  (true) with check (true)` and full CRUD grants since Phase 0C/0D. Admin and
+  Consultant have identical read access to the Master Plan, the same as
+  Clients/Projects/Sites — confirmed by direct REST probes, not assumed.
+- **Intentionally deferred to Phase 3B-2 (by design, not oversight):** Activity
+  create/edit, Activity Detail screen, status change, cancel/delete, Visit Summary
+  editing. Rows are not clickable and no "New Activity" button is shown — a dead link
+  to a route that doesn't exist yet would be worse than no link.
+
+### Verified
+
+Hosted Supabase, production build, Playwright/Edge, 1280×800 desktop, 390px/412px
+mobile: ordering (a 10-row fixture set, not just the sort spec's 4-point example, with
+a verified same-time tiebreak by name); project-scope isolation between two temporary
+projects; site integrity (cross-project site rejected); ADR-017 inactive-type
+regression; display conventions; the Overdue indicator (shown and correctly
+suppressed); search/filters; Admin/Consultant read parity; responsive; Phase 2/3A
+regression. `npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff
+--check` clean. All `P3B1-ACCEPT-*` fixtures removed and confirmed at zero residue;
+Test 1, the 4/149 Framework seed and the 8 Activity Type seeds confirmed unchanged; the
+real `activities` table remained empty throughout, matching its pre-existing state.
+
+### Not done (intentionally)
+
+Activity create/edit, Activity Detail, status change, cancel/delete, Visit Summary
+editing, calendar view, drag/drop scheduling, recurrence, reminders, notifications,
+multi-consultant assignment, `activity_frameworks` junction — all Phase 3B-2 or later
+per the approved Phase 3B pre-implementation review.
+
 ## Phase 3A — Activity Type Foundation (2026-09-24)
 
 Implements ADR-017. **Result: 60/60 acceptance checks, 0 P0, 1 P1 (found and fixed

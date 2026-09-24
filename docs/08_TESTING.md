@@ -305,10 +305,43 @@ read/write were unaffected by the correction.
 
 `npm run lint`, `npm run typecheck`, `npm run build` all pass. `git diff --check` clean.
 
-### Phase 3B — Master Plan / Activities
+### Phase 3B-1 — Foundation + Master Plan (read) (executed 2026-09-24)
+
+Result: **PASS — 54/54 acceptance checks, 0 failures.** Hosted Supabase, production
+build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px. Covered: Plan tab
+live alongside Overview (Documents/Verification/Issues & Actions/Reports still inert,
+not links); default ordering (`start_date` → `start_time` → `name`, undated last),
+verified against a 10-row fixture set spanning two past dates, a four-way same-day
+group (two activities tied on `start_time` correctly tiebreaking by name), a
+project-wide/no-time row, a multi-day row and an undated row — the full observed order
+matched the expected sequence exactly, not just the sort spec's 4-point example;
+project-scope isolation (two temporary projects — Project A's Plan never showed
+Project B's activity and vice versa); site integrity (an activity referencing a site
+outside its project's `project_sites` scope was rejected, existing composite FK
+untouched); ADR-017 regression (an activity referencing a now-inactive Activity Type
+still displayed its current label and was not hidden — the temporary type used for
+this, never one of the 8 seeds, was itself removed afterward); project-wide vs
+site-specific display ("Project-wide", never blank); mode/status display (humanized
+labels, not raw `on_site`/`planned`); the derived Overdue indicator (shown for a
+past-dated non-terminal activity, correctly suppressed for a cancelled one despite its
+past date); search and Site/Type/Status filters; no create/edit/detail controls
+rendered and no dead links to the not-yet-built Activity Detail route (by design, this
+slice is read-only); Admin and Consultant read parity via direct REST probes, anon
+denied; responsive (390px/412px, no horizontal overflow, mobile bottom nav intact);
+Phase 2/3A regression (Clients, Projects, Frameworks, Activity Types all still load).
+All temporary `P3B1-ACCEPT-*` fixtures (2 projects, 2 sites, 1 client, 11 activities, 1
+temporary Activity Type) were removed afterward and confirmed at zero residue; Test 1,
+the Framework seed (4/149) and the 8 Activity Type seeds were confirmed unchanged
+before and after, and the real `activities` table remained empty throughout (matching
+its pre-existing state).
+
+`npm run lint`, `npm run typecheck`, `npm run build` all pass. `git diff --check` clean.
+
+### Phase 3B-2 — Create / Edit + Activity Detail
 Test cases: *not yet defined.*
-Candidate areas: project-wide vs site activity; site must be in project scope;
-modes and statuses; Activity Type picker sourced from `activity_types`
+Candidate areas: Activity create/edit validation (including the date/time rules in
+`04_BUSINESS_RULES.md` BR-62); Activity Detail screen; status change; referenced-delete
+blocked / Cancel instead; Activity Type picker sourced from `activity_types`
 (`is_active = true`, ordered by `sort_order`).
 
 ### Phase 4 — Verification / Issues / Actions

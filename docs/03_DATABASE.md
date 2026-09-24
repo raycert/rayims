@@ -174,22 +174,42 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 
 ### activities
 - **Purpose:** project work (the master plan). A "site visit" is an activity with
-  `mode = on_site`; there is no separate visits table.
+  `mode = on_site`; there is no separate visits table. The Master Plan itself is not a
+  table — it is the Project Workspace's Plan view over this table's rows, filtered by
+  `project_id` (Phase 3B-1). There is no global cross-project activities list.
 - **Fields:**
   - `id`, `project_id` (FK, NOT NULL), `site_id` (**nullable**)
   - `activity_type_id` (FK → `activity_types`, NOT NULL) — Admin-configurable
     reference data (ADR-017, Phase 3A). Replaces the originally-planned free-text
-    `activity_type` column; there is no Activity list/create UI yet (Phase 3B).
-  - `name`, `start_date`, `end_date`
+    `activity_type` column.
+  - `name` — the activity's title.
+  - `start_date`, `end_date` (planning date(s))
+  - `start_time`, `end_time` (nullable `time`, no timezone, Phase 3B-1) — structured
+    time-of-day, independent of `planned_days`: date/time is *when* the activity
+    occurs (and orders same-day activities); `planned_days` is the planned consulting
+    effort/duration in days. Neither is derived from the other.
   - `mode` (CHECK `on_site | online`), `planned_days numeric(4,1)`
   - `consultant_id → profiles`, `objectives`, `planned_work`
   - `status` (CHECK `planned | in_progress | completed | cancelled`)
   - `work_performed`, `next_steps` (visit summary fields, ADR-013)
   - `created_by`, timestamps
 - **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
-- **Nullable:** `site_id` (project-wide activity), `consultant_id`.
-- **Index:** `(project_id, start_date)`.
-- **Not present:** drag-and-drop scheduling data, timesheets, actual days.
+- **Nullable:** `site_id` (project-wide activity), `consultant_id`, `start_date`,
+  `end_date`, `start_time`, `end_time`.
+- **Date/time validation (application, not a DB constraint):** if both dates are set,
+  `end_date >= start_date`; if `start_date == end_date` and both times are set,
+  `end_time > start_time`; a time requires its date to be set. A multi-day activity
+  (`end_date` differs from `start_date`) is displayed as a date range without times.
+- **Index:** `(project_id, start_date)`. No index was added for `start_time` — the
+  existing `(project_id, start_date)` index already serves the Master Plan's primary
+  access pattern (filter by project, order by date) at V1 scale.
+- **Not present:** drag-and-drop scheduling data, timesheets, actual days, timezone
+  handling, recurrence, an `activity_frameworks` junction (frameworks are derived from
+  the project and from downstream item-level references, not tagged on the activity).
+- **Authorization:** `activities` already had `for all to authenticated using (true)
+  with check (true)` RLS and full CRUD grants since Phase 0C/0D — Admin and Consultant
+  have identical access, the same as Clients/Projects/Sites (not the Framework
+  Administration admin-only pattern). No RLS or grant change was needed for Phase 3B-1.
 
 ### documents
 - **Purpose:** the **logical** document (identity), not a file.

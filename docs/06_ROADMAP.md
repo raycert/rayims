@@ -9,7 +9,9 @@
 | 1     | Authentication & App Shell                  | **COMPLETED** |
 | 2     | Client / Project / Site / Frameworks        | **COMPLETED** |
 | 3A    | Activity Type Foundation                    | **COMPLETED** |
-| 3B    | Master Plan / Activities                    | Planned — NEXT |
+| 3B    | Master Plan / Activities                    | **IN PROGRESS** |
+| — 3B-1 | Foundation + Master Plan (read)            | **COMPLETED** |
+| — 3B-2 | Create / Edit + Activity Detail            | Planned — NEXT |
 | 4     | Verification / Issues / Actions             | Planned       |
 | 5     | Documents / Versions / Reviews              | Planned       |
 | 6     | Visit Summary / Reporting                   | Planned       |
@@ -188,12 +190,37 @@ Out of scope (unchanged): Document Type, Issue Category, Evidence Type, Report T
 multilingual labels, organization-specific options, bulk import, drag-and-drop ordering,
 audit log, label version history, approval workflow.
 
-## Phase 3B — Master Plan / Activities [NEXT]
+## Phase 3B — Master Plan / Activities [IN PROGRESS]
 
-Not started. Activity planning and list/detail views; project-wide and site-specific
-activities; no drag-and-drop. `activities.activity_type_id` references the Phase 3A
-`activity_types` table (already implemented — no further schema change needed for the
-Activity Type side of this phase).
+Activity planning and list/detail views; project-wide and site-specific activities; no
+drag-and-drop. `activities.activity_type_id` references the Phase 3A `activity_types`
+table (no further schema change needed for the Activity Type side of this phase).
+
+### Phase 3B-1 — Foundation + Master Plan (read) [COMPLETED]
+
+Delivered: `activities.start_time` / `end_time` (nullable, additive migration, no
+backfill); `listActivities(projectId)` (Project-scoped, no global route);
+`/projects/[projectId]/plan` — the Master Plan is now a live Project Workspace tab
+alongside Overview (Documents/Verification/Issues & Actions/Reports stay inert); a
+shared `ProjectWorkspaceHeader` so Overview and Plan present identical project
+identity; desktop table / mobile cards with search and Site/Type/Status filters;
+default order `start_date` → `start_time` → `name`, undated last; a subtle "Overdue"
+indicator (derived, not stored). No create/edit/status-change/delete UI — this slice is
+read-only by design; no new RLS or grants were needed (`activities` already had full
+authenticated CRUD since Phase 0C/0D).
+
+**Verified (2026-09-24): 54/54 acceptance checks** (hosted Supabase, production build,
+Playwright/Edge, 1280×800, 390px, 412px) — ordering (including same-time tiebreak by
+name), project-scope isolation between two temporary projects, site integrity
+(cross-project site rejected), ADR-017 regression (an activity referencing a now-
+inactive type still displays correctly), Admin/Consultant read parity, responsive,
+Phase 2/3A regression. Full results: `08_TESTING.md`.
+
+### Phase 3B-2 — Create / Edit + Activity Detail [NEXT]
+
+Not started. Activity create/edit form, Activity Detail screen
+(`/projects/[projectId]/activities/[activityId]`), status change, and the
+application-level referenced-delete-blocked / Cancel-instead lifecycle.
 
 ## Phase 4 — Verification / Issues / Actions
 

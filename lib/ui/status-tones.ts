@@ -37,3 +37,23 @@ export function projectStatusLabel(status: string): string {
 export function projectStatusTone(status: string): Tone {
   return PROJECT_TONES[status] ?? "neutral";
 }
+
+const ACTIVITY_STATUS_LABELS: Record<string, string> = {
+  planned: "Planned",
+  in_progress: "In Progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+const ACTIVITY_STATUS_TONES: Record<string, Tone> = {
+  planned: "neutral",
+  in_progress: "success",
+  completed: "success",
+  cancelled: "neutral",
+};
+
+export function activityStatusLabel(status: string): string {
+  return ACTIVITY_STATUS_LABELS[status] ?? status;
+}
+export function activityStatusTone(status: string): Tone {
+  return ACTIVITY_STATUS_TONES[status] ?? "neutral";
+}

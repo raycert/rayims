@@ -38,11 +38,23 @@ Product behavior that the schema and UI must respect. Database details are in
 ## Activities
 
 - **BR-11** Activities may be project-wide (no site) or site-specific.
-- **BR-12** Activity type is validated in the application, not by a database
-  constraint. Modes: on-site, online. Statuses: Planned, In Progress, Completed,
-  Cancelled.
+- **BR-12** Activity type (`activity_type_id`) is Admin-configurable reference data
+  enforced by a database FK to `activity_types` (ADR-017), not free text. Modes:
+  on-site, online (CHECK). Statuses: Planned, In Progress, Completed, Cancelled
+  (CHECK).
 - **BR-13** The visit summary (`work_performed`, `next_steps`) is recorded on the
   activity and feeds the visit report.
+- **BR-61** The Master Plan is not a database table. It is the Project Workspace's
+  Plan view over that project's `activities`, always scoped to one `project_id`; there
+  is no global cross-project activities list in V1 (Phase 3B-1).
+- **BR-62** Activity date/time: `start_date`/`end_date` record the planning date(s);
+  `start_time`/`end_time` (nullable, Phase 3B-1) record time-of-day within a single
+  day and order same-day activities; `planned_days` separately records planned
+  consulting effort/duration and is never derived from, or used to derive, the times.
+  A multi-day activity does not use times.
+- **BR-63** An activity is overdue (derived, never stored) when its effective end date
+  (`end_date` if set, else `start_date`) is before today and its status is not
+  `completed` or `cancelled` — the same derivation principle as BR-34 for actions.
 
 ## Documents and reviews
 
