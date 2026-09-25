@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
-import { verificationItemSchema } from "@/lib/validation/verification-items";
+import { verificationExecutionSchema, verificationItemSchema } from "@/lib/validation/verification-items";
 import { siteInProjectScope, type SupabaseServerClient } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
 
@@ -194,5 +194,86 @@ export async function updateVerificationItem(
   if (!data || data.length === 0) return { ok: false, error: "This verification item could not be found." };
 
   revalidatePath(`/projects/${projectId}/verification`);
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Onsite execution (Phase 4B). Updates ONLY result, notes, verified_activity_id,
+ * verified_by and verified_at — never question/priority/site_id/target_activity_id/
+ * framework_item_id/project_id, the same structural separation as the planning
+ * mutation above, just the other half. verified_activity_id/verified_by/verified_at
+ * are always server-derived (the route's activityId, the session user, now()) — never
+ * accepted from client input, so a tampered request can't backdate a result or attribute
+ * it to someone else.
+ *
+ * Cross-activity safety (Phase 4B review §22-23): an item may be executed from Activity
+ * X only when it is genuinely related to X (target_activity_id = X or
+ * verified_activity_id = X) AND not already verified in a DIFFERENT activity — an item
+ * completed in Activity B can never be silently re-attributed to Activity A through this
+ * mutation, matching the Activity Detail UI's own refusal to offer that action.
+ */
+export async function recordVerificationResult(
+  projectId: string,
+  activityId: string,
+  itemId: string,
+  input: unknown,
+): Promise<ActionResult> {
+  const user = await requireUser();
+
+  const parsed = verificationExecutionSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Select a Result.", fieldErrors: fieldErrorsFrom(parsed.error) };
+  }
+  const d = parsed.data;
+
+  const supabase = await createSupabaseClient();
+
+  const { data: activity, error: activityError } = await supabase
+    .from("activities")
+    .select("id, project_id")
+    .eq("id", activityId)
+    .maybeSingle();
+  if (activityError) return { ok: false, error: "Couldn't save the result. Try again." };
+  if (!activity || activity.project_id !== projectId) {
+    return { ok: false, error: "This activity could not be found." };
+  }
+
+  const { data: item, error: itemError } = await supabase
+    .from("verification_items")
+    .select("id, project_id, target_activity_id, verified_activity_id")
+    .eq("id", itemId)
+    .maybeSingle();
+  if (itemError) return { ok: false, error: "Couldn't save the result. Try again." };
+  if (!item || item.project_id !== projectId) {
+    return { ok: false, error: "This verification item could not be found." };
+  }
+  const relatedHere = item.target_activity_id === activityId || item.verified_activity_id === activityId;
+  if (!relatedHere) {
+    return { ok: false, error: "This verification item is not related to this activity." };
+  }
+  if (item.verified_activity_id && item.verified_activity_id !== activityId) {
+    return {
+      ok: false,
+      error: "This verification item was already completed during a different activity and can't be edited from here.",
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("verification_items")
+    .update({
+      result: d.result,
+      notes: d.notes ?? null,
+      verified_activity_id: activityId,
+      verified_by: user.id,
+      verified_at: new Date().toISOString(),
+    })
+    .eq("id", itemId)
+    .eq("project_id", projectId)
+    .select("id");
+  if (error) return { ok: false, error: "Couldn't save the result. Try again." };
+  if (!data || data.length === 0) return { ok: false, error: "This verification item could not be found." };
+
+  revalidatePath(`/projects/${projectId}/verification`);
+  revalidatePath(`/projects/${projectId}/activities/${activityId}`);
   return { ok: true, data: undefined };
 }

@@ -522,10 +522,59 @@ confirmed at zero residue; Test 1, the 4/149 Framework seed and the 8 Activity T
 seeds confirmed unchanged; the real `activities` and `verification_items` tables
 remained empty throughout.
 
-### Phase 4B — Activity verification + mobile execution
-Test cases: *not yet defined.*
-Candidate areas: schedule to activity A, complete in activity B; result quick-entry;
-Observation capture; Issue Identified → Create Issue handoff; mobile execution flow.
+### Phase 4B — Activity verification + mobile execution (executed 2026-09-25)
+
+Result: **PASS — 74/74 acceptance checks, 0 failures.** Hosted Supabase, production
+build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px.
+
+Covered: Activity Detail's new Verification section (between Plan and Outcome, the
+Plan/Outcome layout changed from a 2-column grid to a vertical stack to fit that exact
+order) showing a count summary ("N checks · M pending") with no compliance/progress
+visualization; a 9-check density scenario on one Activity built around the real Chinh
+Long brief (chemical storage/SDS/emergency-exit checks) plus filler and
+cross-activity items; Result-required validation (Save with no Result selected shows
+a friendly error, no mutation occurs); all three execution outcomes — **Verified OK**
+(result, Observation, `verified_activity_id`, `verified_at` all confirmed persisted
+exactly at the database level), **Issue Identified** (result and Observation
+persisted, and the `issues` table row count confirmed **unchanged** before/after —
+no Issue auto-created), **Follow-up Required** (result persisted, `issues`/`actions`/
+`verification_items` row counts all confirmed unchanged — no Issue, Action or new
+Verification Item auto-created); re-edit (current Result/Observation preload
+correctly, overwriting them updates execution fields while every planning field —
+question, priority, site_id, target_activity_id, framework_item_id — is confirmed
+unchanged at the database level); the full cross-activity traceability matrix (an
+item planned for Activity A but completed in Activity B: Activity A shows "Completed
+in another activity" with no execute/edit action offered, Activity B shows "Planned
+for another activity" with Review/Edit available — both directions proven, not
+assumed); **+ Add Check** from both a site-specific Activity (Target Activity preset,
+Site auto-locked, same 4A rule) and a project-wide Activity (Site freely choosable),
+with the created record confirmed to also appear in the Project Verification
+workspace (same underlying row, no duplicate model); cross-project protection (a
+Project B item never appears on a Project A Activity's checklist; the existing
+cross-project 404 behavior on Activity routes reconfirmed); Admin/Consultant parity
+and anon denial; responsive (checklist density, execution drawer, full-width stacked
+Result buttons chosen over a cramped 3-across layout — verified no horizontal
+overflow or clipped labels at either mobile width); Project Verification workspace
+regression (Result badge, Target Activity, and Site all reflect the activity-executed
+state correctly; planning Edit still works and still cannot clear the execution
+result); Phase 3B Activity regression (status control, Cancel/Delete, Plan/Outcome
+sections, Master Plan, Project Overview all unaffected).
+
+**Notable, not a defect:** pre-flight discovered real user-created data in the hosted
+project for the first time — a "Chinh Long" client/project/activities/verification
+items the user had created manually while trying out Phase 4A, closely matching the
+task brief's own example scenario. Confirmed as genuine data (Vietnamese activity
+name, realistic timestamps, no fixture prefix) and left completely untouched;
+verified byte-identical (same row ids, names, `result = NULL`, `target_activity_id`)
+before and after this slice's entire acceptance run. All `P4B-ACCEPT-*` fixtures used
+a distinctly prefixed client so the two data sets could never collide.
+
+`npm run lint`, `npm run typecheck`, `npm run build` all pass. `git diff --check`
+clean. All `P4B-ACCEPT-*` fixtures (1 client, 2 sites, 2 projects, 1 framework
+assignment, 4 activities, ~11 verification items) removed and confirmed at zero
+residue across 8 tables (including `issues`/`actions`/`attachments`, confirmed still
+genuinely empty — not just unchanged); Test 1, the 4/149 Framework seed and the 8
+Activity Type seeds confirmed unchanged.
 
 ### Phase 5 — Documents / Versions / Reviews
 Test cases: *not yet defined.*

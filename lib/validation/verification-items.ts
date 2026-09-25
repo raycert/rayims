@@ -24,3 +24,22 @@ export const verificationItemSchema = z.object({
 });
 
 export type VerificationItemInput = z.infer<typeof verificationItemSchema>;
+
+export const VERIFICATION_RESULTS = ["verified_ok", "issue_identified", "follow_up_required"] as const;
+
+/**
+ * Execution-only (Phase 4B): the fields recorded when a consultant verifies a check
+ * onsite. Result is required — a pending item stays pending until an explicit result is
+ * chosen (§15). Deliberately has no question/priority/site_id/target_activity_id/
+ * framework_item_id — those are the 4A planning schema's job, never this one's.
+ */
+export const verificationExecutionSchema = z.object({
+  result: z.enum(VERIFICATION_RESULTS),
+  notes: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+});
+
+export type VerificationExecutionInput = z.infer<typeof verificationExecutionSchema>;

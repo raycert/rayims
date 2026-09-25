@@ -3,6 +3,7 @@ import { ActivityDetailView } from "@/components/activities/activity-detail-view
 import { PageContainer } from "@/components/layout/page-container";
 import { getProjectWorkspace } from "@/lib/queries/projects";
 import { getActivity, getActivityFormCatalog } from "@/lib/queries/activities";
+import { getVerificationFormCatalog, listActivityVerificationItems } from "@/lib/queries/verification-items";
 
 export async function generateMetadata({
   params,
@@ -30,11 +31,21 @@ export default async function ActivityDetailPage({
   // never distinguishes "wrong id" from "right id, wrong project".
   if (!project || !activity) notFound();
 
-  const catalog = await getActivityFormCatalog(projectId, activity.activityTypeId);
+  const [catalog, verificationItems, verificationCatalog] = await Promise.all([
+    getActivityFormCatalog(projectId, activity.activityTypeId),
+    listActivityVerificationItems(projectId, activityId),
+    getVerificationFormCatalog(projectId),
+  ]);
 
   return (
     <PageContainer>
-      <ActivityDetailView projectName={project.name} activity={activity} catalog={catalog} />
+      <ActivityDetailView
+        projectName={project.name}
+        activity={activity}
+        catalog={catalog}
+        verificationItems={verificationItems}
+        verificationCatalog={verificationCatalog}
+      />
     </PageContainer>
   );
 }

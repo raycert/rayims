@@ -15,7 +15,8 @@
 | — 3B-3 | Status / Cancel / Delete + final 3B acceptance | **COMPLETED** |
 | 4     | Verification / Issues / Actions             | **IN PROGRESS** |
 | — 4A  | Verification foundation + workspace        | **COMPLETED** |
-| — 4B  | Activity verification + mobile execution   | Planned — NEXT |
+| — 4B  | Activity verification + mobile execution   | **COMPLETED** |
+| — 4C  | Issues                                     | Planned — NEXT |
 | 5     | Documents / Versions / Reviews              | Planned       |
 | 6     | Visit Summary / Reporting                   | Planned       |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
@@ -352,10 +353,49 @@ same time. Fixed by deriving the full set of historically-referenced-but-unassig
 Framework Items from the project's actual verification items in one query, instead of
 one parameterized value.
 
-### Phase 4B — Activity verification + mobile execution [NEXT]
+### Phase 4B — Activity verification + mobile execution [COMPLETED]
 
-Not started. Result editing from Activity Detail's Verification section, Observation
-capture, `verified_activity_id` assignment, mobile onsite execution UX.
+Delivered: a new **Verification** section on Activity Detail, between Plan and
+Outcome (the two-column Plan/Outcome grid became a vertical stack to fit it in that
+exact order); items shown are `target_activity_id = this Activity` OR
+`verified_activity_id = this Activity`, de-duplicated by id, so a check planned here
+but completed elsewhere (or vice versa) still appears, labeled "Completed in another
+activity" / "Planned for another activity" (BR-76) — with no execute/edit action
+offered for the former, so execution context can never be silently reassigned between
+Activities. **+ Add Check** reuses the exact 4A planning form/mutation with the
+Target Activity preset (and Site pre-locked when the Activity is site-specific, per
+the existing 4A rule) — no second planning form. A hybrid execution drawer (Result —
+Verified OK / Issue Identified / Follow-up Required, as full-width stacked buttons
+for reliable readability at any width — plus an optional Observation) records the
+result in place on the same row; Result is required to save (BR-75), and neither
+*Issue Identified* nor *Follow-up Required* creates anything beyond the Verification
+result itself (BR-77) — Phase 4C owns Verification → Issue. `recordVerificationResult`
+derives `verified_activity_id`/`verified_by`/`verified_at` entirely server-side and
+never touches planning fields (BR-72).
+
+**Verified (2026-09-25): 74/74 acceptance checks** (hosted Supabase, production
+build, Playwright/Edge, 1280×800, 390px, 412px) — a 9-check density scenario on one
+Activity (the real Chinh Long 3-check scenario plus filler/cross-activity items);
+execution acceptance for all three results including the explicit "no Issue/Action/
+new item auto-created" checks; Result-required validation; re-edit preloading and
+overwrite semantics; the full cross-activity traceability matrix (both directions);
+Add Check from both a site-specific and a project-wide Activity; cross-project
+protection; Admin/Consultant parity and anon denial; responsive; Project Verification
+workspace and Phase 3B Activity regression. Full results: `08_TESTING.md`.
+
+No database migration, no RLS/grant change — `verification_items` already supported
+this model (Phase 4 pre-implementation review). During this slice's acceptance, real
+user-created data was found in the hosted project for the first time (a "Chinh Long"
+client/project the user had created manually while trying Phase 4A, matching the
+task brief's own example scenario) — confirmed as genuine data, not test residue, and
+left untouched throughout; all `P4B-ACCEPT-*` fixtures used a separate, distinctly
+prefixed client so the two could never collide.
+
+## Phase 4C — Issues [NEXT]
+
+Not started. Verification → Issue (`issues.verification_item_id`, already present in
+the schema), the "Create Issue" handoff from a `result = issue_identified` item,
+standalone Issue creation, and the Project Issues & Actions workspace's Issues tab.
 
 ## Phase 5 — Documents / Versions / Reviews
 

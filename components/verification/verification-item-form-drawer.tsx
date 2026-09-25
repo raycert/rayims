@@ -22,6 +22,8 @@ export function VerificationItemFormDrawer({
   projectId,
   catalog,
   item,
+  defaultTargetActivityId,
+  defaultSiteId,
   onClose,
   onSaved,
 }: {
@@ -29,14 +31,21 @@ export function VerificationItemFormDrawer({
   projectId: string;
   catalog: VerificationFormCatalog;
   item?: VerificationItemRow;
+  /** Create-only shortcut (Activity Detail's "+ Add Check", Phase 4B §8-9): preset
+   *  Target Activity (and its Site, which then locks normally via the same rule as a
+   *  manual selection) instead of opening on an empty form. */
+  defaultTargetActivityId?: string;
+  defaultSiteId?: string | null;
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
   const [question, setQuestion] = useState(item?.question ?? "");
   const [priority, setPriority] = useState(item?.priority ?? "medium");
-  const [scope, setScope] = useState<Scope>(item?.siteId ? "specific_site" : "project_wide");
-  const [siteId, setSiteId] = useState(item?.siteId ?? "");
-  const [targetActivityId, setTargetActivityId] = useState(item?.targetActivityId ?? "");
+  const [scope, setScope] = useState<Scope>(
+    item?.siteId || defaultSiteId ? "specific_site" : "project_wide",
+  );
+  const [siteId, setSiteId] = useState(item?.siteId ?? defaultSiteId ?? "");
+  const [targetActivityId, setTargetActivityId] = useState(item?.targetActivityId ?? defaultTargetActivityId ?? "");
   const [frameworkItemId, setFrameworkItemId] = useState(item?.frameworkItemId ?? "");
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});

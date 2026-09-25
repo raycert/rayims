@@ -3,6 +3,85 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 4B — Activity verification + mobile onsite execution (2026-09-25)
+
+Second implementation slice of Phase 4. **Result: 74/74 acceptance checks, 0 P0/P1
+findings.** Full result in `08_TESTING.md`; roadmap status in `06_ROADMAP.md`. Phase
+4C (Issues) has not started. No database migration, no RLS/grant change —
+`verification_items` already supported this model.
+
+### Added
+
+- **Activity Detail Verification section** (`components/verification/activity-verification-section.tsx`):
+  a new card between Plan and Outcome — the Plan/Outcome layout changed from a
+  2-column grid to a vertical stack so the three sections read in that exact order.
+  Shows a count summary ("N checks · M pending"), no compliance score or progress
+  visualization. Items are `target_activity_id = this Activity` OR
+  `verified_activity_id = this Activity`, de-duplicated by id
+  (`listActivityVerificationItems` in `lib/queries/verification-items.ts`), ordered
+  pending-first, then priority high→medium→low, then question A–Z.
+- **Cross-activity relationship labels** (BR-76): an item planned here but completed
+  in a different Activity shows "Completed in another activity" with **no**
+  execute/edit action offered (its execution context can never be silently
+  reassigned); an item planned elsewhere but completed here shows "Planned for
+  another activity" with Review/Edit fully available, since it's genuinely current
+  here.
+- **+ Add Check**: reuses the exact 4A `VerificationItemFormDrawer`/`createVerificationItem`
+  — no second planning form. Two new optional props (`defaultTargetActivityId`,
+  `defaultSiteId`) preset the Target Activity (and lock the Site, via the existing 4A
+  rule, when the Activity is site-specific) instead of opening on an empty form.
+- **`VerificationExecutionDrawer`** (`components/verification/verification-execution-drawer.tsx`):
+  the focused onsite execution UI — Result (Verified OK / Issue Identified /
+  Follow-up Required, as full-width stacked buttons, chosen over a 3-across layout
+  that would cramp the labels in a 400px-wide drawer at any viewport) and an optional
+  Observation. No planning fields. Preloads the current Result/Observation when
+  re-opening an already-executed item ("Review / Edit").
+- **`recordVerificationResult`** (`lib/mutations/verification-items.ts`): the
+  execution mutation. Result is required (BR-75); `verified_activity_id`,
+  `verified_by` and `verified_at` are always derived server-side (the route's
+  Activity, the session user, the server clock) — never accepted as client input.
+  Verifies the Activity belongs to the route's project, the item belongs to the same
+  project, and the item is genuinely related to that Activity
+  (`target_activity_id` or `verified_activity_id` match) — and independently refuses
+  to let an item already verified in a *different* Activity be silently
+  re-attributed (BR-76), matching the UI's own refusal to offer that action. Neither
+  *Issue Identified* nor *Follow-up Required* creates anything beyond the result
+  itself — no Issue, Action, or new Verification Item (BR-77); Phase 4C owns
+  Verification → Issue.
+- `lib/validation/verification-items.ts`: `verificationExecutionSchema` /
+  `VERIFICATION_RESULTS` — a schema deliberately separate from the 4A planning
+  schema, with no question/priority/site/target-activity/framework fields.
+
+### Verified
+
+Hosted Supabase, production build, Playwright/Edge, 1280×800 desktop, 390px/412px
+mobile: a 9-check density scenario on one Activity; all three execution outcomes with
+the "no Issue/Action/new item auto-created" checks explicitly proven at the database
+level; Result-required validation; re-edit preload/overwrite with every planning
+field confirmed unchanged; the full cross-activity traceability matrix in both
+directions; Add Check from a site-specific and a project-wide Activity, with the new
+record confirmed to also appear in the Project Verification workspace; cross-project
+protection; Admin/Consultant parity and anon denial; responsive; Project Verification
+workspace and Phase 3B Activity regression. `npm run lint`, `npm run typecheck`,
+`npm run build` pass; `git diff --check` clean. All `P4B-ACCEPT-*` fixtures removed
+and confirmed at zero residue across 8 tables; Test 1, the 4/149 Framework seed and
+the 8 Activity Type seeds confirmed unchanged.
+
+### Findings
+
+- **Notable, not a defect:** this slice's pre-flight found real user-created data in
+  the hosted project for the first time — a "Chinh Long" client/project with
+  activities and verification items closely matching the task brief's own example
+  scenario, created manually while trying Phase 4A. Confirmed genuine (not test
+  residue) and verified byte-identical before and after this slice's full acceptance
+  run.
+
+### Not done (intentionally)
+
+Issues, Actions, automatic Issue creation, evidence/photo upload, attachments,
+controlled delete for verification items, Project Overview widgets — Phase 4C and
+later.
+
 ## Phase 4A — Verification foundation + Project Verification workspace (2026-09-24)
 
 First implementation slice of Phase 4. **Result: 73/73 acceptance checks, 0 P0/P1

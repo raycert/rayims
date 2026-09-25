@@ -160,9 +160,12 @@ Product behavior that the schema and UI must respect. Database details are in
 - **BR-72** Planning fields (`question`, `priority`, `site_id`, `target_activity_id`,
   `framework_item_id`) and execution fields (`result`, `notes`,
   `verified_activity_id`, `verified_by`, `verified_at`) are edited through separate
-  mutations. The Phase 4A planning form/mutation never reads or writes the execution
-  fields, even if a tampered request includes them — an already-executed item's
-  execution data survives a planning edit unchanged. Execution editing is Phase 4B.
+  mutations (`updateVerificationItem` and `recordVerificationResult`, Phase 4A/4B).
+  Neither mutation reads or writes the other's fields, even if a tampered request
+  includes them — a planning edit never touches execution data and vice versa.
+  Execution does not mutate `site_id` or `framework_item_id` either: recording a
+  result in a different-site or unassigned-framework context never rewrites the
+  item's planning scope (BR-73/74 continue to apply unchanged during execution).
 - **BR-73** If a verification item's `target_activity_id` refers to a **site-specific**
   Activity, `site_id` must equal that Activity's site — enforced server-side, not only
   by the picker. If the target Activity is **project-wide** (`site_id` NULL), the
@@ -175,6 +178,26 @@ Product behavior that the schema and UI must respect. Database details are in
   (shown, editable-away, never silently cleared) — the same historical-preservation
   principle as ADR-017's inactive Activity Type handling — but that no-longer-assigned
   item is never offered to a *different* record as a new choice.
+- **BR-75** Recording a Verification result (Phase 4B) requires an explicit Result —
+  a Save with no Result selected is rejected with a friendly error; a pending item
+  (`result IS NULL`) is never advanced by anything other than an explicit choice.
+  `verified_activity_id`, `verified_by` and `verified_at` are always server-derived
+  (the current route's Activity, the session user, the server clock) — never accepted
+  as client input, so a request can't backdate a result or attribute it to someone
+  else. Re-recording a result (Review/Edit) overwrites the previous result,
+  Observation, `verified_by` and `verified_at` in place; there is no verification
+  history/version table in V1.
+- **BR-76** An item may be executed from Activity X only when it is genuinely related
+  to X (`target_activity_id = X` or `verified_activity_id = X`) **and** not already
+  verified during a *different* activity. An item already completed during Activity B
+  can never be re-attributed to Activity A through the execution mutation — enforced
+  both by Activity Detail not offering that action and independently server-side.
+  Viewing it from Activity A shows it read-only for traceability only ("Completed in
+  another activity"); it remains fully editable from Activity B.
+- **BR-77** Recording *Issue Identified* or *Follow-up Required* only records the
+  Verification result — it does **not** automatically create an Issue, an Action, a
+  new Verification Item, or a follow-up Activity. `follows_item_id` remains unused by
+  execution. Verification → Issue is Phase 4C.
 
 ## Issues and actions
 

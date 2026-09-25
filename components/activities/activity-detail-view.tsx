@@ -13,7 +13,9 @@ import { activityModeLabel, formatActivityDateTime, isActivityOverdue } from "@/
 import { ACTIVITY_STATUSES } from "@/lib/validation/activities";
 import { deleteActivity, setActivityStatus } from "@/lib/mutations/activities";
 import { ActivityFormDrawer } from "./activity-form-drawer";
+import { ActivityVerificationSection } from "@/components/verification/activity-verification-section";
 import type { ActivityDetail, ActivityFormCatalog } from "@/lib/queries/activities";
+import type { ActivityVerificationItemRow, VerificationFormCatalog } from "@/lib/queries/verification-items";
 
 /** Quick-change target statuses — Cancel is its own confirmed action (§5), not part of
  *  this control, so cancelling is never available two ways at once. */
@@ -36,10 +38,14 @@ export function ActivityDetailView({
   projectName,
   activity,
   catalog,
+  verificationItems,
+  verificationCatalog,
 }: {
   projectName: string;
   activity: ActivityDetail;
   catalog: ActivityFormCatalog;
+  verificationItems: ActivityVerificationItemRow[];
+  verificationCatalog: VerificationFormCatalog;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -242,7 +248,7 @@ export function ActivityDetailView({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-5 [@media(min-width:860px)]:grid-cols-2">
+      <div className="flex flex-col gap-5">
         <section className="rounded-lg border border-border bg-surface">
           <div className="border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold">Plan</h2>
@@ -252,6 +258,18 @@ export function ActivityDetailView({
             <TextField label="Planned Work" value={activity.plannedWork} />
           </div>
         </section>
+
+        <ActivityVerificationSection
+          projectId={activity.projectId}
+          activityId={activity.id}
+          activitySiteId={activity.siteId}
+          items={verificationItems}
+          catalog={verificationCatalog}
+          onChanged={(msg) => {
+            router.refresh();
+            show(msg);
+          }}
+        />
 
         <section className="rounded-lg border border-border bg-surface">
           <div className="border-b border-border px-4 py-3">

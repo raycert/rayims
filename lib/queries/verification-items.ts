@@ -112,6 +112,85 @@ export async function listVerificationItems(projectId: string): Promise<Verifica
   return (itemsRes.data ?? []).map((v) => mapRow(v, siteMap)).sort(compareVerificationItems);
 }
 
+export type ActivityVerificationItemRow = {
+  id: string;
+  question: string;
+  priority: string;
+  result: string | null;
+  notes: string | null;
+  frameworkItemLabel: string | null;
+  frameworkIdentity: string | null;
+  targetActivityId: string | null;
+  verifiedActivityId: string | null;
+  verifiedByName: string | null;
+  verifiedAt: string | null;
+};
+
+/**
+ * Onsite ordering (Phase 4B review §34): pending first, then priority high->medium->low,
+ * then question A-Z; completed items follow the same priority/question order after
+ * pending. No target-activity-date sort here — every row is already scoped to one
+ * Activity, so that ordering key from the planning list isn't meaningful.
+ */
+function compareActivityVerificationItems(a: ActivityVerificationItemRow, b: ActivityVerificationItemRow): number {
+  const aPending = a.result === null;
+  const bPending = b.result === null;
+  if (aPending !== bPending) return aPending ? -1 : 1;
+
+  const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
+  const aRank = rank[a.priority] ?? 1;
+  const bRank = rank[b.priority] ?? 1;
+  if (aRank !== bRank) return aRank - bRank;
+
+  return a.question.localeCompare(b.question);
+}
+
+/**
+ * Verification Items shown on Activity Detail (Phase 4B review §5): target_activity_id
+ * = this Activity OR verified_activity_id = this Activity, de-duplicated by id — an item
+ * planned here and later completed elsewhere still shows here (for traceability), and an
+ * item planned elsewhere but completed here shows here too. Two OR'd queries + a Map
+ * keyed by id give the de-duplication without a client-side OR filter PostgREST can't
+ * express cleanly against two different columns pointing at the same table with an embed.
+ */
+export async function listActivityVerificationItems(
+  projectId: string,
+  activityId: string,
+): Promise<ActivityVerificationItemRow[]> {
+  const supabase = await createClient();
+  const columns =
+    "id, question, priority, result, notes, target_activity_id, verified_activity_id, verified_at, framework_items(code, title, frameworks(code, edition)), profiles!verification_items_verified_by_fkey(display_name)";
+
+  const [targetRes, verifiedRes] = await Promise.all([
+    supabase.from("verification_items").select(columns).eq("project_id", projectId).eq("target_activity_id", activityId),
+    supabase.from("verification_items").select(columns).eq("project_id", projectId).eq("verified_activity_id", activityId),
+  ]);
+  if (targetRes.error) throw new Error("Could not load verification items for this activity.");
+  if (verifiedRes.error) throw new Error("Could not load verification items for this activity.");
+
+  const byId = new Map<string, ActivityVerificationItemRow>();
+  for (const row of [...(targetRes.data ?? []), ...(verifiedRes.data ?? [])]) {
+    if (byId.has(row.id)) continue;
+    byId.set(row.id, {
+      id: row.id,
+      question: row.question,
+      priority: row.priority,
+      result: row.result,
+      notes: row.notes,
+      frameworkItemLabel: row.framework_items ? [row.framework_items.code, row.framework_items.title].filter(Boolean).join(" — ") : null,
+      frameworkIdentity: row.framework_items?.frameworks
+        ? formatFrameworkIdentity(row.framework_items.frameworks.code, row.framework_items.frameworks.edition)
+        : null,
+      targetActivityId: row.target_activity_id,
+      verifiedActivityId: row.verified_activity_id,
+      verifiedByName: row.profiles?.display_name ?? null,
+      verifiedAt: row.verified_at,
+    });
+  }
+
+  return [...byId.values()].sort(compareActivityVerificationItems);
+}
+
 export type VerificationSiteOption = { id: string; name: string };
 export type VerificationActivityOption = {
   id: string;
