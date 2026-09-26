@@ -576,6 +576,63 @@ residue across 8 tables (including `issues`/`actions`/`attachments`, confirmed s
 genuinely empty — not just unchanged); Test 1, the 4/149 Framework seed and the 8
 Activity Type seeds confirmed unchanged.
 
+### Phase 4B.5 — Verification Excel import (executed 2026-09-26)
+
+Result: **PASS — 149/149 acceptance checks, 0 failures** on the final code (hosted
+Supabase, production build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px,
+Admin + Consultant + anon). All fixtures used a `P4B5-ACCEPT-` client; the genuine
+"Chinh Long" and "Test 1" data was never used.
+
+Covered: entry point (Import Excel beside + New Verification Item at 1280; hidden at
+390/412 with manual Add still working); generated template (exactly the two sheets and
+six headers, header-only data sheet so an untouched template imports nothing, examples
+only on the Instructions sheet, every project Activity listed in the approved identity
+format including the ambiguous twin pair, only assigned Frameworks, no other-project
+data, no UUIDs, no Result/Observation columns, no macros; a filled copy of the
+downloaded template validates); the valid workbook (9 rows covering project-wide,
+site-inferred, Framework+Item pair within the *named* Framework — `8.1` exists in three
+seeded frameworks and resolves to the right one —, project-wide Activity with and
+without an explicit Site, undated Activities, case-insensitive Site) and the database
+rows it produced (planning columns only; result/notes/verified_* NULL; `created_by` =
+importing user; no `files`/`attachments` rows); every error category (blank Question,
+invalid Priority shown as typed, unknown/ambiguous Site, Site outside the project,
+unknown/ambiguous Target Activity, an activity of another project, name-only/old-format
+identity, Site/Activity mismatch, unknown/unassigned Framework, Framework without Item,
+Item without Framework, unknown Item) with 0 rows inserted and no UUID/database wording
+in the UI; duplicates (within-file and against an existing item are warnings, the
+confirmation checkbox gates Import, an Error overrides the checkbox, confirmed
+duplicates import both rows, the same file uploaded twice warns on all rows and imports
+on confirmation); header flexibility (reordered columns, case/spacing, extra sheet and
+column ignored; missing sheet/header rejected; a Question-only sheet rejected); limits
+(300 rows accepted, 301 rejected at workbook level, blank rows not counted and Excel
+row numbers preserved across a gap, a 1.79 MB workbook — over the 1 MB framework
+default — reaches validation, a 2.61 MB workbook rejected, `.xls`/`.xlsm`/`.csv`/`.ods`
+rejected, a CSV renamed `.xlsx` and a corrupt `.xlsx` give friendly errors with no
+stack trace); stale preview (Framework unassigned after Preview: Import revalidates,
+reports nothing imported, 0 rows inserted, shows the refreshed error); atomicity (a
+bulk insert with a CHECK-violating row and one with an out-of-scope site both persist
+**0** rows over PostgREST, a valid multi-row insert persists all; the mutation contains
+exactly one `.insert(` call, not in a loop); Phase 4B regression (an imported, targeted
+item appears on its Activity Detail and executes normally); manual create regression
+(creation, 4A site inheritance, Framework picker, planning edit leaves execution fields
+untouched); Consultant may download and import; anon is redirected to `/login`
+(template and page) and denied a direct bulk insert.
+
+Notes on the run (not defects): earlier runs of this script failed because of test-script
+faults (a `role="alert"` selector that also matched Next's route announcer, a residue
+query that matched the fixture's own item, an oversize file that came out at 1.74 MB)
+and twice because the Supabase CLI hit a transient transport error; the script was fixed
+and the harness's DB helper given a retry, and the full suite was re-run to 149/149. The
+server-side 2 MB check is defence in depth: through the UI the browser rejects an
+oversize file first, so the server branch was verified by code inspection, not by a
+request that bypasses the client.
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean.
+All `P4B5-ACCEPT-` fixtures removed — zero residue; the genuine Chinh Long / Test 1 data
+(verification_items, activities, projects, clients, sites, project_frameworks) hashed
+identical before and after; Frameworks/Items 4/149, Activity Types 8, and
+issues/actions/attachments/files all still 0.
+
 ### Phase 5 — Documents / Versions / Reviews
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to

@@ -16,6 +16,7 @@
 | 4     | Verification / Issues / Actions             | **IN PROGRESS** |
 | — 4A  | Verification foundation + workspace        | **COMPLETED** |
 | — 4B  | Activity verification + mobile execution   | **COMPLETED** |
+| — 4B.5 | Verification Excel import                 | **COMPLETED** |
 | — 4C  | Issues                                     | Planned — NEXT |
 | 5     | Documents / Versions / Reviews              | Planned       |
 | 6     | Visit Summary / Reporting                   | Planned       |
@@ -390,6 +391,30 @@ client/project the user had created manually while trying Phase 4A, matching the
 task brief's own example scenario) — confirmed as genuine data, not test residue, and
 left untouched throughout; all `P4B-ACCEPT-*` fixtures used a separate, distinctly
 prefixed client so the two could never collide.
+
+### Phase 4B.5 — Verification Excel import [COMPLETED]
+
+Delivered: **Project → Verification → Import Excel** — bulk creation of Verification
+*planning* items from an `.xlsx` workbook (BR-78 – BR-84). A project-specific template
+is generated server-side by a Route Handler (`Download Template`; sheets `Verification
+Items` with the six approved headers and `Instructions` with examples plus the
+project's Sites / Target Activity identities / Frameworks); a dedicated full-width page
+(`/projects/[projectId]/verification/import`) uploads, validates and previews the file;
+Import re-validates everything against the project's current state and creates all rows
+with **one** bulk `INSERT` — all or nothing. Target Activities are referenced by a
+deterministic human-readable identity (`date | time | site | name`, BR-79), never a UUID
+or a bare name; a Framework/Framework Item pair is both-or-neither (BR-81); possible
+duplicates are warnings that need an explicit confirmation (BR-82). The workbook is
+parsed server-side only and never stored (no `files`/`attachments` row). Imported items
+are ordinary `verification_items`.
+
+**Verified (2026-09-26): 149/149 acceptance checks** (hosted Supabase, production build,
+Playwright/Edge, 1280×800, 390px, 412px, Admin and Consultant, anon) — see
+`08_TESTING.md`. **No database migration, no RLS/grant change**: the atomic bulk insert
+needed no RPC. One new dependency (`exceljs`); `serverActions.bodySizeLimit` raised from
+the 1 MB default to 3 MB in `next.config.ts` so a legitimate ≤ 2 MB workbook reaches the
+server. Not in this slice: import history, undo/delete of an import (Phase 4F owns
+delete), Verification export, checklist library.
 
 ## Phase 4C — Issues [NEXT]
 

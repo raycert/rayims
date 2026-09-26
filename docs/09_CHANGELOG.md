@@ -3,6 +3,70 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 4B.5 — Verification Excel import (2026-09-26)
+
+Bulk creation of Verification planning items from `.xlsx`. **Result: 149/149 acceptance
+checks, 0 P0/P1 findings.** Full result in `08_TESTING.md`; roadmap in `06_ROADMAP.md`.
+Phase 4C (Issues) has not started. No database migration, no RLS/grant change.
+
+### Added
+
+- **Import Excel** (secondary button beside "+ New Verification Item", hidden below
+  `md`) → dedicated page `/projects/[projectId]/verification/import`: file picker
+  (single `.xlsx`, ≤ 2 MB, ≤ 300 data rows), server-side validation, full-width preview
+  table (original Excel row numbers, resolved values such as "Viet Long (inferred)"),
+  Ready / Warnings / Errors summary, duplicate-confirmation checkbox, and
+  "Import N Verification Items". Success returns to the Verification workspace with a
+  toast. All-or-nothing (BR-83).
+- **Download Template** — a Route Handler (`…/verification/template/route.ts`, the first
+  in the codebase, `requireUser()`) that generates a project-specific workbook: sheet
+  `Verification Items` (the six headers only) and `Instructions` (guidance, illustrative
+  examples that are *not* imported, and the project's Sites, Target Activity identities
+  and Frameworks). Code columns are text-formatted so `8.10` is never turned into 8.1.
+- `lib/import/verification-workbook.ts` (parse + template + the one Activity-identity
+  composer), `lib/queries/verification-import.ts` (one catalog load per request),
+  `lib/validation/verification-import.ts` (the single validation used by Preview and
+  Import; reuses the 4A question rule), `lib/mutations/verification-import.ts`
+  (`previewVerificationImport`, `importVerificationItems`).
+- Business rules BR-78 – BR-84 (`04_BUSINESS_RULES.md`).
+- Dependency `exceljs` ^4.4.0; `experimental.serverActions.bodySizeLimit: "3mb"` in
+  `next.config.ts` (default 1 MB would reject a legitimate 2 MB file).
+
+### Decisions applied (approved overrides of the pre-implementation review)
+
+- Target Activity identity includes Site context: `YYYY-MM-DD | HH:MM | Site | Name`
+  (time/date/site slots collapse as specified; `Project-wide`, `Undated`).
+- Framework and Framework Item are a both-or-neither pair (Framework alone is an error,
+  not a warning — `verification_items` has no `framework_id`, so it could not be stored).
+- Duplicate warnings require an explicit confirmation before Import enables (UI only).
+
+### Verified
+
+Hosted Supabase, production build, Playwright/Edge, 1280×800 and 390/412px, Admin,
+Consultant and anon — see `08_TESTING.md`. `npm run lint`, `typecheck`, `build` pass;
+`git diff --check` clean. Fixtures removed to zero residue; genuine Chinh Long / Test 1
+data hashed identical before and after.
+
+### Findings
+
+- `npm audit` reports 2 moderate advisories, both the transitive `uuid` (< 11.1.1,
+  missing buffer bounds check when a caller passes a buffer) reached through `exceljs`
+  4.4.0. Not exploitable through this feature (no caller-supplied buffer reaches `uuid`);
+  fixing it needs `exceljs` to bump its dependency. `exceljs` itself has no advisory.
+  BACKLOG: re-check on `exceljs` updates. No broad dependency upgrade performed.
+- A workbook's compressed size is capped (2 MB) but its *decompressed* size is not
+  inspected before parsing; acceptable for authenticated internal users at V1, noted as
+  BACKLOG hardening.
+- The duplicate check loads existing items in one query subject to PostgREST's default
+  1000-row response cap; a project with more than 1000 verification items would compare
+  against only the first 1000. BACKLOG (far above expected V1 volumes).
+
+### Not done (intentionally)
+
+Import history / batch id, undo or delete of an import (Phase 4F owns delete), result /
+observation / execution-data import, Verification export, checklist library, mobile
+import, Excel dropdown/reference-sheet infrastructure.
+
 ## Phase 4B — Activity verification + mobile onsite execution (2026-09-25)
 
 Second implementation slice of Phase 4. **Result: 74/74 acceptance checks, 0 P0/P1

@@ -15,6 +15,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Verification Excel import posts a workbook of up to 2 MB to a Server Action; the
+  // framework default (1 MB) would reject legitimate files. 3 MB leaves multipart headroom.
+  experimental: {
+    serverActions: { bodySizeLimit: "3mb" },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

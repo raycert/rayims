@@ -198,6 +198,57 @@ Product behavior that the schema and UI must respect. Database details are in
   Verification result — it does **not** automatically create an Issue, an Action, a
   new Verification Item, or a follow-up Activity. `follows_item_id` remains unused by
   execution. Verification → Issue is Phase 4C.
+- **BR-78** Verification Excel import (Phase 4B.5) is **planning-only bulk creation**
+  from an `.xlsx` workbook. The data sheet `Verification Items` has exactly six
+  supported columns — `Check / Question`, `Priority`, `Site`, `Target Activity`,
+  `Framework`, `Framework Item` — matched by header text (case-insensitive, trimmed,
+  any order; extra columns ignored; all six headers required). Import never carries
+  `result`, `notes`, `verified_activity_id`, `verified_by` or `verified_at`, never
+  accepts `created_by` (always the signed-in user), and never creates a Document,
+  Evidence, file or attachment: the workbook is transient input and is never stored.
+  Imported rows are ordinary `verification_items` (edit, execute, and — in Phase 4F —
+  delete exactly like manually created ones). Blank Priority = Medium; Priority
+  accepts Low/Medium/High case-insensitively.
+- **BR-79** A workbook refers to a Target Activity by its human-readable **identity**,
+  built by one shared composer (never a display formatter, never a UUID, never the
+  name alone): `YYYY-MM-DD | HH:MM | Site | Name`, omitting `| HH:MM` when the
+  Activity has no time; `Undated | Site | Name` when it has no date; the Site slot
+  reads `Project-wide` for a project-wide Activity. Only harmless whitespace around
+  each `|` part is normalized. No match = *Unknown Target Activity*; two or more
+  matches = *Ambiguous Target Activity* — never guessed.
+- **BR-80** Site is resolved by case-insensitive exact name among the **project's own**
+  sites only (`project_sites`): none = *Unknown Site*, two different sites with the
+  same name = *Ambiguous Site*. A site-specific Target Activity with a blank Site
+  **infers** that Activity's site (BR-73); an explicit Site that differs from it is an
+  error. A project-wide Target Activity never infers a Site — a blank Site stays
+  project-wide and an explicit Site is kept.
+- **BR-81** Framework and Framework Item are an all-or-nothing pair: both blank (no
+  framework requirement), or both populated. Framework only, or Framework Item only,
+  is an **error** — a Framework value is never silently discarded (the table has
+  `framework_item_id` but no `framework_id`). Framework is matched by the canonical
+  `formatFrameworkIdentity` (e.g. `ISO 14001:2015`) among Frameworks **assigned to the
+  project** (an existing but unassigned Framework is an error; nothing is auto-assigned);
+  Framework Item is matched by `code` **within that Framework only**. Items without a
+  code cannot be targeted by import.
+- **BR-82** A possible duplicate — same trimmed question, `site_id`,
+  `target_activity_id` and `framework_item_id` (priority is not part of the key), either
+  within the uploaded workbook or against an existing item of the project — is a
+  **warning**, never an error and never silently skipped, merged or updated. When any
+  duplicate warning exists the user must tick "I reviewed the duplicate warnings and
+  want to import them." before Import enables (UI state only; not persisted, not sent
+  as a bypass). Uploading the same workbook twice therefore warns on every row; there
+  is no fingerprint, batch id or import history.
+- **BR-83** Import is **all-or-nothing**: any error means zero rows are created (no
+  "import valid rows"). Preview and Import run the identical server-side validation
+  against a freshly loaded project catalog (loaded once per request; no per-row
+  queries); Import never trusts a prior preview, so a change between Preview and Import
+  (e.g. a Framework unassigned) is caught and nothing is inserted. Rows are created with
+  **one** bulk `INSERT` (a single SQL statement: all rows or none), planning columns
+  only.
+- **BR-84** Import limits and trust boundary: `.xlsx` only (not `.csv`, `.xls`, `.xlsm`,
+  `.ods`), 2 MB maximum, 300 data rows maximum (fully blank rows are not counted),
+  sheet read **by name** (other sheets ignored). The workbook is untrusted input,
+  parsed server-side only; formulas are read as stored values, never evaluated.
 
 ## Issues and actions
 

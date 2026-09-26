@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -31,10 +32,13 @@ export function VerificationWorkspaceView({
   projectId,
   items,
   catalog,
+  importedCount = 0,
 }: {
   projectId: string;
   items: VerificationItemRow[];
   catalog: VerificationFormCatalog;
+  /** Set (via ?imported=N) right after a successful Excel import: shows the toast once. */
+  importedCount?: number;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -44,6 +48,13 @@ export function VerificationWorkspaceView({
   const [frameworkFilter, setFrameworkFilter] = useState("all");
   const [drawer, setDrawer] = useState<{ mode: "create" } | { mode: "edit"; item: VerificationItemRow } | null>(null);
   const { message, show } = useToast();
+
+  useEffect(() => {
+    if (importedCount <= 0) return;
+    show(`${importedCount} Verification ${importedCount === 1 ? "Item" : "Items"} imported`);
+    // Drop ?imported=N so a refresh or back-navigation doesn't repeat the toast.
+    window.history.replaceState(null, "", `/projects/${projectId}/verification`);
+  }, [importedCount, projectId, show]);
 
   const siteOptions = useMemo(
     () => Array.from(new Set(items.map((v) => v.siteName ?? PROJECT_WIDE))).sort(),
@@ -109,9 +120,17 @@ export function VerificationWorkspaceView({
             {items.length} {items.length === 1 ? "item" : "items"}
           </p>
         </div>
-        <Button type="button" onClick={() => setDrawer({ mode: "create" })}>
-          + New Verification Item
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Bulk Excel import is a desktop planning workflow; manual Add stays at every width. */}
+          <div className="hidden md:block">
+            <Link href={`/projects/${projectId}/verification/import`} className={buttonClasses("secondary")}>
+              Import Excel
+            </Link>
+          </div>
+          <Button type="button" onClick={() => setDrawer({ mode: "create" })}>
+            + New Verification Item
+          </Button>
+        </div>
       </div>
 
       {items.length > 0 ? (

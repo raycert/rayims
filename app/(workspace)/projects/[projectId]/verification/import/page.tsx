@@ -1,9 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { VerificationWorkspaceView } from "@/components/verification/verification-workspace-view";
+import { ImportVerificationView } from "@/components/verification/import-verification-view";
 import { ProjectWorkspaceHeader } from "@/components/projects/project-workspace-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { getProjectWorkspace } from "@/lib/queries/projects";
-import { getVerificationFormCatalog, listVerificationItems } from "@/lib/queries/verification-items";
 
 export async function generateMetadata({
   params,
@@ -12,31 +12,28 @@ export async function generateMetadata({
 }) {
   const { projectId } = await params;
   const project = await getProjectWorkspace(projectId);
-  return { title: project ? `Verification · ${project.name}` : "Verification" };
+  return { title: project ? `Import Verification Items · ${project.name}` : "Import Verification Items" };
 }
 
-export default async function ProjectVerificationPage({
+export default async function ImportVerificationPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ projectId: string }>;
-  searchParams: Promise<{ imported?: string }>;
 }) {
   const { projectId } = await params;
-  const { imported } = await searchParams;
-  const importedCount = /^\d{1,4}$/.test(imported ?? "") ? Number(imported) : 0;
   const project = await getProjectWorkspace(projectId);
   if (!project) notFound();
-
-  const [items, catalog] = await Promise.all([
-    listVerificationItems(projectId),
-    getVerificationFormCatalog(projectId),
-  ]);
 
   return (
     <PageContainer>
       <ProjectWorkspaceHeader project={project} activeTab="verification" />
-      <VerificationWorkspaceView projectId={projectId} items={items} catalog={catalog} importedCount={importedCount} />
+      <Link
+        href={`/projects/${projectId}/verification`}
+        className="mb-4 inline-block text-sm font-semibold text-primary hover:underline"
+      >
+        ← Back to Verification
+      </Link>
+      <ImportVerificationView projectId={projectId} />
     </PageContainer>
   );
 }
