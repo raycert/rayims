@@ -10,7 +10,7 @@ import { FINDING_TYPES } from "@/lib/validation/findings";
 import { VERIFICATION_PRIORITIES } from "@/lib/validation/verification-items";
 import { findingTypeLabel, priorityLabel } from "@/lib/ui/status-tones";
 import { formatDate } from "@/lib/ui/format";
-import { createFinding, updateFinding } from "@/lib/mutations/findings";
+import { createFinding, createFindingFromVerification, updateFinding } from "@/lib/mutations/findings";
 import type { FindingRow } from "@/lib/queries/findings";
 import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
 
@@ -19,6 +19,18 @@ type Scope = "project_wide" | "specific_site";
 function activityIdentity(a: { name: string; startDate: string | null }): string {
   return a.startDate ? `${formatDate(a.startDate)} · ${a.name}` : `Undated · ${a.name}`;
 }
+
+/** Verification context for "Create Finding" on Activity Detail (Phase 4C-2). Read-only origin + prefill. */
+export type VerificationOrigin = {
+  verificationItemId: string;
+  /** The Activity where the check was verified — the Finding's observation context. */
+  activityId: string;
+  question: string;
+  siteId: string | null;
+  frameworkItemId: string | null;
+  notes: string | null;
+  priority: string;
+};
 
 const SELECT_CLASS =
   "min-h-11 w-full rounded-md border border-border bg-surface px-3 text-base text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary md:text-sm";
@@ -29,6 +41,7 @@ export function FindingFormDrawer({
   projectId,
   catalog,
   finding,
+  origin,
   onClose,
   onSaved,
 }: {
@@ -36,18 +49,28 @@ export function FindingFormDrawer({
   projectId: string;
   catalog: VerificationFormCatalog;
   finding?: FindingRow;
+  /** Create-only: open from a Verification. Verification link and Activity are fixed. */
+  origin?: VerificationOrigin;
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
   // No default Finding Type on create: the user must choose one.
   const [findingType, setFindingType] = useState(finding?.findingType ?? "");
   const [title, setTitle] = useState(finding?.title ?? "");
-  const [description, setDescription] = useState(finding?.description ?? "");
-  const [priority, setPriority] = useState(finding?.priority ?? "medium");
-  const [scope, setScope] = useState<Scope>(finding?.siteId ? "specific_site" : "project_wide");
-  const [siteId, setSiteId] = useState(finding?.siteId ?? "");
-  const [activityId, setActivityId] = useState(finding?.activityId ?? "");
-  const [frameworkItemId, setFrameworkItemId] = useState(finding?.frameworkItemId ?? "");
+  // From a Verification: Description <- its Observation, Priority <- its priority, Framework <- its
+  // requirement; Title and Finding Type stay blank (a checklist question is not a finding statement,
+  // and a result never implies a type).
+  const [description, setDescription] = useState(finding?.description ?? origin?.notes ?? "");
+  const [priority, setPriority] = useState(finding?.priority ?? origin?.priority ?? "medium");
+  const originActivity = origin ? catalog.activities.find((a) => a.id === origin.activityId) : undefined;
+  const initialSiteId = finding?.siteId ?? originActivity?.siteId ?? origin?.siteId ?? "";
+  const [scope, setScope] = useState<Scope>(initialSiteId ? "specific_site" : "project_wide");
+  const [siteId, setSiteId] = useState(initialSiteId);
+  const [activityId, setActivityId] = useState(finding?.activityId ?? origin?.activityId ?? "");
+  const [frameworkItemId, setFrameworkItemId] = useState(finding?.frameworkItemId ?? origin?.frameworkItemId ?? "");
+  // The Activity is fixed for a new Finding created from a Verification and for an existing
+  // verification-linked Finding (traceability); manual Findings keep a free Activity picker.
+  const activityFixed = !!origin || !!finding?.verificationItemId;
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -113,8 +136,16 @@ export function FindingFormDrawer({
     };
 
     startTransition(async () => {
-      const result =
-        mode === "create"
+      const result = origin
+        ? await createFindingFromVerification(projectId, origin.activityId, origin.verificationItemId, {
+            findingType,
+            title,
+            description,
+            priority,
+            siteId: payload.siteId,
+            frameworkItemId,
+          })
+        : mode === "create"
           ? await createFinding(projectId, payload)
           : await updateFinding(projectId, finding!.id, payload);
 
@@ -144,6 +175,20 @@ export function FindingFormDrawer({
       }
     >
       <div className="space-y-5">
+        {origin ? (
+          <div data-testid="finding-origin" className="rounded-md border border-border bg-neutral-soft px-3 py-2.5 text-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted">Origin</div>
+            <div className="mt-1">
+              <span className="text-muted">Verification: </span>
+              <span className="font-semibold">{origin.question}</span>
+            </div>
+            <div className="mt-0.5">
+              <span className="text-muted">Activity: </span>
+              <span className="font-semibold">{originActivity ? activityIdentity(originActivity) : "—"}</span>
+            </div>
+          </div>
+        ) : null}
+
         <div className="space-y-4">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Finding</h3>
 
@@ -238,30 +283,50 @@ export function FindingFormDrawer({
         <div className="space-y-4 border-t border-border pt-4">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Scope</h3>
 
-          <div>
-            <label htmlFor="fd-activity" className="mb-1.5 block text-sm font-medium">
-              Activity
-            </label>
-            <select
-              id="fd-activity"
-              value={activityId}
-              onChange={(e) => handleActivityChange(e.target.value)}
-              aria-invalid={fieldErrors.activityId ? true : undefined}
-              className={SELECT_CLASS}
-            >
-              <option value="">No activity</option>
-              {catalog.activities.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {activityIdentity(a)}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.activityId ? (
-              <p role="alert" className="mt-1.5 text-xs text-danger">
-                {fieldErrors.activityId}
+          {activityFixed ? (
+            <div>
+              <span className="mb-1.5 block text-sm font-medium">Activity</span>
+              <div
+                data-testid="finding-activity-fixed"
+                className="flex min-h-11 items-center rounded-md border border-border bg-neutral-soft px-3 text-sm font-semibold text-muted"
+              >
+                {selectedActivity ? activityIdentity(selectedActivity) : "—"}
+              </div>
+              <p className="mt-1.5 text-xs text-muted">
+                Fixed because this finding {origin ? "is created from" : "was created from"} a verification.
               </p>
-            ) : null}
-          </div>
+              {fieldErrors.activityId ? (
+                <p role="alert" className="mt-1.5 text-xs text-danger">
+                  {fieldErrors.activityId}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="fd-activity" className="mb-1.5 block text-sm font-medium">
+                Activity
+              </label>
+              <select
+                id="fd-activity"
+                value={activityId}
+                onChange={(e) => handleActivityChange(e.target.value)}
+                aria-invalid={fieldErrors.activityId ? true : undefined}
+                className={SELECT_CLASS}
+              >
+                <option value="">No activity</option>
+                {catalog.activities.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {activityIdentity(a)}
+                  </option>
+                ))}
+              </select>
+              {fieldErrors.activityId ? (
+                <p role="alert" className="mt-1.5 text-xs text-danger">
+                  {fieldErrors.activityId}
+                </p>
+              ) : null}
+            </div>
+          )}
 
           {siteLocked ? (
             <div>

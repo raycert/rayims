@@ -704,6 +704,56 @@ list, detail and create screens were reviewed visually (screenshots).
 before and after; Frameworks/Items 4/149, Activity Types 8, and issues/actions/attachments/files
 all 0.
 
+### Phase 4C-2 — Verification → Finding integration (executed 2026-09-27)
+
+Result: **PASS — 155/155 acceptance checks, 0 failures** on the final code (hosted Supabase,
+production build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px, Admin +
+Consultant + anon). All fixtures used a `P4C2-ACCEPT-` client.
+
+Pre-flight: HEAD `c2517c4`, clean tree; hosted issues/actions/attachments/files all 0; the
+genuine Chinh Long data (3 verification items) present. A schema/RLS/grant snapshot taken before
+and after the run is **identical** (no schema change).
+
+Covered: eligibility (Create Finding on *Issue Identified* — primary — and *Follow-up Required* —
+secondary; none on *Verified OK*, *Pending*, or a check completed in another Activity); **server
+enforcement through the real Server Action endpoint** with rewritten request bodies (Verified OK
+item, Pending item, item verified elsewhere, another project's verification item, a different
+valid Activity, another project's Activity, a Site differing from a site-specific Activity,
+another project's Site, an unassigned Framework item, an invalid type — all rejected, nothing
+created; smuggled `status`/`closed_by`/`verification_item_id`/`activity_id`/`created_by` ignored);
+prefill (origin box with the check and Activity, Type and Title blank, Description = the
+Observation exactly, Priority and Framework from the check, Activity fixed, Site locked for a
+site-specific Activity; blank Observation stays blank — the question is never substituted);
+save (stays on Activity Detail, toast, DB `verification_item_id` + `activity_id` + site +
+`created_by` + Open; priority changed High → Medium and framework 8.1 → 8.2 on the Finding while
+the verification row stays **byte-identical**); multiple Findings (two on one check, same
+verification and activity, "2 Findings", inline View Findings list with type/title/status and
+links, Add another Finding); an inherited framework item from an unassigned Framework is allowed
+unchanged while a different unassigned item is rejected; project-wide Activity (Site prefilled
+from the check, changeable to Project-wide or another site, cross-project site rejected);
+cross-activity (Finding created in Activity B stores Activity B; Activity A offers no action but
+counts it); Finding Detail ("Created from Verification", check, Activity link back, Site,
+Framework, no UUIDs; manual Finding still "Recorded manually"); edit traceability (Activity
+read-only and server-enforced for a verification-linked Finding, framework/title editable,
+verification unchanged; manual Finding keeps its Activity picker); closed Findings still counted
+and linked; executing *Issue Identified* and *Follow-up Required* creates **zero** Findings; card
+density (+42px with summary and actions); one embedded PostgREST request returns items with
+their findings — still exactly two queries, no per-item query; the full mobile onsite path at
+390px and 412px (record Issue Identified → Create Finding → full-width sheet → Save reachable and
+not covered → stays on Activity Detail → "1 Finding"); Consultant create; anon redirected / denied;
+Project B Activity via a Project A URL not found; regression (Verification workspace has no
+Create Finding, Findings workspace, Excel import, Master Plan, Overview, Frameworks, Reopen, NC
+still not closable).
+
+Notes on the run (not defects): three runs failed only on test-script assertions — the Pending
+case expected the "result" message but the server correctly rejects it earlier ("activity where
+this check was verified", as a pending item has no verified activity), and two checks read the
+page before it re-rendered; the script was fixed and the full suite re-run to 155/155.
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All
+`P4C2-ACCEPT-` fixtures removed — zero residue; the genuine Chinh Long / Test 1 data hashed
+identical before and after; issues/actions/attachments/files all 0.
+
 ### Phase 5 — Documents / Versions / Reviews
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to

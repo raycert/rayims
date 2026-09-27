@@ -26,3 +26,10 @@ export const findingSchema = z.object({
 });
 
 export type FindingInput = z.infer<typeof findingSchema>;
+
+/**
+ * Create Finding from a Verification (Phase 4C-2). The Activity is NOT accepted from the form:
+ * it is the route's Activity, verified on the server. Origin (verification_item_id), status,
+ * created_by and closure fields are never accepted either.
+ */
+export const verificationFindingSchema = findingSchema.omit({ activityId: true });

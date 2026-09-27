@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
-import { findingSchema } from "@/lib/validation/findings";
+import { findingSchema, verificationFindingSchema } from "@/lib/validation/findings";
 import { frameworkItemInProjectScope, validateSiteAndActivity } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
 
@@ -91,12 +91,20 @@ export async function updateFinding(projectId: string, findingId: string, input:
 
   const { data: existing, error: existingError } = await supabase
     .from("issues")
-    .select("id, project_id, status, framework_item_id")
+    .select("id, project_id, status, framework_item_id, verification_item_id, activity_id")
     .eq("id", findingId)
     .maybeSingle();
   if (existingError) return { ok: false, error: "Couldn't save the finding. Try again." };
   if (!existing || existing.project_id !== projectId) return { ok: false, error: "This finding could not be found." };
   if (existing.status === "closed") return { ok: false, error: "This finding is closed. Reopen it to edit." };
+  // Traceability (Phase 4C-2): a Finding created from a Verification keeps its observation Activity.
+  if (existing.verification_item_id && d.activityId !== existing.activity_id) {
+    return {
+      ok: false,
+      error: "The activity of a finding created from a verification can't be changed.",
+      fieldErrors: { activityId: "Fixed for a finding created from a verification." },
+    };
+  }
 
   const scopeError = await validateSiteAndActivity(supabase, projectId, d.siteId, d.activityId, {
     name: "Activity",
@@ -223,4 +231,96 @@ export async function reopenFinding(projectId: string, findingId: string): Promi
 
   revalidateFinding(projectId, findingId);
   return { ok: true, data: undefined };
+}
+
+const FINDING_ELIGIBLE_RESULTS = ["issue_identified", "follow_up_required"];
+
+/**
+ * Creates a Finding from a Verification item, in the Activity where it was executed (Phase 4C-2).
+ * The client sends only ids + the core fields; every origin fact is reloaded here. Allowed only
+ * when the item was verified in THIS Activity and its result is Issue Identified or Follow-up
+ * Required — Verified OK and Pending never qualify, and no result ever creates a Finding on its
+ * own. verification_item_id and activity_id come from the authoritative records, created_by from
+ * the session, status starts Open; nothing else (closure, response, effectiveness) is written.
+ */
+export async function createFindingFromVerification(
+  projectId: string,
+  activityId: string,
+  verificationItemId: string,
+  input: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const user = await requireUser();
+
+  const parsed = verificationFindingSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Check the highlighted fields.", fieldErrors: fieldErrorsFrom(parsed.error) };
+  }
+  const d = parsed.data;
+
+  const supabase = await createSupabaseClient();
+
+  const { data: activity, error: activityError } = await supabase
+    .from("activities")
+    .select("id, project_id")
+    .eq("id", activityId)
+    .maybeSingle();
+  if (activityError) return { ok: false, error: "Couldn't create the finding. Try again." };
+  if (!activity || activity.project_id !== projectId) return { ok: false, error: "This activity could not be found." };
+
+  const { data: item, error: itemError } = await supabase
+    .from("verification_items")
+    .select("id, project_id, result, verified_activity_id, framework_item_id")
+    .eq("id", verificationItemId)
+    .maybeSingle();
+  if (itemError) return { ok: false, error: "Couldn't create the finding. Try again." };
+  if (!item || item.project_id !== projectId) return { ok: false, error: "This verification item could not be found." };
+  if (item.verified_activity_id !== activityId) {
+    return { ok: false, error: "A finding can only be created in the activity where this check was verified." };
+  }
+  if (!item.result || !FINDING_ELIGIBLE_RESULTS.includes(item.result)) {
+    return {
+      ok: false,
+      error: "A finding can only be created from a check recorded as Issue Identified or Follow-up Required.",
+    };
+  }
+
+  const scopeError = await validateSiteAndActivity(supabase, projectId, d.siteId, activityId, {
+    name: "Activity",
+    field: "activityId",
+  });
+  if (scopeError) return { ok: false, error: scopeError.error, fieldErrors: { [scopeError.field]: scopeError.error } };
+
+  // The check's own Framework Requirement may be inherited unchanged (even if its Framework was
+  // since unassigned — historical preservation); any other choice must be currently assigned.
+  if (d.frameworkItemId !== item.framework_item_id) {
+    if (!(await frameworkItemInProjectScope(supabase, projectId, d.frameworkItemId))) {
+      return {
+        ok: false,
+        error: "The selected Framework Requirement is not assigned to this project.",
+        fieldErrors: { frameworkItemId: "Not assigned to this project." },
+      };
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("issues")
+    .insert({
+      project_id: projectId,
+      finding_type: d.findingType,
+      title: d.title,
+      description: d.description,
+      priority: d.priority,
+      site_id: d.siteId,
+      activity_id: activityId,
+      framework_item_id: d.frameworkItemId,
+      verification_item_id: verificationItemId,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: "Couldn't create the finding. Try again." };
+
+  revalidateFinding(projectId);
+  revalidatePath(`/projects/${projectId}/activities/${activityId}`);
+  return { ok: true, data: { id: data.id } };
 }

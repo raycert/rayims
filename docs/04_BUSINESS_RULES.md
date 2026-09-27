@@ -153,8 +153,9 @@ Product behavior that the schema and UI must respect. Database details are in
   a substitute for `target_activity_id`.
 - **BR-26a** The application validates that a verification item's target and
   verified activities belong to the same project as the item.
-- **BR-27** Result *Issue Identified* leads to creating an issue that references
-  the verification item. The item does not store the issue.
+- **BR-27** Result *Issue Identified* can lead to a Finding (an `issues` row) that references
+  the verification item — created only by an explicit user action, never automatically
+  (BR-91). The item does not store the issue.
 - **BR-28** Result *Follow-up Required* leads to carrying the item over to a
   later activity as a new item whose `follows_item_id` references the original.
 - **BR-72** Planning fields (`question`, `priority`, `site_id`, `target_activity_id`,
@@ -309,6 +310,30 @@ Product behavior that the schema and UI must respect. Database details are in
   The NC response UI is Phase 4D; the columns exist from 4C-1 and are not exposed there.
 - **BR-90** Finding / NC numbering (e.g. NC-001) is **deferred** — a Phase 6 (reporting)
   prerequisite. No `finding_number` / `issue_number` column exists.
+- **BR-91** A Verification **result is not a Finding**. Recording *Issue Identified* or *Follow-up
+  Required* never creates a Finding; a Finding is created only by the explicit **Create
+  Finding** action on the Verification card in **Activity Detail** (Phase 4C-2) — not from the
+  Project Verification workspace. It is offered only where the check was verified
+  (`verified_activity_id` = the current Activity) and only for *Issue Identified* (prominent)
+  and *Follow-up Required* (secondary); *Verified OK*, *Pending*, and a check completed in a
+  different Activity never offer it. The server re-checks all of this (project, Activity,
+  verification, `verified_activity_id`, result) and never trusts client-supplied origin.
+- **BR-92** A Finding created from a Verification stores `verification_item_id` (immutable
+  origin lineage) and `activity_id` (the executing Activity — observation context, not the
+  planned Target Activity), plus `created_by` and status Open from the session/server. Prefill:
+  Description ← the Observation (blank if none; the check question is never substituted),
+  Priority ← the check's, Framework Requirement ← the check's; **Title and Finding Type are blank**
+  and must be entered (no result implies a type). Site: a site-specific Activity fixes the Site
+  (BR-73, server-enforced); for a project-wide Activity the Site starts as the check's Site and
+  may be changed to Project-wide or another project Site. The Framework Requirement may be
+  changed (BR-74; the check's own item may be inherited unchanged even if its Framework was since
+  unassigned). After creation Priority and Framework are **independent** of the check — neither
+  is synchronised and the Verification is never modified.
+- **BR-93** One Verification may have **0..N** Findings (no uniqueness constraint); every linked
+  Finding — open or closed — is counted on the Verification card. For a Finding created from a
+  Verification the **Activity is read-only** (server-enforced) while Framework Requirement,
+  Priority, Title, Description, Type and (when the Activity is project-wide) Site remain editable
+  while Open; a manual Finding keeps its free Activity picker (BR-86).
 
 ## Evidence
 

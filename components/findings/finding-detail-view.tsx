@@ -63,8 +63,9 @@ export function FindingDetailView({
   // Nonconformity closure needs the response/effectiveness workflow (Phase 4D): no Close action yet.
   const canClose = !isClosed && finding.findingType !== "nonconformity";
 
-  const origin = finding.verificationItemId
-    ? `From verification check${finding.verificationQuestion ? `: ${finding.verificationQuestion}` : ""}`
+  const fromVerification = !!finding.verificationItemId;
+  const origin = fromVerification
+    ? "Created from Verification"
     : finding.documentReviewId
       ? "From a document review"
       : "Recorded manually";
@@ -260,6 +261,36 @@ export function FindingDetailView({
           </div>
           <div className="divide-y divide-border">
             <TextField label="Origin" value={origin} />
+            {fromVerification ? (
+              <>
+                <TextField label="Verification" value={finding.verificationQuestion} />
+                <div className="px-4 py-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted">Activity</div>
+                  <p className="mt-1 text-sm">
+                    {finding.activityId ? (
+                      <Link
+                        href={`/projects/${finding.projectId}/activities/${finding.activityId}`}
+                        className="font-semibold text-primary hover:underline"
+                      >
+                        {finding.activityStartDate ? `${formatDate(finding.activityStartDate)} · ` : ""}
+                        {finding.activityName}
+                      </Link>
+                    ) : (
+                      <span className="text-muted">Not set.</span>
+                    )}
+                  </p>
+                </div>
+                <TextField label="Site" value={finding.siteName ?? "Project-wide"} />
+                <TextField
+                  label="Framework Requirement"
+                  value={
+                    finding.frameworkIdentity
+                      ? `${finding.frameworkIdentity} · ${finding.frameworkItemLabel}`
+                      : "No framework requirement"
+                  }
+                />
+              </>
+            ) : null}
             <TextField
               label="Recorded"
               value={`${formatDateTime(finding.createdAt)}${finding.createdByName ? ` · ${finding.createdByName}` : ""}`}

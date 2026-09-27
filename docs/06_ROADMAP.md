@@ -18,8 +18,8 @@
 | — 4B  | Activity verification + mobile execution   | **COMPLETED** |
 | — 4B.5 | Verification Excel import                 | **COMPLETED** |
 | — 4C-1 | Finding foundation                        | **COMPLETED** |
-| — 4C-2 | Verification → Finding integration        | Planned — NEXT |
-| — 4D-1 | NC response & Corrective Actions          | Planned       |
+| — 4C-2 | Verification → Finding integration        | **COMPLETED** |
+| — 4D-1 | NC response & Corrective Actions          | Planned — NEXT |
 | — 4D-2 | Effectiveness Review, NC closure & Reopen | Planned       |
 | — 4E  | Evidence / Attachments                     | Planned       |
 | — 4F  | Controlled delete, overdue-actions overview, Phase 4 final acceptance | Planned |
@@ -446,14 +446,24 @@ Playwright/Edge, 1280×800, 390px, 412px) — see `08_TESTING.md`. Not in this s
 Verification → Create Finding (4C-2), Correction/RCA/Effectiveness UI and Corrective
 Actions (4D), Evidence (4E), delete (4F). **Finding/NC numbering is a Phase 6 prerequisite.**
 
-### Phase 4C-2 — Verification → Finding integration [NEXT]
+### Phase 4C-2 — Verification → Finding integration [COMPLETED]
 
-**Create Finding** from a verification item on Activity Detail (secondary for Follow-up
-Required; never automatic), prefilled from the verification context (activity, site,
-framework requirement, Observation → description) with the verification link immutable;
-finding counts on the card. Owns all Verification integration.
+Delivered: an explicit **Create Finding** action on the Verification card in **Activity
+Detail** (not the Project Verification workspace), offered only where the check was verified
+and only for *Issue Identified* (primary) and *Follow-up Required* (secondary) — a result
+never creates a Finding by itself (BR-91). The shared Finding form opens with a compact origin
+box, the Activity fixed to the executing Activity, Site locked for a site-specific Activity (or
+prefilled from the check and editable for a project-wide one), Description ← Observation,
+Priority and Framework ← the check, Title and Type blank (BR-92). One Verification may have
+0..N Findings; the card shows "N Finding(s)" with **View Finding** / an inline **View Findings**
+list and **Add another Finding** (BR-93). Finding Detail shows "Created from Verification" with
+the check, Activity (linked), Site and Framework. A verification-linked Finding's Activity is
+read-only on edit (server-enforced). Linked findings come from one embedded relationship in the
+existing Activity Verification query — no per-item query. No schema, RLS or grant change.
 
-### Phase 4D — NC response and Corrective Actions
+**Verified (2026-09-27): 155/155 acceptance checks** — see `08_TESTING.md`.
+
+### Phase 4D — NC response and Corrective Actions [4D-1 NEXT]
 
 - **4D-1:** Correction and Root Cause editing (Nonconformity), Corrective Action CRUD
   (`actions` linked by `issue_id`: owner, due date, status, completion), derived workflow

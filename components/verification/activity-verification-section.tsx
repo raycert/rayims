@@ -1,26 +1,48 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/ui/format";
-import { priorityLabel, priorityTone, verificationResultLabel, verificationResultTone } from "@/lib/ui/status-tones";
+import {
+  findingStatusLabel,
+  findingStatusTone,
+  findingTypeLabel,
+  findingTypeTone,
+  priorityLabel,
+  priorityTone,
+  verificationResultLabel,
+  verificationResultTone,
+} from "@/lib/ui/status-tones";
+import { FindingFormDrawer } from "@/components/findings/finding-form-drawer";
 import { VerificationItemFormDrawer } from "./verification-item-form-drawer";
 import { VerificationExecutionDrawer } from "./verification-execution-drawer";
 import type { ActivityVerificationItemRow, VerificationFormCatalog } from "@/lib/queries/verification-items";
 
 function ItemCard({
   item,
+  projectId,
   activityId,
   onExecute,
+  onCreateFinding,
 }: {
   item: ActivityVerificationItemRow;
+  projectId: string;
   activityId: string;
   onExecute: (item: ActivityVerificationItemRow) => void;
+  onCreateFinding: (item: ActivityVerificationItemRow) => void;
 }) {
+  const [listOpen, setListOpen] = useState(false);
   const pending = item.result === null;
+  // Create Finding is offered only where the check was actually verified, and only for the two
+  // results that can warrant one. A result never creates a Finding by itself.
+  const canCreateFinding =
+    item.verifiedActivityId === activityId &&
+    (item.result === "issue_identified" || item.result === "follow_up_required");
+  const findingCount = item.findings.length;
   // §22: an item already verified in a DIFFERENT activity is shown for traceability
   // only — no execute/edit action is offered here, so its execution context can never
   // be silently moved to this Activity.
@@ -56,11 +78,66 @@ function ItemCard({
       {completedElsewhere ? <p className="mt-1.5 text-xs italic text-muted">Completed in another activity</p> : null}
       {plannedElsewhere ? <p className="mt-1.5 text-xs italic text-muted">Planned for another activity</p> : null}
 
-      {canExecuteHere ? (
-        <div className="mt-2.5">
-          <Button type="button" variant="secondary" onClick={() => onExecute(item)}>
-            {pending ? "Verify" : "Review / Edit"}
-          </Button>
+      {findingCount > 0 ? (
+        <div className="mt-2 text-xs text-muted">
+          <span data-testid="finding-summary" className="flex flex-wrap items-center gap-x-2">
+            <span className="font-semibold text-foreground">
+              {findingCount} {findingCount === 1 ? "Finding" : "Findings"}
+            </span>
+            <span>·</span>
+            {findingCount === 1 ? (
+              <Link
+                href={`/projects/${projectId}/findings/${item.findings[0].id}`}
+                className="font-semibold text-primary hover:underline"
+              >
+                View Finding
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setListOpen((v) => !v)}
+                aria-expanded={listOpen}
+                className="font-semibold text-primary hover:underline"
+              >
+                {listOpen ? "Hide Findings" : "View Findings"}
+              </button>
+            )}
+          </span>
+          {findingCount > 1 && listOpen ? (
+            <ul className="mt-1.5 flex flex-col gap-1">
+              {item.findings.map((f) => (
+                <li key={f.id} className="flex flex-wrap items-center gap-1.5">
+                  <StatusBadge label={findingTypeLabel(f.findingType)} tone={findingTypeTone(f.findingType)} />
+                  <Link
+                    href={`/projects/${projectId}/findings/${f.id}`}
+                    className="min-w-0 flex-1 truncate font-semibold text-foreground hover:underline"
+                  >
+                    {f.title}
+                  </Link>
+                  <StatusBadge label={findingStatusLabel(f.status)} tone={findingStatusTone(f.status)} />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      {canExecuteHere || canCreateFinding ? (
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {canExecuteHere ? (
+            <Button type="button" variant="secondary" onClick={() => onExecute(item)}>
+              {pending ? "Verify" : "Review / Edit"}
+            </Button>
+          ) : null}
+          {canCreateFinding ? (
+            <Button
+              type="button"
+              variant={item.result === "issue_identified" && findingCount === 0 ? "primary" : "secondary"}
+              onClick={() => onCreateFinding(item)}
+            >
+              {findingCount === 0 ? "Create Finding" : "Add another Finding"}
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -70,8 +147,9 @@ function ItemCard({
 /**
  * Activity Detail's Verification section (Phase 4B) — operational, not a dashboard:
  * a count summary, the checklist, an "Add Check" shortcut reusing the 4A planning
- * form/mutation, and the hybrid execution drawer. Deliberately excludes Issues,
- * Actions, evidence and any compliance/progress visualization.
+ * form/mutation, the hybrid execution drawer, and (Phase 4C-2) an explicit Create Finding
+ * action plus a compact linked-Finding summary. A result never creates a Finding on its own.
+ * Deliberately excludes Actions, evidence and any compliance/progress visualization.
  */
 export function ActivityVerificationSection({
   projectId,
@@ -91,6 +169,7 @@ export function ActivityVerificationSection({
 }) {
   const [adding, setAdding] = useState(false);
   const [executing, setExecuting] = useState<ActivityVerificationItemRow | null>(null);
+  const [findingFor, setFindingFor] = useState<ActivityVerificationItemRow | null>(null);
 
   const pendingCount = items.filter((i) => i.result === null).length;
 
@@ -121,7 +200,14 @@ export function ActivityVerificationSection({
       ) : (
         <div className="flex flex-col gap-2.5 p-4">
           {items.map((item) => (
-            <ItemCard key={item.id} item={item} activityId={activityId} onExecute={setExecuting} />
+            <ItemCard
+              key={item.id}
+              item={item}
+              projectId={projectId}
+              activityId={activityId}
+              onExecute={setExecuting}
+              onCreateFinding={setFindingFor}
+            />
           ))}
         </div>
       )}
@@ -149,6 +235,27 @@ export function ActivityVerificationSection({
           onClose={() => setExecuting(null)}
           onSaved={(msg) => {
             setExecuting(null);
+            onChanged(msg);
+          }}
+        />
+      ) : null}
+      {findingFor ? (
+        <FindingFormDrawer
+          mode="create"
+          projectId={projectId}
+          catalog={catalog}
+          origin={{
+            verificationItemId: findingFor.id,
+            activityId,
+            question: findingFor.question,
+            siteId: findingFor.siteId,
+            frameworkItemId: findingFor.frameworkItemId,
+            notes: findingFor.notes,
+            priority: findingFor.priority,
+          }}
+          onClose={() => setFindingFor(null)}
+          onSaved={(msg) => {
+            setFindingFor(null);
             onChanged(msg);
           }}
         />

@@ -25,11 +25,11 @@ export type FindingRow = {
   frameworkIdentity: string | null;
   createdAt: string;
   closedAt: string | null;
+  /** Set only when created from a Verification (Phase 4C-2): immutable origin. Its Activity is then read-only. */
+  verificationItemId: string | null;
 };
 
 export type FindingDetail = FindingRow & {
-  /** Set only when created from a real Verification context (Phase 4C-2). */
-  verificationItemId: string | null;
   verificationQuestion: string | null;
   /** Set only when created from a Document Review (Phase 5). */
   documentReviewId: string | null;
@@ -38,9 +38,9 @@ export type FindingDetail = FindingRow & {
 };
 
 const FINDING_COLUMNS =
-  "id, project_id, finding_type, title, description, priority, status, site_id, activity_id, framework_item_id, created_at, closed_at, framework_items(id, code, title, frameworks(code, edition)), activities(id, name, start_date, start_time)";
+  "id, project_id, finding_type, title, description, priority, status, site_id, activity_id, framework_item_id, verification_item_id, created_at, closed_at, framework_items(id, code, title, frameworks(code, edition)), activities(id, name, start_date, start_time)";
 
-const DETAIL_COLUMNS = `${FINDING_COLUMNS}, verification_item_id, document_review_id, verification_items(id, question), created_by_profile:profiles!issues_created_by_fkey(display_name), closed_by_profile:profiles!issues_closed_by_fkey(display_name)`;
+const DETAIL_COLUMNS = `${FINDING_COLUMNS}, document_review_id, verification_items(id, question), created_by_profile:profiles!issues_created_by_fkey(display_name), closed_by_profile:profiles!issues_closed_by_fkey(display_name)`;
 
 type RawFinding = {
   id: string;
@@ -53,6 +53,7 @@ type RawFinding = {
   site_id: string | null;
   activity_id: string | null;
   framework_item_id: string | null;
+  verification_item_id: string | null;
   created_at: string;
   closed_at: string | null;
   framework_items: { id: string; code: string | null; title: string; frameworks: { code: string; edition: string } | null } | null;
@@ -83,6 +84,7 @@ function mapRow(f: RawFinding, siteMap: Map<string, string>): FindingRow {
       : null,
     createdAt: f.created_at,
     closedAt: f.closed_at,
+    verificationItemId: f.verification_item_id,
   };
 }
 
@@ -128,7 +130,6 @@ export async function getFinding(projectId: string, findingId: string): Promise<
   const f = res.data;
   return {
     ...mapRow(f as RawFinding, siteMap),
-    verificationItemId: f.verification_item_id,
     verificationQuestion: f.verification_items?.question ?? null,
     documentReviewId: f.document_review_id,
     createdByName: f.created_by_profile?.display_name ?? null,

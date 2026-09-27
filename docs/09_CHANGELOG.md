@@ -3,6 +3,37 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 4C-2 — Verification → Finding integration (2026-09-27)
+
+**Result: 155/155 acceptance checks, 0 P0/P1 findings.** No migration, no RLS/grant change.
+Phase 4D-1 has not started.
+
+### Added
+
+- **Create Finding** on the Verification card in Activity Detail — explicit action only, for
+  *Issue Identified* (primary) and *Follow-up Required* (secondary), only where the check was
+  verified (BR-91). Reuses `FindingFormDrawer` with a new `origin` mode: compact origin box,
+  Activity fixed, Site locked for a site-specific Activity, Description/Priority/Framework
+  prefilled, Title and Type blank (BR-92).
+- `createFindingFromVerification` (`lib/mutations/findings.ts`): reloads the Activity and
+  verification item, enforces project, `verified_activity_id` = Activity and the eligible
+  results; sets `verification_item_id`, `activity_id`, `created_by`, Open from the server.
+- Compact finding summary on the card ("N Finding(s)", View Finding / inline View Findings list,
+  Add another Finding); linked findings come from one embedded `issues(...)` relationship in
+  `listActivityVerificationItems` — no extra query.
+- Finding Detail origin: "Created from Verification" with the check, Activity (linked), Site and
+  Framework.
+
+### Changed
+
+- `updateFinding` rejects changing the Activity of a verification-linked Finding; the form shows
+  it read-only (BR-93). Manual Findings are unchanged. BR-27 reworded; BR-91 – BR-93 added.
+
+### Not done (intentionally)
+
+Create Finding from the Project Verification workspace, NC response UI, Corrective Actions,
+Effectiveness, closure of Nonconformity, Evidence, delete, Finding number.
+
 ## Phase 4C-1 — Finding foundation (2026-09-27)
 
 First slice of the revised Phase 4C/4D (Findings & NC workflow). **Result: 160/160 acceptance
