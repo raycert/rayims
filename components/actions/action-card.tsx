@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { actionStatusLabel, actionStatusTone, priorityLabel, priorityTone } from "@/lib/ui/status-tones";
 import { formatDate, isActionOverdue } from "@/lib/ui/format";
 import { ActionStatusControl } from "./action-status-control";
+import { EvidenceButton } from "@/components/evidence/evidence-panel";
 import type { ActionRow } from "@/lib/queries/actions";
 
 /** Compact action card: Finding Detail and the mobile Actions workspace. */
@@ -55,6 +56,23 @@ export function ActionCard({
           )}
         </p>
       ) : null}
+      <div className="mt-1">
+        <EvidenceButton
+          title="Action Evidence"
+          projectId={projectId}
+          parent={{ kind: "action", id: action.id }}
+          items={action.evidence}
+          editable={!frozen && !closed}
+          lockedReason={
+            frozen
+              ? "The finding is closed. Reopen it to change this action's evidence."
+              : closed
+                ? "This action is closed. Reopen it to change its evidence."
+                : null
+          }
+          onChanged={onChanged}
+        />
+      </div>
       {closed && action.completionNotes ? (
         <p className="mt-1 whitespace-pre-wrap text-xs text-muted">Completion: {action.completionNotes}</p>
       ) : null}

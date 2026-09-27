@@ -381,6 +381,11 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
   the `files` row and stored object may remain until the orphan cleanup script
   runs); `file_id` NO ACTION.
 - **Indexes:** each FK column (partial `WHERE col IS NOT NULL`).
+- **Used by Phase 4E (Evidence):** Activity, Verification item, Finding (`issue_id`) and Action
+  attachments are live; `document_review_id` waits for Phase 5. One file per upload (a file is
+  referenced by one attachment in V1; removal still checks for other references before deleting
+  the `files` row and the stored object). No category column (captions only). Deleting a parent
+  record CASCADES its attachment rows — Phase 4F's controlled delete must account for evidence.
 - **Extension rule (architectural):**
   - Core attachments **may** link to Core entities only: activity, document
     review, verification item, issue, action.

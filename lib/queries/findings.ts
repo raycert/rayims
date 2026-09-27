@@ -3,6 +3,7 @@ import { formatFrameworkIdentity } from "@/lib/ui/format";
 import { siteNameMap } from "./activities";
 import { loadScopeCatalog, type VerificationFormCatalog } from "./verification-items";
 import { mapAction, type ActionRow, type RawAction } from "./actions";
+import { EVIDENCE_EMBED, mapEvidence, type EvidenceItem, type RawEvidence } from "./evidence";
 
 /** A Finding is the `issues` table (ADR-018). */
 export type FindingRow = {
@@ -42,6 +43,8 @@ export type FindingDetail = FindingRow & {
   effectivenessReviewerName: string | null;
   /** Linked actions (Corrective Actions for a Nonconformity), oldest first. */
   actions: ActionRow[];
+  /** Evidence attached to the Finding itself. */
+  evidence: EvidenceItem[];
   verificationQuestion: string | null;
   /** Set only when created from a Document Review (Phase 5). */
   documentReviewId: string | null;
@@ -52,7 +55,7 @@ export type FindingDetail = FindingRow & {
 const FINDING_COLUMNS =
   "id, project_id, finding_type, title, description, priority, status, site_id, activity_id, framework_item_id, verification_item_id, created_at, closed_at, framework_items(id, code, title, frameworks(code, edition)), activities(id, name, start_date, start_time)";
 
-const DETAIL_COLUMNS = `${FINDING_COLUMNS}, correction, root_cause, effectiveness_result, effectiveness_notes, effectiveness_reviewed_by, effectiveness_reviewed_at, effectiveness_reviewer:profiles!issues_effectiveness_reviewed_by_fkey(display_name, email), actions(id, project_id, description, owner_name, due_date, priority, status, completion_notes, completed_at, site_id, activity_id, issue_id, created_at, activities(id, name, start_date)), document_review_id, verification_items(id, question), created_by_profile:profiles!issues_created_by_fkey(display_name), closed_by_profile:profiles!issues_closed_by_fkey(display_name, email)`;
+const DETAIL_COLUMNS = `${FINDING_COLUMNS}, correction, root_cause, effectiveness_result, effectiveness_notes, effectiveness_reviewed_by, effectiveness_reviewed_at, effectiveness_reviewer:profiles!issues_effectiveness_reviewed_by_fkey(display_name, email), actions(id, project_id, description, owner_name, due_date, priority, status, completion_notes, completed_at, site_id, activity_id, issue_id, created_at, activities(id, name, start_date), ${EVIDENCE_EMBED}), ${EVIDENCE_EMBED}, document_review_id, verification_items(id, question), created_by_profile:profiles!issues_created_by_fkey(display_name), closed_by_profile:profiles!issues_closed_by_fkey(display_name, email)`;
 
 type RawFinding = {
   id: string;
@@ -143,6 +146,7 @@ export async function getFinding(projectId: string, findingId: string): Promise<
   const base = mapRow(f as RawFinding, siteMap);
   return {
     ...base,
+    evidence: mapEvidence(f.attachments as RawEvidence[]),
     correction: f.correction,
     rootCause: f.root_cause,
     effectivenessResult: f.effectiveness_result,

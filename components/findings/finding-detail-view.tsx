@@ -20,6 +20,7 @@ import { formatDate } from "@/lib/ui/format";
 import { closeFinding, getFindingClosureState, reopenFinding } from "@/lib/mutations/findings";
 import type { ClosureEvaluation } from "@/lib/domain/finding-closure";
 import { EffectivenessDrawer } from "./effectiveness-drawer";
+import { EvidenceSection } from "@/components/evidence/evidence-panel";
 import { FindingFormDrawer } from "./finding-form-drawer";
 import { NcResponseDrawer } from "./nc-response-drawer";
 import { ActionCard } from "@/components/actions/action-card";
@@ -477,6 +478,15 @@ export function FindingDetailView({
             </dl>
           </section>
         ) : null}
+
+        <EvidenceSection
+          projectId={finding.projectId}
+          parent={{ kind: "finding", id: finding.id }}
+          items={finding.evidence}
+          editable={!isClosed}
+          lockedReason={isClosed ? "This finding is closed. Reopen it to change its evidence." : null}
+          onChanged={refreshWith}
+        />
 
         <section className="rounded-lg border border-border bg-surface">
           <div className="border-b border-border px-4 py-3">

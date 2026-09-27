@@ -21,12 +21,26 @@ export function createSupabaseStorage(
       if (error) throw new Error(`Storage upload failed: ${error.message}`);
     },
 
-    async createSignedUrl(key, expiresInSeconds) {
-      const { data, error } = await objects.createSignedUrl(key, expiresInSeconds);
+    async createSignedUrl(key, expiresInSeconds, options) {
+      const { data, error } = await objects.createSignedUrl(
+        key,
+        expiresInSeconds,
+        options?.downloadName ? { download: options.downloadName } : undefined,
+      );
       if (error || !data) {
         throw new Error(`Could not create signed URL: ${error?.message ?? "unknown"}`);
       }
       return data.signedUrl;
+    },
+
+    async stat(key) {
+      try {
+        const { data, error } = await objects.info(key);
+        if (error || !data) return null;
+        return { size: typeof data.size === "number" ? data.size : null };
+      } catch {
+        return null;
+      }
     },
 
     async remove(keys) {

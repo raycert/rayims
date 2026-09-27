@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isActionOverdue } from "@/lib/ui/format";
 import { siteNameMap } from "./activities";
+import { EVIDENCE_EMBED, mapEvidence, type EvidenceItem, type RawEvidence } from "./evidence";
 
 /** An `actions` row. Linked to a Finding (issue_id) or standalone (issue_id NULL). */
 export type ActionRow = {
@@ -25,11 +26,12 @@ export type ActionRow = {
   /** A closed Finding freezes its linked actions (read-only until the Finding is reopened). */
   findingStatus: string | null;
   createdAt: string;
+  evidence: EvidenceItem[];
 };
 
 /** Columns of an action plus its Activity and (when linked) its Finding — one embed, no extra query. */
 export const ACTION_COLUMNS =
-  "id, project_id, description, owner_name, due_date, priority, status, completion_notes, completed_at, site_id, activity_id, issue_id, created_at, activities(id, name, start_date), issues(id, title, finding_type, status)";
+  `id, project_id, description, owner_name, due_date, priority, status, completion_notes, completed_at, site_id, activity_id, issue_id, created_at, activities(id, name, start_date), issues(id, title, finding_type, status), ${EVIDENCE_EMBED}`;
 
 export type RawAction = {
   id: string;
@@ -47,6 +49,7 @@ export type RawAction = {
   created_at: string;
   activities: { id: string; name: string; start_date: string | null } | null;
   issues?: { id: string; title: string; finding_type: string; status: string } | null;
+  attachments?: RawEvidence[] | null;
 };
 
 export function mapAction(a: RawAction, siteMap: Map<string, string>): ActionRow {
@@ -70,6 +73,7 @@ export function mapAction(a: RawAction, siteMap: Map<string, string>): ActionRow
     findingType: a.issues?.finding_type ?? null,
     findingStatus: a.issues?.status ?? null,
     createdAt: a.created_at,
+    evidence: mapEvidence(a.attachments),
   };
 }
 

@@ -854,6 +854,60 @@ type change whose save had succeeded (confirmed in the database) — the wait wa
 `P4D2-ACCEPT-` fixtures removed — zero residue; genuine Chinh Long / Test 1 data hashed identical
 before and after; issues/actions/attachments/files all 0.
 
+### Phase 4E — Evidence / Attachments (executed 2026-09-27)
+
+Result: **PASS — 122/122 acceptance checks, 0 failures** on the final code (hosted Supabase and
+Storage, production build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px, Admin +
+Consultant + anon). All fixtures used a `P4E-ACCEPT-` client; every stored object sat under a
+fixture project's key prefix.
+
+Pre-flight: HEAD `39fb115`, clean tree; hosted issues / actions / attachments / files and bucket
+objects all 0; bucket `rayims-files` private with a 10 MB limit; the live `files` / `attachments`
+schema, `attachments_exactly_one_parent`, RLS, grants and the three Storage policies matched the
+approved design — none were changed.
+
+Covered: Finding evidence (JPEG with trimmed caption, PDF without; 2 attachments + 2 files rows,
+exactly one parent each, project-prefixed server-generated keys, objects present; no URL or token
+stored; list metadata without key/bucket/UUID; NC progress and status unchanged; **View** opens a
+signed URL whose token is valid for exactly 60 s and works, **Download** uses the original name;
+anon public / direct object URLs return 400; **Remove** deletes the attachment, the unreferenced
+files row and the object, other evidence untouched); file policy (PNG, XLSX, DOCX and a 9.5 MB PDF
+accepted — size recorded from the stored object; 10.5 MB, `.exe`, `.sh` rejected in the browser with
+friendly messages; a disguised `.exe` and a declared 11 MB size rejected by the server; the bucket
+itself refuses an 11 MB object; no rows or objects left by rejections); two `photo.jpg` uploads kept
+under different keys; **cleanup**: a registration forced to fail after a successful Storage upload
+removed the object and left no rows, and a re-sent key of an existing file is refused without
+touching that file's object or rows; a missing object shows "File is unavailable." without breaking
+the page or deleting metadata; two-parent / zero-parent attachments rejected by the constraint;
+Action evidence (compact drawer, `action_id` only, "Evidence (1)" without growing the card; closed
+action: viewable, no Add/Remove, server rejects upload and removal; reopened: restored); closed
+Finding (viewable, no Add/Remove, server rejects both; reopened: restored; Observation order
+Finding → Actions → Evidence → Origin); Verification evidence from the Activity Detail card
+(`verification_item_id` only, stays on the page, card height unchanged, kept when the result is
+edited, allowed while Pending, not copied to a Finding created from it); Activity evidence (separate
+section, `activity_id` only); project isolation (upload to, view of and removal of another project's
+records rejected; nothing leaked); Consultant upload (uploader = consultant) and removal of the
+admin's evidence; anon denied on attachments, files and Storage upload and redirected from pages;
+mobile 390 / 412 (Take Photo input `accept="image/*"` + `capture="environment"`, Choose File,
+full-width sheets, upload through the photo input, controls clear of the bottom navigation, action
+cards stay compact — a real device camera was **not** exercised: headless browser only);
+signed-URL expiry after 66 s (HTTP 400); query approach (evidence embedded in each parent query,
+signed URLs only on click); desktop compactness (92 px uploader, no overflow); closure rules
+unaffected; regression (Verification, Excel import, Findings, Master Plan, Overview, Frameworks,
+Issue Identified still creates 0 Findings).
+
+Notes on the run (not defects): the first run timed out waiting 30 s for the 9.5 MB upload over this
+connection — it had completed correctly (verified in Storage and `files`), so the wait was raised
+(the upload takes 45–72 s here); a crashed run left fixture objects that the pre-flight "all 0"
+check then saw (the script now cleans first); a test expected closure warnings on a Nonconformity
+that still had an open action (the hard blocker correctly took precedence). During acceptance the
+hidden file inputs were found to be announced to assistive tech with the same names as their
+visible buttons — they are now fully hidden. Full suite re-run to 122/122.
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All
+`P4E-ACCEPT-` fixtures removed and **17 test objects deleted from Storage**: attachments 0, files 0,
+bucket objects 0; genuine Chinh Long / Test 1 data hashed identical; bucket still private (10 MB).
+
 ### Phase 5 — Documents / Versions / Reviews
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to

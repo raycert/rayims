@@ -402,6 +402,36 @@ Product behavior that the schema and UI must respect. Database details are in
 - **BR-39** Document version files are recorded in the same files registry.
 - **BR-40** Future domain modules keep their evidence links in their own
   junction tables (they do not add columns to `attachments`).
+- **BR-102** **Evidence (Phase 4E)** can be added to an **Activity**, a **Verification item**, a
+  **Finding** and an **Action** (Document Review: schema only until Phase 5). Each upload creates
+  one `files` row (original name, MIME type, size, provider, storage key, uploader) and one
+  `attachments` row with **exactly one** parent FK (`attachments_exactly_one_parent`) and an
+  optional trimmed caption. There are no evidence categories or stages in V1 (use the caption).
+  Evidence never changes a verification result, Finding / Action status, NC progress,
+  effectiveness or closure rules.
+- **BR-103** Files live only in the **private** bucket; the database holds metadata and a
+  server-generated key `{project_id}/{uuid}-{sanitized-name}` (never the original name as the
+  path; two files with the same name never collide). **View / Download** use a signed URL valid
+  for **60 seconds**, generated only when clicked, never stored. A missing object shows "File is
+  unavailable." without breaking the page or deleting metadata.
+- **BR-104** File policy: one file at a time, **≤ 10 MB** (the bucket limit, checked in the
+  browser, on the server and by the bucket), types JPG / PNG / WebP / PDF / DOC(X) / XLS(X) /
+  PPT(X) / TXT by extension (and by MIME when the browser provides one); executables and scripts
+  are rejected. Mobile offers **Take Photo** (`accept="image/*"` + `capture`) and **Choose File**
+  through the normal file input — no camera API.
+- **BR-105** Upload flow: the server validates the parent (exists, in the project, editable) and
+  returns the key → the browser uploads directly to the bucket under its session → the server
+  re-validates everything, checks the stored object, and inserts `files` then `attachments`. If
+  registration fails the object is removed (best effort) and, if only the attachment insert
+  failed, the `files` row too; cleanup never removes an object already registered in `files`.
+  **Remove Evidence** deletes the attachment and, when no other attachment or document version
+  references the file, the `files` row and the stored object. Removing evidence is not deleting
+  a business record (Phase 4F).
+- **BR-106** Evidence editability follows its parent: a **closed Finding** and a **closed Action**
+  (or an action of a closed Finding) accept no new evidence and no removal until reopened —
+  existing evidence stays viewable; **Verification** and **Activity** evidence stay editable after
+  a result is recorded or the Activity is completed. Any authenticated user may add or remove
+  evidence where the parent is editable (no uploader-only rule); anon is denied.
 
 ## Access and identity
 

@@ -14,6 +14,7 @@ import { ACTIVITY_STATUSES } from "@/lib/validation/activities";
 import { deleteActivity, setActivityStatus } from "@/lib/mutations/activities";
 import { ActivityFormDrawer } from "./activity-form-drawer";
 import { ActivityVerificationSection } from "@/components/verification/activity-verification-section";
+import { EvidenceSection } from "@/components/evidence/evidence-panel";
 import type { ActivityDetail, ActivityFormCatalog } from "@/lib/queries/activities";
 import type { ActivityVerificationItemRow, VerificationFormCatalog } from "@/lib/queries/verification-items";
 
@@ -280,6 +281,18 @@ export function ActivityDetailView({
             <TextField label="Next Steps" value={activity.nextSteps} />
           </div>
         </section>
+
+        <EvidenceSection
+          title="Activity Evidence"
+          projectId={activity.projectId}
+          parent={{ kind: "activity", id: activity.id }}
+          items={activity.evidence}
+          editable
+          onChanged={(msg) => {
+            router.refresh();
+            show(msg);
+          }}
+        />
       </div>
 
       {editing ? (

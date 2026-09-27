@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { EVIDENCE_EMBED, mapEvidence, type EvidenceItem, type RawEvidence } from "./evidence";
 
 export type ActivityPlanRow = {
   id: string;
@@ -133,6 +134,8 @@ export async function listUpcomingActivities(projectId: string, limit = 3): Prom
 }
 
 export type ActivityDetail = ActivityPlanRow & {
+  /** Evidence attached to the Activity itself (not to its verification items). */
+  evidence: EvidenceItem[];
   objectives: string | null;
   plannedWork: string | null;
   workPerformed: string | null;
@@ -149,7 +152,7 @@ export async function getActivity(projectId: string, activityId: string): Promis
   const { data, error } = await supabase
     .from("activities")
     .select(
-      "id, project_id, site_id, name, start_date, start_time, end_date, end_time, planned_days, mode, status, activity_type_id, consultant_id, objectives, planned_work, work_performed, next_steps, activity_types(label, is_active), profiles!activities_consultant_id_fkey(display_name)",
+      `id, project_id, site_id, name, start_date, start_time, end_date, end_time, planned_days, mode, status, activity_type_id, consultant_id, objectives, planned_work, work_performed, next_steps, activity_types(label, is_active), profiles!activities_consultant_id_fkey(display_name), ${EVIDENCE_EMBED}`,
     )
     .eq("id", activityId)
     .eq("project_id", projectId)
@@ -185,6 +188,7 @@ export async function getActivity(projectId: string, activityId: string): Promis
     plannedWork: data.planned_work,
     workPerformed: data.work_performed,
     nextSteps: data.next_steps,
+    evidence: mapEvidence(data.attachments as RawEvidence[]),
   };
 }
 

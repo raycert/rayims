@@ -21,8 +21,8 @@
 | — 4C-2 | Verification → Finding integration        | **COMPLETED** |
 | — 4D-1 | NC response & Corrective Actions          | **COMPLETED** |
 | — 4D-2 | Effectiveness Review, NC closure & Reopen | **COMPLETED** |
-| — 4E  | Evidence / Attachments                     | Planned — NEXT |
-| — 4F  | Controlled delete, overdue-actions overview, Phase 4 final acceptance | Planned |
+| — 4E  | Evidence / Attachments                     | **COMPLETED** |
+| — 4F  | Controlled delete, overdue-actions overview, Phase 4 final acceptance | Planned — NEXT |
 | 5     | Documents / Versions / Reviews              | Planned       |
 | 6     | Visit Summary / Reporting                   | Planned       |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
@@ -488,11 +488,21 @@ existing Activity Verification query — no per-item query. No schema, RLS or gr
   lightweight NC workflow of ADR-018. No schema, RLS or grant change. **Verified (2026-09-27):
   122/122** — see `08_TESTING.md`.
 
-### Phase 4E — Evidence / Attachments [NEXT]
+### Phase 4E — Evidence / Attachments [COMPLETED]
 
-Photos/files on Finding, Corrective Action, Verification item and Activity.
+Delivered: Evidence on **Finding** (section after the workflow content, before Origin),
+**Action** (compact "Evidence (N)" drawer from the action card and the Actions table),
+**Verification item** (compact entry on the Activity Detail checklist card — the onsite flow) and
+**Activity** (separate "Activity Evidence" section). Single-file upload with **Take Photo**
+(`image/*` + capture) / **Choose File**, optional caption, ≤ 10 MB, allowlisted types; files in the
+private bucket under a server-generated key, one `files` + one `attachments` row (exactly one
+parent); View / Download through 60-second signed URLs generated on click; Remove deletes the
+attachment and, when unreferenced, the file row and object. Closed Findings and closed Actions
+freeze their evidence (viewable, not changeable) until reopened; Verification / Activity evidence
+stays editable. Document Review evidence waits for Phase 5 (schema only). No schema, RLS, grant or
+Storage-policy change. **Verified (2026-09-27): 122/122** — see `08_TESTING.md`.
 
-### Phase 4F — Controlled delete, overdue actions, Phase 4 final acceptance
+### Phase 4F — Controlled delete, overdue actions, Phase 4 final acceptance [NEXT]
 
 Controlled Finding and Verification delete (attachments CASCADE and `SET NULL` links must be
 checked), the overdue-actions overview, and the Phase 4 end-to-end NC acceptance.

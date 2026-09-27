@@ -3,6 +3,34 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 4E — Evidence / Attachments (2026-09-27)
+
+**Result: 122/122 acceptance checks, 0 P0/P1 findings.** No migration, no RLS / grant / Storage
+policy change — the Phase 0C `files` / `attachments` schema and the private `rayims-files`
+bucket (10 MB) were used as designed. Phase 4F has not started.
+
+### Added
+
+- `lib/mutations/evidence.ts`: `prepareEvidenceUpload` (parent + policy check, server-generated
+  key), `registerEvidence` (re-validation, stored-object check, `files` + `attachments` with
+  exactly one parent, cleanup on failure that never touches an already-registered object),
+  `getEvidenceUrl` (60-second signed URL on click; "File is unavailable." when the object is
+  missing), `removeEvidence` (attachment, then unreferenced file row and object).
+- `lib/validation/evidence.ts` (10 MB, allowlisted types by extension + MIME),
+  `lib/queries/evidence.ts` (`EVIDENCE_EMBED` added to the Activity, verification-item, Finding
+  and Action queries — no extra query, no URLs on page load).
+- `StorageProvider` gains `stat` and a `downloadName` option for signed URLs.
+- UI: `EvidenceUploader` (Take Photo / Choose File, caption, "Uploading…"), `EvidenceList`
+  (metadata, View / Download, Remove with confirm), `EvidenceSection` (Finding, Activity) and
+  `EvidenceButton` + drawer (verification cards, action cards, Actions table).
+- Business rules BR-102 – BR-106; `03_DATABASE.md` attachments note; `10_RUNBOOK.md` evidence /
+  orphan-object cleanup.
+
+### Not done (intentionally)
+
+Evidence categories, bulk upload, thumbnails, compression, versioning, Document Review evidence
+UI (Phase 5), business-record delete (4F).
+
 ## Phase 4D-2 — Effectiveness Review & NC closure (2026-09-27)
 
 **Result: 122/122 acceptance checks, 0 P0/P1 findings.** No migration, no RLS/grant change (the

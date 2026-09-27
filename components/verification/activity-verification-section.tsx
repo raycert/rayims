@@ -18,6 +18,7 @@ import {
   verificationResultTone,
 } from "@/lib/ui/status-tones";
 import { FindingFormDrawer } from "@/components/findings/finding-form-drawer";
+import { EvidenceButton } from "@/components/evidence/evidence-panel";
 import { VerificationItemFormDrawer } from "./verification-item-form-drawer";
 import { VerificationExecutionDrawer } from "./verification-execution-drawer";
 import type { ActivityVerificationItemRow, VerificationFormCatalog } from "@/lib/queries/verification-items";
@@ -28,12 +29,14 @@ function ItemCard({
   activityId,
   onExecute,
   onCreateFinding,
+  onChanged,
 }: {
   item: ActivityVerificationItemRow;
   projectId: string;
   activityId: string;
   onExecute: (item: ActivityVerificationItemRow) => void;
   onCreateFinding: (item: ActivityVerificationItemRow) => void;
+  onChanged: (message: string) => void;
 }) {
   const [listOpen, setListOpen] = useState(false);
   const pending = item.result === null;
@@ -122,6 +125,17 @@ function ItemCard({
         </div>
       ) : null}
 
+      <div className="mt-1">
+        <EvidenceButton
+          title="Verification Evidence"
+          projectId={projectId}
+          parent={{ kind: "verification", id: item.id }}
+          items={item.evidence}
+          editable
+          onChanged={onChanged}
+        />
+      </div>
+
       {canExecuteHere || canCreateFinding ? (
         <div className="mt-2.5 flex flex-wrap gap-2">
           {canExecuteHere ? (
@@ -207,6 +221,7 @@ export function ActivityVerificationSection({
               activityId={activityId}
               onExecute={setExecuting}
               onCreateFinding={setFindingFor}
+              onChanged={onChanged}
             />
           ))}
         </div>

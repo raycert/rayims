@@ -116,3 +116,17 @@ After any user or settings change:
   unreachable. Check the user's status in the dashboard.
 - **User has no profile row:** the user was created before the migrations were applied.
   Ask the project owner before adding it by hand.
+
+## Evidence files (Phase 4E)
+
+- Evidence binaries live in the **private** bucket `rayims-files` (10 MB per object). Keys are
+  `{project_id}/{uuid}-{sanitized-name}`; the database `files` row holds the key, never a URL.
+  Never make the bucket public and never store signed URLs.
+- The application removes an uploaded object again when its registration fails and deletes the
+  object when the last reference to a file is removed. A crash between upload and registration
+  can still leave an **orphan object**. To find orphans (SQL editor, read-only):
+  `select o.name from storage.objects o where o.bucket_id = 'rayims-files' and not exists
+  (select 1 from public.files f where f.storage_key = o.name);`
+  Remove confirmed orphans through the Storage API / dashboard (not by SQL on `storage.objects`).
+- A `files` row whose object is missing shows "File is unavailable." in the app; the metadata is
+  kept on purpose — investigate before deleting it.

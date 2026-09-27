@@ -14,6 +14,7 @@ import { formatDate, isActionOverdue } from "@/lib/ui/format";
 import { ActionCard } from "./action-card";
 import { ActionFormDrawer } from "./action-form-drawer";
 import { ActionStatusControl } from "./action-status-control";
+import { EvidenceButton } from "@/components/evidence/evidence-panel";
 import type { ActionRow } from "@/lib/queries/actions";
 import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
 
@@ -193,6 +194,23 @@ export function ActionsWorkspaceView({
                         {a.status === "closed" && a.completionNotes ? (
                           <div className="mt-0.5 line-clamp-1 text-xs text-muted">Completion: {a.completionNotes}</div>
                         ) : null}
+                        <div>
+                          <EvidenceButton
+                            title="Action Evidence"
+                            projectId={projectId}
+                            parent={{ kind: "action", id: a.id }}
+                            items={a.evidence}
+                            editable={!frozen && a.status !== "closed"}
+                            lockedReason={
+                              frozen
+                                ? "The finding is closed. Reopen it to change this action's evidence."
+                                : a.status === "closed"
+                                  ? "This action is closed. Reopen it to change its evidence."
+                                  : null
+                            }
+                            onChanged={refreshWith}
+                          />
+                        </div>
                       </td>
                       <td className="max-w-[200px] px-2.5 py-3 text-muted">
                         {a.findingId ? (
