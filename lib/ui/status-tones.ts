@@ -135,3 +135,15 @@ export function verificationResultTone(result: string | null): Tone {
   if (!result) return "neutral";
   return VERIFICATION_RESULT_TONES[result] ?? "neutral";
 }
+
+/** Effectiveness Review (Nonconformity). null = Not Reviewed. */
+export function effectivenessLabel(result: string | null): string {
+  if (result === "effective") return "Effective";
+  if (result === "not_effective") return "Not Effective";
+  return "Not Reviewed";
+}
+export function effectivenessTone(result: string | null): Tone {
+  if (result === "effective") return "success";
+  if (result === "not_effective") return "danger";
+  return "neutral";
+}

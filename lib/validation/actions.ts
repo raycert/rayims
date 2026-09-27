@@ -47,3 +47,9 @@ export const ncResponseSchema = z.object({
   correction: optionalText,
   rootCause: optionalText,
 });
+
+/** Current Effectiveness Review of a Nonconformity. Result required; "partially" etc. not allowed. */
+export const effectivenessSchema = z.object({
+  result: z.enum(["effective", "not_effective"], { error: "Select a result." }),
+  notes: optionalText,
+});

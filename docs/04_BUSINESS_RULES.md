@@ -295,7 +295,7 @@ Product behavior that the schema and UI must respect. Database details are in
   correction, root cause, effectiveness notes and linked actions are preserved. In
   Phase 4C-1 only Observation and Opportunity for Improvement can be closed, and only when
   no linked Action is not Closed; a Nonconformity has no Close action yet.
-- **BR-88** *(Approved for Phase 4D-2; not implemented in 4C-1.)* Nonconformity closure:
+- **BR-88** *(Implemented in Phase 4D-2 — see BR-99 – BR-101.)* Nonconformity closure:
   **hard blockers** are (A) any linked Corrective Action not Closed and (B)
   `effectiveness_result = not_effective`. A missing Correction, Root Cause Analysis or
   Effectiveness Review is a **warning** the user may explicitly override ("Close Anyway");
@@ -362,7 +362,34 @@ Product behavior that the schema and UI must respect. Database details are in
 - **BR-98** Workflow progress is derived, never stored: Correction / Root Cause Analysis are
   *Complete* when non-blank after trimming; actions show "N of M Closed" (or "None recorded").
   In Phase 4D-1 a Nonconformity still **cannot be closed**, even with a complete response and
-  all actions closed; Effectiveness Review and NC closure are Phase 4D-2 (BR-88).
+  all actions closed; Effectiveness Review and NC closure are Phase 4D-2 (BR-88). *(Superseded
+  by BR-99 – BR-101 in 4D-2: a Nonconformity can now be closed through the closure evaluator.)*
+- **BR-99** **Effectiveness Review** (Phase 4D-2, Nonconformity only): ONE current review on the
+  Finding — Result **Effective** or **Not Effective** (required; NULL = *Not Reviewed*; no other
+  values) and optional Notes (trimmed, blank → NULL). `effectiveness_reviewed_by` (session user)
+  and `effectiveness_reviewed_at` (server time) are server-derived; a dedicated mutation updates
+  only these four columns, only while the Nonconformity is Open. Each save **replaces** the
+  current review — there is no history. Progress shows Effectiveness Review as Not Reviewed /
+  Effective / Not Effective (derived). Not shown for Observation / Opportunity for Improvement.
+- **BR-100** **Closure** of every Finding type is decided by ONE shared evaluator
+  (`evaluateFindingClosure`) run by the server on freshly loaded data (the Finding and its
+  linked actions' statuses in one query) — never on client-supplied results. **Hard blockers**
+  (no override): any linked action not Closed; and, for a Nonconformity,
+  `effectiveness_result = not_effective`. **Warnings** (Nonconformity only, closable after an
+  explicit **Close Anyway**): Correction not recorded, Root Cause Analysis not recorded,
+  Effectiveness Review not completed. The server closes a Finding with warnings only when the
+  request explicitly confirms them (`confirmWarnings`); it re-evaluates every time. **Zero
+  linked actions is allowed** (shown as information, not a warning). Closing sets only
+  `status`, `closed_at` (server time) and `closed_by` (session user). Observation /
+  Opportunity for Improvement ignore the (hidden) NC response and effectiveness fields.
+- **BR-101** A **Not Effective** result keeps the Nonconformity Open and blocks closure; nothing is
+  created, cleared or archived automatically — the user may revise the root cause, add or reopen
+  corrective actions and later record a new review (which replaces the previous one). **Reopen**
+  (any type) returns the Finding to Open, clears `closed_at` / `closed_by` and the current
+  `effectiveness_result` / `_reviewed_by` / `_reviewed_at`, and keeps effectiveness notes,
+  correction, root cause and actions — so an old "Effective" is never reused: after reopening,
+  a missing review is again a closure warning. A closed Finding is fully read-only (core fields,
+  NC response, effectiveness review, linked actions — BR-97) until reopened.
 
 ## Evidence
 

@@ -11,11 +11,15 @@ import {
   findingStatusTone,
   findingTypeLabel,
   findingTypeTone,
+  effectivenessLabel,
+  effectivenessTone,
   priorityLabel,
   priorityTone,
 } from "@/lib/ui/status-tones";
 import { formatDate } from "@/lib/ui/format";
-import { closeFinding, reopenFinding } from "@/lib/mutations/findings";
+import { closeFinding, getFindingClosureState, reopenFinding } from "@/lib/mutations/findings";
+import type { ClosureEvaluation } from "@/lib/domain/finding-closure";
+import { EffectivenessDrawer } from "./effectiveness-drawer";
 import { FindingFormDrawer } from "./finding-form-drawer";
 import { NcResponseDrawer } from "./nc-response-drawer";
 import { ActionCard } from "@/components/actions/action-card";
@@ -71,6 +75,8 @@ export function FindingDetailView({
   const [blocked, setBlocked] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [editingResponse, setEditingResponse] = useState(false);
+  const [editingEffectiveness, setEditingEffectiveness] = useState(false);
+  const [closure, setClosure] = useState<ClosureEvaluation | null>(null);
   const [actionDrawer, setActionDrawer] = useState<{ mode: "create" } | { mode: "edit"; action: ActionRow } | null>(null);
   const { message, show } = useToast();
 
@@ -84,14 +90,14 @@ export function FindingDetailView({
 
   function refreshWith(msg: string) {
     setEditingResponse(false);
+    setEditingEffectiveness(false);
     setActionDrawer(null);
     router.refresh();
     show(msg);
   }
 
   const isClosed = finding.status === "closed";
-  // Nonconformity closure needs the response/effectiveness workflow (Phase 4D): no Close action yet.
-  const canClose = !isClosed && finding.findingType !== "nonconformity";
+  const canClose = !isClosed;
 
   const fromVerification = !!finding.verificationItemId;
   const origin = fromVerification
@@ -106,14 +112,35 @@ export function FindingDetailView({
     show(msg);
   }
 
-  function runClose() {
+  /** Close is always evaluated on the server from current data (hard blockers / warnings). */
+  function openClose() {
+    setConfirm("close");
+    setBlocked(null);
+    setClosure(null);
     startTransition(async () => {
-      const result = await closeFinding(finding.projectId, finding.id);
+      const result = await getFindingClosureState(finding.projectId, finding.id);
       if (!result.ok) {
         setBlocked(result.error);
         return;
       }
+      setClosure(result.data);
+    });
+  }
+
+  function runClose(confirmWarnings: boolean) {
+    startTransition(async () => {
+      const result = await closeFinding(finding.projectId, finding.id, { confirmWarnings });
+      if (!result.ok) {
+        setBlocked(result.error);
+        return;
+      }
+      if (!result.data.closed) {
+        // The state changed since the check: show the fresh evaluation instead.
+        setClosure(result.data.evaluation);
+        return;
+      }
       setConfirm(null);
+      setClosure(null);
       router.refresh();
       show("Finding closed");
     });
@@ -135,6 +162,7 @@ export function FindingDetailView({
   function cancelConfirm() {
     setConfirm(null);
     setBlocked(null);
+    setClosure(null);
   }
 
   return (
@@ -164,7 +192,7 @@ export function FindingDetailView({
             </Button>
           ) : null}
           {canClose ? (
-            <Button type="button" variant="secondary" onClick={() => setConfirm("close")}>
+            <Button type="button" variant="secondary" onClick={openClose}>
               Close Finding
             </Button>
           ) : null}
@@ -204,33 +232,78 @@ export function FindingDetailView({
       ) : null}
 
       {confirm === "close" ? (
-        <div className="mb-5 rounded-lg border border-warning bg-warning-soft px-4 py-3">
+        <div
+          role="alertdialog"
+          aria-labelledby="close-title"
+          data-testid="close-panel"
+          className={`mb-5 rounded-lg border px-4 py-3 ${closure && !closure.canClose ? "border-danger bg-danger-soft" : "border-warning bg-warning-soft"}`}
+        >
           {blocked ? (
             <>
-              <p role="alert" className="text-sm text-warning">
+              <p role="alert" className="text-sm text-danger">
                 {blocked}
               </p>
               <button type="button" onClick={cancelConfirm} className="mt-2 text-sm font-semibold text-muted">
-                OK
+                Back
+              </button>
+            </>
+          ) : !closure ? (
+            <p className="text-sm text-muted">Checking whether this finding can be closed…</p>
+          ) : !closure.canClose ? (
+            <>
+              <h3 id="close-title" className="text-sm font-semibold text-danger">
+                Cannot close this Finding
+              </h3>
+              <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-sm text-danger">
+                {closure.hardBlockers.map((b) => (
+                  <li key={b}>{b}</li>
+                ))}
+              </ul>
+              <button type="button" onClick={cancelConfirm} className="mt-2.5 text-sm font-semibold text-muted">
+                Back
               </button>
             </>
           ) : (
             <>
-              <p className="text-sm text-warning">
-                Close this finding? It becomes read-only until reopened.
-              </p>
-              <div className="mt-2.5 flex gap-2">
+              <h3 id="close-title" className="text-sm font-semibold text-warning">
+                Close Finding?
+              </h3>
+              {closure.warnings.length > 0 ? (
+                <>
+                  <p className="mt-1 text-sm text-warning">Please review:</p>
+                  <ul className="mt-1 space-y-0.5 text-sm text-warning">
+                    {closure.warnings.map((w) => (
+                      <li key={w}>⚠ {w}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-warning">
+                  {isNc
+                    ? "All recorded Corrective Actions are closed and the current response has no closure warnings."
+                    : "It becomes read-only until reopened."}
+                </p>
+              )}
+              {closure.info.map((i) => (
+                <p key={i} className="mt-1 text-sm text-muted">
+                  {i}
+                </p>
+              ))}
+              {closure.warnings.length > 0 ? (
+                <p className="mt-1.5 text-sm text-warning">You can still close this Finding.</p>
+              ) : null}
+              <div className="mt-2.5 flex flex-wrap gap-2">
                 <button type="button" onClick={cancelConfirm} disabled={pending} className="text-sm font-semibold text-muted">
-                  Keep open
+                  Cancel
                 </button>
                 <button
                   type="button"
-                  onClick={runClose}
+                  onClick={() => runClose(closure.warnings.length > 0)}
                   disabled={pending}
                   aria-busy={pending}
                   className="rounded-md bg-warning px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
                 >
-                  {pending ? "Closing…" : "Close Finding"}
+                  {pending ? "Closing…" : closure.warnings.length > 0 ? "Close Anyway" : "Close Finding"}
                 </button>
               </div>
             </>
@@ -252,12 +325,13 @@ export function FindingDetailView({
           ) : (
             <>
               <p className="text-sm text-warning">
-                Reopen this finding? It returns to Open and can be edited again. Any recorded effectiveness result is
-                cleared, so it must be reviewed again.
+                {isNc
+                  ? "Reopening this Finding clears the current Effectiveness Result and reviewer timestamp. The previous effectiveness notes are retained."
+                  : "Reopen this finding? It returns to Open and can be edited again."}
               </p>
               <div className="mt-2.5 flex gap-2">
                 <button type="button" onClick={cancelConfirm} disabled={pending} className="text-sm font-semibold text-muted">
-                  Keep closed
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -297,6 +371,11 @@ export function FindingDetailView({
                 label="Corrective Actions"
                 value={actionsProgress}
                 done={finding.actions.length > 0 && closedActions === finding.actions.length}
+              />
+              <ProgressRow
+                label="Effectiveness Review"
+                value={effectivenessLabel(finding.effectivenessResult)}
+                done={finding.effectivenessResult === "effective"}
               />
             </div>
           </section>
@@ -369,6 +448,36 @@ export function FindingDetailView({
           ) : null}
         </section>
 
+        {isNc ? (
+          <section data-testid="effectiveness" className="rounded-lg border border-border bg-surface">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <h2 className="text-sm font-semibold">Effectiveness Review</h2>
+              {!isClosed ? (
+                <Button type="button" variant="secondary" className="min-h-9" onClick={() => setEditingEffectiveness(true)}>
+                  {finding.effectivenessResult ? "Edit Effectiveness Review" : "Record Effectiveness Review"}
+                </Button>
+              ) : null}
+            </div>
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-1 px-4 py-3 text-sm sm:grid-cols-[140px_1fr] sm:gap-y-2.5">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Result</dt>
+              <dd className="mb-1.5 sm:mb-0">
+                <StatusBadge
+                  label={effectivenessLabel(finding.effectivenessResult)}
+                  tone={effectivenessTone(finding.effectivenessResult)}
+                />
+              </dd>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Notes</dt>
+              <dd className="mb-1.5 whitespace-pre-wrap sm:mb-0">{finding.effectivenessNotes ?? "—"}</dd>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Reviewed By</dt>
+              <dd className="mb-1.5 sm:mb-0">
+                {finding.effectivenessResult ? (finding.effectivenessReviewerName ?? "Unknown user") : "—"}
+              </dd>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Reviewed At</dt>
+              <dd>{finding.effectivenessReviewedAt ? formatDateTime(finding.effectivenessReviewedAt) : "—"}</dd>
+            </dl>
+          </section>
+        ) : null}
+
         <section className="rounded-lg border border-border bg-surface">
           <div className="border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold">Origin</h2>
@@ -419,6 +528,16 @@ export function FindingDetailView({
         </section>
       </div>
 
+      {editingEffectiveness ? (
+        <EffectivenessDrawer
+          projectId={finding.projectId}
+          findingId={finding.id}
+          result={finding.effectivenessResult}
+          notes={finding.effectivenessNotes}
+          onClose={() => setEditingEffectiveness(false)}
+          onSaved={refreshWith}
+        />
+      ) : null}
       {editingResponse ? (
         <NcResponseDrawer
           projectId={finding.projectId}

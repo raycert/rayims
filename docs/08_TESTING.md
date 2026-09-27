@@ -803,6 +803,57 @@ Findings / Actions search box was squeezed on mobile; the desktop Actions table 
 `P4D1-ACCEPT-` fixtures removed — zero residue; the genuine Chinh Long / Test 1 data hashed
 identical before and after; issues/actions/attachments/files all 0.
 
+### Phase 4D-2 — Effectiveness Review & NC closure (executed 2026-09-27)
+
+Result: **PASS — 122/122 acceptance checks, 0 failures** on the final code (hosted Supabase,
+production build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px, Admin + Consultant +
+anon). All fixtures used a `P4D2-ACCEPT-` client.
+
+Pre-flight: HEAD `52f04da`, clean tree; hosted issues/actions/attachments/files all 0; genuine
+data present. Schema/RLS/grant snapshot before and after: **identical**.
+
+Covered: full NC end-to-end through the real UI (create NC → NC response → 3 corrective actions →
+close them → Effectiveness Review Effective with notes → Progress Complete / Complete / 3 of 3
+Closed / Effective → clean close; DB `closed_at` server time, `closed_by` = user, response and
+effectiveness untouched; everything read-only afterwards; linked actions still visible and frozen
+in the Actions workspace; closed NC still in the Findings list); section order Finding → Progress →
+NC Response → Corrective Actions → Effectiveness Review → Origin; "Not Reviewed / — / — / —" before
+a review; result options Effective / Not Effective only; blank submit rejected; notes trimmed;
+reviewer (display name, else email, else "Unknown user") and formatted date; NC reopen (wording;
+`closed_*` and effectiveness result/reviewer/time cleared, notes / correction / root cause / actions
+kept) and re-close showing the *not completed* warning instead of reusing the old result; the
+blocker / warning matrix — open action (hard block, no Close Anyway, then clean close once the
+action is closed), Not Effective (hard block), missing Correction, missing RCA, missing
+Effectiveness (one warning each, Close Anyway closes), all three warnings with zero actions (no
+blocker, information line, Close Anyway), zero actions + Effective (normal close), zero actions +
+Not Effective (hard block); **server re-evaluation**: a tampered `confirmWarnings: false` does not
+close, a tampered id is evaluated from that Finding's real data, a hard-blocked NC is never closed
+on request; Not Effective → add a rework action → re-review Effective replaces result, notes and
+time (no history) → closable; effectiveness tampering (smuggled reviewer / time / status /
+closed_by / correction / title ignored; invalid result, closed Finding, Observation and another
+project's Finding rejected); close / reopen via another project's id rejected with nothing
+leaked; actions of a closed NC frozen server-side; type change NC → Observation hides the NC
+response and effectiveness, keeps the values, and Observation closure ignores them; back to NC
+restores them; Observation / OFI (no Effectiveness section, blocked by an open action, closable
+once it is closed or with no actions); verification-linked Finding closed and still counted with a
+working View Finding, verification result unchanged, Issue Identified alone → 0 Findings; query
+approach (closure = one query with embedded action statuses; detail loads effectiveness with the
+Finding); Consultant reviews and closes (`effectiveness_reviewed_by` / `closed_by` = consultant);
+anon redirected and denied a direct `issues` update; mobile 390px / 412px (record Effective in a
+full-width sheet, result buttons ≥ 40px, Save not covered, section readable, Close, Reopen) and
+the 390px warning dialog with all three warnings, Cancel and Close Anyway unclipped; regression
+(Findings list and filter, Actions, Verification, Excel import, Master Plan, Overview, Frameworks).
+
+Notes on the run (not defects): the first run had 6 failures, all one test-script cause — the
+section labels are CSS-uppercased, so `innerText` returned "RESULT" / "REVIEWED BY" against
+case-sensitive regexes; one later run timed out after 10s waiting for the page to refresh after a
+type change whose save had succeeded (confirmed in the database) — the wait was raised to 25s
+(no reload was added). The full suite then passed 122/122.
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All
+`P4D2-ACCEPT-` fixtures removed — zero residue; genuine Chinh Long / Test 1 data hashed identical
+before and after; issues/actions/attachments/files all 0.
+
 ### Phase 5 — Documents / Versions / Reviews
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to

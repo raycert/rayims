@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { findingSchema, verificationFindingSchema } from "@/lib/validation/findings";
-import { ncResponseSchema } from "@/lib/validation/actions";
-import { frameworkItemInProjectScope, validateSiteAndActivity } from "./scope-validation";
+import { effectivenessSchema, ncResponseSchema } from "@/lib/validation/actions";
+import { frameworkItemInProjectScope, validateSiteAndActivity, type SupabaseServerClient } from "./scope-validation";
+import { evaluateFindingClosure, type ClosureEvaluation } from "@/lib/domain/finding-closure";
 import { fieldErrorsFrom, type ActionResult } from "./types";
 
 function revalidateFinding(projectId: string, findingId?: string) {
@@ -147,51 +148,131 @@ export async function updateFinding(projectId: string, findingId: string, input:
   return { ok: true, data: undefined };
 }
 
+type ClosureLoad =
+  | { ok: true; evaluation: ClosureEvaluation }
+  | { ok: false; error: string };
+
 /**
- * Closes an Observation or Opportunity for Improvement (Phase 4C-1). Nonconformity closure
- * needs the 4D response/effectiveness workflow and is refused here. Refused while any linked
- * Action is not Closed. status/closed_at/closed_by are always server-derived.
+ * Loads the authoritative closure state of an OPEN Finding of this project: the Finding and its
+ * linked actions' statuses in ONE query (embedded relationship), evaluated by the shared rules.
  */
-export async function closeFinding(projectId: string, findingId: string): Promise<ActionResult> {
+async function loadClosure(supabase: SupabaseServerClient, projectId: string, findingId: string): Promise<ClosureLoad> {
+  const { data: finding, error } = await supabase
+    .from("issues")
+    .select("id, project_id, status, finding_type, correction, root_cause, effectiveness_result, actions(status)")
+    .eq("id", findingId)
+    .maybeSingle();
+  if (error) return { ok: false, error: "Couldn't check the finding. Try again." };
+  if (!finding || finding.project_id !== projectId) return { ok: false, error: "This finding could not be found." };
+  if (finding.status === "closed") return { ok: false, error: "This finding is already closed." };
+  return {
+    ok: true,
+    evaluation: evaluateFindingClosure({
+      findingType: finding.finding_type,
+      correction: finding.correction,
+      rootCause: finding.root_cause,
+      effectivenessResult: finding.effectiveness_result,
+      actionStatuses: (finding.actions ?? []).map((a) => a.status),
+    }),
+  };
+}
+
+/** Current closure evaluation for the Close confirmation (read-only; the close itself re-evaluates). */
+export async function getFindingClosureState(projectId: string, findingId: string): Promise<ActionResult<ClosureEvaluation>> {
+  await requireUser();
+  const supabase = await createSupabaseClient();
+  const loaded = await loadClosure(supabase, projectId, findingId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  return { ok: true, data: loaded.evaluation };
+}
+
+export type CloseOutcome = { closed: true } | { closed: false; evaluation: ClosureEvaluation };
+
+/**
+ * Closes a Finding of any type (Phase 4D-2) using ONLY server-side, freshly loaded data and the
+ * shared evaluator: hard blockers always refuse; warnings refuse unless the caller explicitly
+ * confirmed them ({ confirmWarnings: true }) — the client's view of blockers/warnings is never
+ * trusted. On close only status, closed_at (server time) and closed_by (session user) change.
+ */
+export async function closeFinding(
+  projectId: string,
+  findingId: string,
+  options?: { confirmWarnings?: boolean },
+): Promise<ActionResult<CloseOutcome>> {
   const user = await requireUser();
   const supabase = await createSupabaseClient();
 
-  const { data: finding, error } = await supabase
-    .from("issues")
-    .select("id, project_id, status, finding_type")
-    .eq("id", findingId)
-    .maybeSingle();
-  if (error) return { ok: false, error: "Couldn't close the finding. Try again." };
-  if (!finding || finding.project_id !== projectId) return { ok: false, error: "This finding could not be found." };
-  if (finding.status === "closed") return { ok: false, error: "This finding is already closed." };
-  if (finding.finding_type === "nonconformity") {
-    return { ok: false, error: "A Nonconformity can't be closed yet." };
+  const loaded = await loadClosure(supabase, projectId, findingId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  const { evaluation } = loaded;
+  if (!evaluation.canClose) return { ok: true, data: { closed: false, evaluation } };
+  if (evaluation.warnings.length > 0 && options?.confirmWarnings !== true) {
+    return { ok: true, data: { closed: false, evaluation } };
   }
 
-  const { count, error: actionsError } = await supabase
-    .from("actions")
-    .select("id", { count: "exact", head: true })
-    .eq("issue_id", findingId)
-    .neq("status", "closed");
-  if (actionsError) return { ok: false, error: "Couldn't close the finding. Try again." };
-  if ((count ?? 0) > 0) {
-    return {
-      ok: false,
-      error: `This finding has ${count} linked ${count === 1 ? "action" : "actions"} that ${count === 1 ? "isn't" : "aren't"} closed. Close ${count === 1 ? "it" : "them"} first.`,
-    };
-  }
-
-  const { data, error: updateError } = await supabase
+  const { data, error } = await supabase
     .from("issues")
     .update({ status: "closed", closed_at: new Date().toISOString(), closed_by: user.id })
     .eq("id", findingId)
     .eq("project_id", projectId)
     .eq("status", "open")
     .select("id");
-  if (updateError) return { ok: false, error: "Couldn't close the finding. Try again." };
+  if (error) return { ok: false, error: "Couldn't close the finding. Try again." };
   if (!data || data.length === 0) return { ok: false, error: "This finding could not be closed. It may already be closed." };
 
   revalidateFinding(projectId, findingId);
+  revalidatePath(`/projects/${projectId}/actions`);
+  return { ok: true, data: { closed: true } };
+}
+
+/**
+ * Records (or replaces) the ONE current Effectiveness Review of an OPEN Nonconformity.
+ * Updates only effectiveness_result / _notes and the server-derived reviewer (session user)
+ * and time. No history: a repeat review overwrites the previous one.
+ */
+export async function recordEffectivenessReview(
+  projectId: string,
+  findingId: string,
+  input: unknown,
+): Promise<ActionResult> {
+  const user = await requireUser();
+
+  const parsed = effectivenessSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Select a result.", fieldErrors: fieldErrorsFrom(parsed.error) };
+  }
+  const d = parsed.data;
+
+  const supabase = await createSupabaseClient();
+  const { data: finding, error } = await supabase
+    .from("issues")
+    .select("id, project_id, status, finding_type")
+    .eq("id", findingId)
+    .maybeSingle();
+  if (error) return { ok: false, error: "Couldn't save the effectiveness review. Try again." };
+  if (!finding || finding.project_id !== projectId) return { ok: false, error: "This finding could not be found." };
+  if (finding.finding_type !== "nonconformity") {
+    return { ok: false, error: "An effectiveness review is only recorded for a Nonconformity." };
+  }
+  if (finding.status === "closed") return { ok: false, error: "This finding is closed. Reopen it to edit." };
+
+  const { data, error: updateError } = await supabase
+    .from("issues")
+    .update({
+      effectiveness_result: d.result,
+      effectiveness_notes: d.notes,
+      effectiveness_reviewed_by: user.id,
+      effectiveness_reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", findingId)
+    .eq("project_id", projectId)
+    .eq("status", "open")
+    .eq("finding_type", "nonconformity")
+    .select("id");
+  if (updateError) return { ok: false, error: "Couldn't save the effectiveness review. Try again." };
+  if (!data || data.length === 0) return { ok: false, error: "The review could not be saved. The finding may have changed." };
+
+  revalidatePath(`/projects/${projectId}/findings/${findingId}`);
   return { ok: true, data: undefined };
 }
 

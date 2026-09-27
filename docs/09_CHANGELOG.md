@@ -3,6 +3,40 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 4D-2 — Effectiveness Review & NC closure (2026-09-27)
+
+**Result: 122/122 acceptance checks, 0 P0/P1 findings.** No migration, no RLS/grant change (the
+4C-1 schema already had the effectiveness and `closed_by` columns). Completes the lightweight NC
+workflow of ADR-018. Phase 4E has not started.
+
+### Added
+
+- **Effectiveness Review** section on a Nonconformity (Result, Notes, Reviewed By, Reviewed At;
+  "Not Reviewed" / "—" before a review; reviewer shown by display name, else email, else
+  "Unknown user") with **Record / Edit Effectiveness Review** (`EffectivenessDrawer`); Progress
+  gains an Effectiveness Review row.
+- `recordEffectivenessReview` — updates only the four effectiveness columns of an open
+  Nonconformity; reviewer/time server-derived; replaces the current review (BR-99).
+- `lib/domain/finding-closure.ts` — `evaluateFindingClosure`, the ONE closure rule set
+  (hard blockers / warnings / info) for every Finding type (BR-100).
+- `getFindingClosureState` and a rewritten `closeFinding(projectId, findingId, { confirmWarnings })`:
+  one query loads the Finding with its action statuses, the evaluator decides, warnings require
+  explicit confirmation, and the server re-evaluates on every close.
+- **Close Finding** for Nonconformity, with a blocker panel ("Cannot close this Finding", Back only),
+  a warning confirmation ("Please review", **Close Anyway**) or a clean confirmation; NC-specific
+  Reopen wording.
+
+### Changed
+
+- Observation / OFI closure now uses the same evaluator (same rule as before: blocked while a
+  linked action is not Closed). BR-88 / BR-98 marked as implemented / superseded; BR-99 – BR-101
+  added.
+
+### Not done (intentionally)
+
+Evidence (4E), delete and overdue overview (4F), effectiveness history, Finding number, approvals /
+e-signatures, notifications.
+
 ## Phase 4D-1 — NC response & Corrective Actions (2026-09-27)
 
 **Result: 145/145 acceptance checks, 0 P0/P1 findings.** No migration, no RLS/grant change
