@@ -19,8 +19,8 @@
 | — 4B.5 | Verification Excel import                 | **COMPLETED** |
 | — 4C-1 | Finding foundation                        | **COMPLETED** |
 | — 4C-2 | Verification → Finding integration        | **COMPLETED** |
-| — 4D-1 | NC response & Corrective Actions          | Planned — NEXT |
-| — 4D-2 | Effectiveness Review, NC closure & Reopen | Planned       |
+| — 4D-1 | NC response & Corrective Actions          | **COMPLETED** |
+| — 4D-2 | Effectiveness Review, NC closure & Reopen | Planned — NEXT |
 | — 4E  | Evidence / Attachments                     | Planned       |
 | — 4F  | Controlled delete, overdue-actions overview, Phase 4 final acceptance | Planned |
 | 5     | Documents / Versions / Reviews              | Planned       |
@@ -463,11 +463,21 @@ existing Activity Verification query — no per-item query. No schema, RLS or gr
 
 **Verified (2026-09-27): 155/155 acceptance checks** — see `08_TESTING.md`.
 
-### Phase 4D — NC response and Corrective Actions [4D-1 NEXT]
+### Phase 4D — NC response and Corrective Actions [4D-1 COMPLETED · 4D-2 NEXT]
 
-- **4D-1:** Correction and Root Cause editing (Nonconformity), Corrective Action CRUD
-  (`actions` linked by `issue_id`: owner, due date, status, completion), derived workflow
-  progress, and the project **Actions** tab (Findings | Actions).
+- **4D-1 [COMPLETED]:** Finding Detail gains, for a Nonconformity, a derived **Progress** panel
+  (Correction / Root Cause Analysis Complete–Pending, "N of M Closed"), the **NC Response**
+  (Correction, Root Cause Analysis — optional, edited via **Edit NC Response**) and **Corrective
+  Actions**; Observation / OFI show **Actions** only. One shared Action form (description, owner,
+  due date, priority, Activity/Site with the BR-73 lock) serves Finding-linked and standalone
+  actions; the Finding link is immutable. Compact status control (Open / In Progress / Pending
+  Review / Closed, optional Completion Notes on close; `completed_at` server-set on close,
+  cleared on reopen); derived Overdue. A closed Finding freezes its linked actions. New
+  **Findings | Actions** sub-navigation and the project **Actions** workspace
+  (`/projects/[projectId]/actions`: linked and standalone actions, search, Status / Overdue /
+  Site / Priority / Linked-vs-Standalone filters, default order overdue → open → due date →
+  priority → newest, **+ New Action** for standalone actions). A Nonconformity still cannot close.
+  No schema, RLS or grant change. **Verified (2026-09-27): 145/145** — see `08_TESTING.md`.
 - **4D-2:** Effectiveness Review (server-derived reviewer/time), Nonconformity closure with
   the approved hard blockers (linked action not Closed; `not_effective`) and warnings
   (missing correction / root cause / effectiveness — "Close Anyway", BR-88), Reopen for

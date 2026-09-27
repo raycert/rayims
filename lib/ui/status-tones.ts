@@ -95,6 +95,26 @@ export function findingStatusTone(status: string): Tone {
   return status === "closed" ? "success" : "warning";
 }
 
+const ACTION_STATUS_LABELS: Record<string, string> = {
+  open: "Open",
+  in_progress: "In Progress",
+  pending_review: "Pending Review",
+  closed: "Closed",
+};
+const ACTION_STATUS_TONES: Record<string, Tone> = {
+  open: "neutral",
+  in_progress: "warning",
+  pending_review: "warning",
+  closed: "success",
+};
+
+export function actionStatusLabel(status: string): string {
+  return ACTION_STATUS_LABELS[status] ?? status;
+}
+export function actionStatusTone(status: string): Tone {
+  return ACTION_STATUS_TONES[status] ?? "neutral";
+}
+
 /** null = Pending (not yet verified) — never rendered as a raw null/blank. */
 const VERIFICATION_RESULT_LABELS: Record<string, string> = {
   verified_ok: "Verified OK",

@@ -104,7 +104,7 @@ export function FindingsWorkspaceView({
 
       {findings.length > 0 ? (
         <div className="my-4 flex flex-wrap items-center gap-2.5">
-          <div className="max-w-xs flex-1">
+          <div className="w-full md:w-auto md:max-w-xs md:flex-1">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}

@@ -49,6 +49,16 @@ export function formatActivityDateTime(
 }
 
 /**
+ * Action overdue is derived, never stored (BR-34): due_date before today and status not
+ * closed (pending_review can be overdue). No due date = never overdue. Same string date
+ * comparison as isActivityOverdue.
+ */
+export function isActionOverdue(action: { status: string; dueDate: string | null }): boolean {
+  if (action.status === "closed" || !action.dueDate) return false;
+  return action.dueDate < new Date().toISOString().slice(0, 10);
+}
+
+/**
  * Overdue is derived, never stored (BR-63): effective end date is `endDate` if set,
  * else `startDate`; overdue when that date is before today and status is not
  * completed/cancelled. An undated activity is never overdue. Clock time is not

@@ -17,6 +17,10 @@ import {
 import { formatDate } from "@/lib/ui/format";
 import { closeFinding, reopenFinding } from "@/lib/mutations/findings";
 import { FindingFormDrawer } from "./finding-form-drawer";
+import { NcResponseDrawer } from "./nc-response-drawer";
+import { ActionCard } from "@/components/actions/action-card";
+import { ActionFormDrawer } from "@/components/actions/action-form-drawer";
+import type { ActionRow } from "@/lib/queries/actions";
 import type { FindingDetail } from "@/lib/queries/findings";
 import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
 
@@ -43,6 +47,15 @@ function TextField({ label, value }: { label: string; value: string | null }) {
 
 type Confirm = "close" | "reopen" | null;
 
+function ProgressRow({ label, value, done }: { label: string; value: string; done: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+      <span className="text-sm">{label}</span>
+      <StatusBadge label={value} tone={done ? "success" : "neutral"} />
+    </div>
+  );
+}
+
 export function FindingDetailView({
   projectName,
   finding,
@@ -57,7 +70,24 @@ export function FindingDetailView({
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [blocked, setBlocked] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [editingResponse, setEditingResponse] = useState(false);
+  const [actionDrawer, setActionDrawer] = useState<{ mode: "create" } | { mode: "edit"; action: ActionRow } | null>(null);
   const { message, show } = useToast();
+
+  const isNc = finding.findingType === "nonconformity";
+  const actionsNoun = isNc ? "Corrective Actions" : "Actions";
+  const closedActions = finding.actions.filter((a) => a.status === "closed").length;
+  const actionsProgress =
+    finding.actions.length === 0 ? "None recorded" : `${closedActions} of ${finding.actions.length} Closed`;
+  const hasCorrection = !!finding.correction?.trim();
+  const hasRootCause = !!finding.rootCause?.trim();
+
+  function refreshWith(msg: string) {
+    setEditingResponse(false);
+    setActionDrawer(null);
+    router.refresh();
+    show(msg);
+  }
 
   const isClosed = finding.status === "closed";
   // Nonconformity closure needs the response/effectiveness workflow (Phase 4D): no Close action yet.
@@ -255,6 +285,90 @@ export function FindingDetailView({
           </div>
         </section>
 
+        {isNc ? (
+          <section data-testid="nc-progress" className="rounded-lg border border-border bg-surface">
+            <div className="border-b border-border px-4 py-3">
+              <h2 className="text-sm font-semibold">Progress</h2>
+            </div>
+            <div className="divide-y divide-border">
+              <ProgressRow label="Correction" value={hasCorrection ? "Complete" : "Pending"} done={hasCorrection} />
+              <ProgressRow label="Root Cause Analysis" value={hasRootCause ? "Complete" : "Pending"} done={hasRootCause} />
+              <ProgressRow
+                label="Corrective Actions"
+                value={actionsProgress}
+                done={finding.actions.length > 0 && closedActions === finding.actions.length}
+              />
+            </div>
+          </section>
+        ) : null}
+
+        {isNc ? (
+          <section data-testid="nc-response" className="rounded-lg border border-border bg-surface">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <h2 className="text-sm font-semibold">NC Response</h2>
+              {!isClosed ? (
+                <Button type="button" variant="secondary" className="min-h-9" onClick={() => setEditingResponse(true)}>
+                  Edit NC Response
+                </Button>
+              ) : null}
+            </div>
+            <div className="divide-y divide-border">
+              <div className="px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted">Correction</div>
+                <p className="text-xs text-muted">Immediate action taken to address the detected problem.</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm">
+                  {finding.correction ? finding.correction : <span className="text-muted">Not recorded.</span>}
+                </p>
+              </div>
+              <div className="px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted">Root Cause Analysis</div>
+                <p className="text-xs text-muted">The identified cause or causes behind the nonconformity.</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm">
+                  {finding.rootCause ? finding.rootCause : <span className="text-muted">Not recorded.</span>}
+                </p>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <section data-testid="finding-actions" className="rounded-lg border border-border bg-surface">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+            <div>
+              <h2 className="text-sm font-semibold">{actionsNoun}</h2>
+              <p className="text-xs text-muted">
+                {finding.actions.length === 0
+                  ? isNc
+                    ? "No corrective actions recorded"
+                    : "No actions recorded"
+                  : `${closedActions} of ${finding.actions.length} Closed`}
+              </p>
+            </div>
+            {!isClosed ? (
+              <Button type="button" variant="secondary" className="min-h-9" onClick={() => setActionDrawer({ mode: "create" })}>
+                {isNc ? "+ Add Corrective Action" : "+ Add Action"}
+              </Button>
+            ) : null}
+          </div>
+          {finding.actions.length > 0 ? (
+            <div className="flex flex-col gap-2.5 p-4">
+              {finding.actions.map((a, i) => (
+                <div key={a.id} className="flex gap-2">
+                  <span className="pt-3.5 text-xs font-semibold text-muted">{i + 1}.</span>
+                  <div className="min-w-0 flex-1">
+                    <ActionCard
+                      projectId={finding.projectId}
+                      action={a}
+                      onEdit={(action) => setActionDrawer({ mode: "edit", action })}
+                      onChanged={refreshWith}
+                      onError={show}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
         <section className="rounded-lg border border-border bg-surface">
           <div className="border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold">Origin</h2>
@@ -305,6 +419,31 @@ export function FindingDetailView({
         </section>
       </div>
 
+      {editingResponse ? (
+        <NcResponseDrawer
+          projectId={finding.projectId}
+          findingId={finding.id}
+          correction={finding.correction}
+          rootCause={finding.rootCause}
+          onClose={() => setEditingResponse(false)}
+          onSaved={refreshWith}
+        />
+      ) : null}
+      {actionDrawer ? (
+        <ActionFormDrawer
+          mode={actionDrawer.mode}
+          projectId={finding.projectId}
+          catalog={catalog}
+          finding={
+            actionDrawer.mode === "create"
+              ? { id: finding.id, title: finding.title, isNonconformity: isNc, activityId: finding.activityId, siteId: finding.siteId }
+              : undefined
+          }
+          action={actionDrawer.mode === "edit" ? actionDrawer.action : undefined}
+          onClose={() => setActionDrawer(null)}
+          onSaved={refreshWith}
+        />
+      ) : null}
       {editing ? (
         <FindingFormDrawer
           mode="edit"

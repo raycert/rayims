@@ -3,6 +3,43 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 4D-1 — NC response & Corrective Actions (2026-09-27)
+
+**Result: 145/145 acceptance checks, 0 P0/P1 findings.** No migration, no RLS/grant change
+(the Phase 4C-1 schema already had `correction` / `root_cause`, and `actions` was unchanged).
+Phase 4D-2 has not started.
+
+### Added
+
+- **Finding Detail** (Nonconformity): derived **Progress** panel, **NC Response** (Correction,
+  Root Cause Analysis) with **Edit NC Response**, **Corrective Actions** list with
+  **+ Add Corrective Action**. Observation / OFI: **Actions** with **+ Add Action** only (BR-94).
+- `updateNcResponse` (`lib/mutations/findings.ts`) — updates only `correction` / `root_cause`
+  of an open Nonconformity; blank → NULL.
+- `createAction`, `updateAction`, `setActionStatus` (`lib/mutations/actions.ts`): server-derived
+  `project_id` / `issue_id` / `created_by` / Open; immutable Finding link; BR-73 Site↔Activity
+  rule; closed actions and actions of a closed Finding are read-only; `completed_at` set on
+  close and cleared on reopen, completion notes kept (BR-95 – BR-97).
+- Shared `ActionFormDrawer`, `ActionStatusControl`, `ActionCard`; `NcResponseDrawer`;
+  `FindingsSubnav` (Findings | Actions).
+- **Project Actions workspace** `/projects/[projectId]/actions` (`ActionsWorkspaceView`,
+  `listProjectActions`): linked and standalone actions, search, filters, derived Overdue, default
+  order, **+ New Action** (standalone).
+- `isActionOverdue` (`lib/ui/format.ts`), action status labels/tones; `getFinding` now returns
+  the NC response and linked actions in its one query.
+
+### Fixed
+
+- The active project tab could wrap onto several lines on mobile ("Findings & Actions"): it now
+  has `whitespace-nowrap` like the inactive tabs. The Findings / Actions search box is full-width
+  on mobile.
+
+### Not done (intentionally)
+
+Effectiveness Review, Nonconformity closure / Close Anyway / NC Reopen (4D-2), Evidence (4E),
+Finding / Action delete (4F), overdue actions on Project Overview (4F), linking an existing
+action to a Finding.
+
 ## Phase 4C-2 — Verification → Finding integration (2026-09-27)
 
 **Result: 155/155 acceptance checks, 0 P0/P1 findings.** No migration, no RLS/grant change.

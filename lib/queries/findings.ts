@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatFrameworkIdentity } from "@/lib/ui/format";
 import { siteNameMap } from "./activities";
 import { loadScopeCatalog, type VerificationFormCatalog } from "./verification-items";
+import { mapAction, type ActionRow, type RawAction } from "./actions";
 
 /** A Finding is the `issues` table (ADR-018). */
 export type FindingRow = {
@@ -30,6 +31,11 @@ export type FindingRow = {
 };
 
 export type FindingDetail = FindingRow & {
+  /** NC response (Nonconformity). Preserved, but not shown, for other types. */
+  correction: string | null;
+  rootCause: string | null;
+  /** Linked actions (Corrective Actions for a Nonconformity), oldest first. */
+  actions: ActionRow[];
   verificationQuestion: string | null;
   /** Set only when created from a Document Review (Phase 5). */
   documentReviewId: string | null;
@@ -40,7 +46,7 @@ export type FindingDetail = FindingRow & {
 const FINDING_COLUMNS =
   "id, project_id, finding_type, title, description, priority, status, site_id, activity_id, framework_item_id, verification_item_id, created_at, closed_at, framework_items(id, code, title, frameworks(code, edition)), activities(id, name, start_date, start_time)";
 
-const DETAIL_COLUMNS = `${FINDING_COLUMNS}, document_review_id, verification_items(id, question), created_by_profile:profiles!issues_created_by_fkey(display_name), closed_by_profile:profiles!issues_closed_by_fkey(display_name)`;
+const DETAIL_COLUMNS = `${FINDING_COLUMNS}, correction, root_cause, actions(id, project_id, description, owner_name, due_date, priority, status, completion_notes, completed_at, site_id, activity_id, issue_id, created_at, activities(id, name, start_date)), document_review_id, verification_items(id, question), created_by_profile:profiles!issues_created_by_fkey(display_name), closed_by_profile:profiles!issues_closed_by_fkey(display_name)`;
 
 type RawFinding = {
   id: string;
@@ -128,8 +134,16 @@ export async function getFinding(projectId: string, findingId: string): Promise<
   if (res.error) throw new Error("Could not load the finding.");
   if (!res.data) return null;
   const f = res.data;
+  const base = mapRow(f as RawFinding, siteMap);
   return {
-    ...mapRow(f as RawFinding, siteMap),
+    ...base,
+    correction: f.correction,
+    rootCause: f.root_cause,
+    actions: [...(f.actions ?? [])]
+      .map((a) =>
+        mapAction({ ...(a as RawAction), issues: { id: base.id, title: base.title, finding_type: base.findingType, status: base.status } }, siteMap),
+      )
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1)),
     verificationQuestion: f.verification_items?.question ?? null,
     documentReviewId: f.document_review_id,
     createdByName: f.created_by_profile?.display_name ?? null,

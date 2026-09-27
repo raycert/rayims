@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { findingSchema, verificationFindingSchema } from "@/lib/validation/findings";
+import { ncResponseSchema } from "@/lib/validation/actions";
 import { frameworkItemInProjectScope, validateSiteAndActivity } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
 
@@ -323,4 +324,44 @@ export async function createFindingFromVerification(
   revalidateFinding(projectId);
   revalidatePath(`/projects/${projectId}/activities/${activityId}`);
   return { ok: true, data: { id: data.id } };
+}
+
+/**
+ * Records the NC response (Correction, Root Cause Analysis) of an OPEN Nonconformity. Updates
+ * ONLY issues.correction and issues.root_cause; blank values are stored as NULL. Neither field is
+ * required (no placeholder "N/A").
+ */
+export async function updateNcResponse(projectId: string, findingId: string, input: unknown): Promise<ActionResult> {
+  await requireUser();
+
+  const parsed = ncResponseSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Check the highlighted fields." };
+  const d = parsed.data;
+
+  const supabase = await createSupabaseClient();
+  const { data: finding, error } = await supabase
+    .from("issues")
+    .select("id, project_id, status, finding_type")
+    .eq("id", findingId)
+    .maybeSingle();
+  if (error) return { ok: false, error: "Couldn't save the NC response. Try again." };
+  if (!finding || finding.project_id !== projectId) return { ok: false, error: "This finding could not be found." };
+  if (finding.finding_type !== "nonconformity") {
+    return { ok: false, error: "An NC response is only recorded for a Nonconformity." };
+  }
+  if (finding.status === "closed") return { ok: false, error: "This finding is closed. Reopen it to edit." };
+
+  const { data, error: updateError } = await supabase
+    .from("issues")
+    .update({ correction: d.correction, root_cause: d.rootCause })
+    .eq("id", findingId)
+    .eq("project_id", projectId)
+    .eq("status", "open")
+    .eq("finding_type", "nonconformity")
+    .select("id");
+  if (updateError) return { ok: false, error: "Couldn't save the NC response. Try again." };
+  if (!data || data.length === 0) return { ok: false, error: "The NC response could not be saved. The finding may have changed." };
+
+  revalidatePath(`/projects/${projectId}/findings/${findingId}`);
+  return { ok: true, data: undefined };
 }

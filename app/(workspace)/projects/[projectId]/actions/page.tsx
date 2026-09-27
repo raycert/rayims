@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
-import { FindingsWorkspaceView } from "@/components/findings/findings-workspace-view";
+import { ActionsWorkspaceView } from "@/components/actions/actions-workspace-view";
 import { FindingsSubnav } from "@/components/findings/findings-subnav";
 import { ProjectWorkspaceHeader } from "@/components/projects/project-workspace-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { getProjectWorkspace } from "@/lib/queries/projects";
-import { getFindingFormCatalog, listFindings } from "@/lib/queries/findings";
+import { listProjectActions } from "@/lib/queries/actions";
+import { getFindingFormCatalog } from "@/lib/queries/findings";
 
 export async function generateMetadata({
   params,
@@ -13,10 +14,10 @@ export async function generateMetadata({
 }) {
   const { projectId } = await params;
   const project = await getProjectWorkspace(projectId);
-  return { title: project ? `Findings · ${project.name}` : "Findings" };
+  return { title: project ? `Actions · ${project.name}` : "Actions" };
 }
 
-export default async function ProjectFindingsPage({
+export default async function ProjectActionsPage({
   params,
 }: {
   params: Promise<{ projectId: string }>;
@@ -25,13 +26,13 @@ export default async function ProjectFindingsPage({
   const project = await getProjectWorkspace(projectId);
   if (!project) notFound();
 
-  const [findings, catalog] = await Promise.all([listFindings(projectId), getFindingFormCatalog(projectId)]);
+  const [actions, catalog] = await Promise.all([listProjectActions(projectId), getFindingFormCatalog(projectId)]);
 
   return (
     <PageContainer>
       <ProjectWorkspaceHeader project={project} activeTab="findings" />
-      <FindingsSubnav projectId={projectId} active="findings" />
-      <FindingsWorkspaceView projectId={projectId} findings={findings} catalog={catalog} />
+      <FindingsSubnav projectId={projectId} active="actions" />
+      <ActionsWorkspaceView projectId={projectId} actions={actions} catalog={catalog} />
     </PageContainer>
   );
 }

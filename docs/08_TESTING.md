@@ -754,6 +754,55 @@ page before it re-rendered; the script was fixed and the full suite re-run to 15
 `P4C2-ACCEPT-` fixtures removed — zero residue; the genuine Chinh Long / Test 1 data hashed
 identical before and after; issues/actions/attachments/files all 0.
 
+### Phase 4D-1 — NC response & Corrective Actions (executed 2026-09-27)
+
+Result: **PASS — 145/145 acceptance checks, 0 failures**, on the first run and again after the two
+layout fixes below (hosted Supabase, production build, Playwright/Edge, desktop 1280×800, mobile
+390px and 412px, Admin + Consultant + anon). All fixtures used a `P4D1-ACCEPT-` client.
+
+Pre-flight: HEAD `7a8e7aa`, clean tree; hosted issues/actions/attachments/files all 0; genuine
+data present. A schema/RLS/grant snapshot before and after is **identical** (no schema change).
+
+Covered: 4C-2 regression (Issue Identified alone → 0 Findings; explicit Create Finding works);
+Nonconformity detail order Finding → Progress → NC Response → Corrective Actions → Origin, no
+Effectiveness, no Close; Edit NC Response (values stored trimmed, Progress → Complete, blank Root
+Cause saved as NULL, smuggled title/status/effectiveness/priority ignored); Add Corrective Action
+(title, Finding context, Activity/Site defaults with site lock, no status/completion fields,
+description required and whitespace rejected, DB `issue_id`/`project_id`/Open/`created_by`/no
+completion, owner/due/High/site/activity, Finding priority independent, a second action on a
+different project-wide Activity + Long An and a third with no Activity); server rejection of a
+Site differing from a site-specific Activity, another project's Site / Activity / Finding, and of
+an edit of another project's action; smuggled `status`/`completed_at`/`completion_notes`/
+`created_by`/`issue_id`/`project_id` ignored on create and `issue_id` ignored on edit (link
+immutable); status Open → In Progress → Pending Review → Closed with Completion Notes
+(`completed_at` = server time), Closed → In Progress (`completed_at` NULL, notes kept), re-close
+prefilling notes, closing without notes, stale edit of a Closed action rejected; progress 0 of 1 →
+0 of 3 → 1 of 3 → 3 of 3 with the Nonconformity still not closable; type change NC → Observation →
+NC hides and restores the NC response with no data loss; Observation and OFI through the real UI
+(no NC sections, "Actions" label, Close blocked by an open action, allowed once it is closed);
+closed Finding freezes its actions (no Add, read-only card, server rejects adding an action and a
+status change; reopening restores editing); Actions workspace (sub-navigation, columns, Finding
+link opens the Finding, Project B actions never shown, standalone **+ New Action** with
+`issue_id` NULL and no Finding created, "Standalone" label, smuggled `issue_id` ignored on edit);
+default order over a 7-row fixture, Overdue for yesterday + Open / Pending Review and not for
+Closed or today, no stored overdue column; search by owner / Finding / site / activity /
+description; Status / Overdue / Site / Priority / Linked / Standalone filters; query approach (one
+embedded query each); Consultant adds an action, changes status and edits the NC response; anon
+redirected and denied over REST; Project B Finding not found through a Project A URL; mobile at
+390px and 412px (vertical NC detail, full-width sheets, owner/due fields, Create reachable, last
+status control above the bottom navigation, cards with Overdue / Finding / Standalone / owner,
++ New Action, no overflow); desktop drawer width; regression (Findings, Verification, Excel import,
+Master Plan, Overview, Frameworks, Activity Detail).
+
+**Fixed during acceptance (in-scope, visual review):** the active project tab wrapped onto three
+lines on mobile ("Findings & Actions" — missing `whitespace-nowrap`, present since 4C-1), and the
+Findings / Actions search box was squeezed on mobile; the desktop Actions table repeated a
+"Status" label inside the Status column. All fixed, then the full suite re-run to 145/145.
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All
+`P4D1-ACCEPT-` fixtures removed — zero residue; the genuine Chinh Long / Test 1 data hashed
+identical before and after; issues/actions/attachments/files all 0.
+
 ### Phase 5 — Documents / Versions / Reviews
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to

@@ -74,7 +74,7 @@ export function ProjectWorkspaceHeader({
             href={tab.href(project.id)}
             className={
               tab.key === activeTab
-                ? "min-h-10 border-b-2 border-primary px-1 text-sm font-medium text-primary"
+                ? "flex min-h-10 items-center whitespace-nowrap border-b-2 border-primary px-1 text-sm font-medium text-primary"
                 : "flex min-h-10 items-center whitespace-nowrap border-b-2 border-transparent px-1 text-sm font-medium text-muted hover:text-foreground"
             }
           >

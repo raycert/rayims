@@ -334,6 +334,35 @@ Product behavior that the schema and UI must respect. Database details are in
   Verification the **Activity is read-only** (server-enforced) while Framework Requirement,
   Priority, Title, Description, Type and (when the Activity is project-wide) Site remain editable
   while Open; a manual Finding keeps its free Activity picker (BR-86).
+- **BR-94** **NC Response** (Phase 4D-1, Nonconformity only): **Correction** (`issues.correction`
+  — immediate action on the detected problem) and **Root Cause Analysis** (`issues.root_cause`)
+  are edited through a dedicated mutation that updates only those two columns, only while the
+  Nonconformity is Open. Both are optional (blank → NULL; never a placeholder "N/A"). A
+  *correction* is not a *corrective action*. Observation and Opportunity for Improvement show no
+  NC response; changing a Finding's type hides but never clears correction, root cause or
+  actions.
+- **BR-95** **Actions** are `actions` rows. An action created from a Finding is linked
+  (`issue_id`), shown as a **Corrective Action** for a Nonconformity and as an **Action**
+  otherwise (no stored action type); an action created from the project Actions workspace is
+  **standalone** (`issue_id` NULL). `project_id`, `issue_id`, `created_by` and status Open are
+  server-derived; the Finding link is **immutable** (never relinked, never set on a standalone
+  action, never cleared). Fields: Action (description, required), Owner (free text), Due Date,
+  Priority (default medium, independent of the Finding's), Activity and Site — defaulting to
+  the Finding's Activity/Site and following BR-73 (a site-specific Activity fixes the Site).
+  An action may be added to a Finding only while it is Open.
+- **BR-96** Action status: `open | in_progress | pending_review | closed`, changed directly (no
+  state machine). Closing sets `completed_at` to the server time and optionally records
+  **Completion Notes**; leaving Closed clears `completed_at` and keeps the notes. A Closed action
+  is read-only (reopen it first). **Overdue** is derived: `due_date < today` and status not
+  Closed (Pending Review can be overdue); nothing is stored.
+- **BR-97** A **closed Finding freezes its linked actions**: no new action, no edit and no status
+  change until the Finding is reopened (server-enforced). Standalone actions are unaffected.
+  Observation / Opportunity for Improvement cannot close while a linked action is not Closed
+  (BR-87).
+- **BR-98** Workflow progress is derived, never stored: Correction / Root Cause Analysis are
+  *Complete* when non-blank after trimming; actions show "N of M Closed" (or "None recorded").
+  In Phase 4D-1 a Nonconformity still **cannot be closed**, even with a complete response and
+  all actions closed; Effectiveness Review and NC closure are Phase 4D-2 (BR-88).
 
 ## Evidence
 
