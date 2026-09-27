@@ -91,8 +91,9 @@ export function findingTypeTone(type: string): Tone {
 export function findingStatusLabel(status: string): string {
   return status === "closed" ? "Closed" : "Open";
 }
+/** Open is a normal state, not a warning (same tone as an Action's Open). */
 export function findingStatusTone(status: string): Tone {
-  return status === "closed" ? "success" : "warning";
+  return status === "closed" ? "success" : "neutral";
 }
 
 const ACTION_STATUS_LABELS: Record<string, string> = {

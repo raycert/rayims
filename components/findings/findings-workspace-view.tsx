@@ -203,7 +203,7 @@ export function FindingsWorkspaceView({
                     <td className="px-2.5 py-3">
                       <StatusBadge label={findingTypeLabel(f.findingType)} tone={findingTypeTone(f.findingType)} />
                     </td>
-                    <td className="px-2.5 py-3 text-muted">{f.siteName ?? PROJECT_WIDE}</td>
+                    <td className="whitespace-nowrap px-2.5 py-3 text-muted">{f.siteName ?? PROJECT_WIDE}</td>
                     <td className="px-2.5 py-3 text-muted">
                       {f.frameworkIdentity ? (
                         <>

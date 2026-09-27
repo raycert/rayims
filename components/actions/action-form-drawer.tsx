@@ -169,8 +169,8 @@ export function ActionFormDrawer({
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <div className="min-w-40 flex-[2]">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[3fr_2fr]">
+            <div>
               <label htmlFor="ac-owner" className="mb-1.5 block text-sm font-medium">
                 Owner
               </label>
@@ -181,7 +181,7 @@ export function ActionFormDrawer({
                 placeholder="e.g. Warehouse Manager"
               />
             </div>
-            <div className="min-w-36 flex-1">
+            <div>
               <label htmlFor="ac-due" className="mb-1.5 block text-sm font-medium">
                 Due Date
               </label>

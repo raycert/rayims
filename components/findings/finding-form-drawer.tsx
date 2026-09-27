@@ -57,7 +57,7 @@ export function FindingFormDrawer({
   // No default Finding Type on create: the user must choose one.
   const [findingType, setFindingType] = useState(finding?.findingType ?? "");
   const [title, setTitle] = useState(finding?.title ?? "");
-  // From a Verification: Description <- its Observation, Priority <- its priority, Framework <- its
+  // From a Verification: Description <- its Notes, Priority <- its priority, Framework <- its
   // requirement; Title and Finding Type stay blank (a checklist question is not a finding statement,
   // and a result never implies a type).
   const [description, setDescription] = useState(finding?.description ?? origin?.notes ?? "");

@@ -70,7 +70,7 @@ function ItemCard({
       {!pending ? (
         <>
           {item.notes ? (
-            <p className="mt-1.5 line-clamp-2 text-xs text-muted">Observation: {item.notes}</p>
+            <p className="mt-1.5 line-clamp-2 text-xs text-muted">Notes: {item.notes}</p>
           ) : null}
           <p className="mt-1 text-xs text-muted">
             Verified {formatDate(item.verifiedAt)} · {item.verifiedByName ?? "—"}
@@ -91,7 +91,7 @@ function ItemCard({
             {findingCount === 1 ? (
               <Link
                 href={`/projects/${projectId}/findings/${item.findings[0].id}`}
-                className="font-semibold text-primary hover:underline"
+                className="-my-2 inline-flex min-h-9 items-center font-semibold text-primary hover:underline"
               >
                 View Finding
               </Link>
@@ -100,7 +100,7 @@ function ItemCard({
                 type="button"
                 onClick={() => setListOpen((v) => !v)}
                 aria-expanded={listOpen}
-                className="font-semibold text-primary hover:underline"
+                className="-my-2 inline-flex min-h-9 items-center font-semibold text-primary hover:underline"
               >
                 {listOpen ? "Hide Findings" : "View Findings"}
               </button>
@@ -125,6 +125,26 @@ function ItemCard({
         </div>
       ) : null}
 
+      {canExecuteHere || canCreateFinding ? (
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {canExecuteHere ? (
+            <Button type="button" variant="secondary" className="px-3!" onClick={() => onExecute(item)}>
+              {pending ? "Verify" : "Review / Edit"}
+            </Button>
+          ) : null}
+          {canCreateFinding ? (
+            <Button
+              type="button"
+              variant={item.result === "issue_identified" && findingCount === 0 ? "primary" : "secondary"}
+              className="px-3!"
+              onClick={() => onCreateFinding(item)}
+            >
+              {findingCount === 0 ? "Create Finding" : "Add another Finding"}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="mt-1">
         <EvidenceButton
           title="Verification Evidence"
@@ -135,25 +155,6 @@ function ItemCard({
           onChanged={onChanged}
         />
       </div>
-
-      {canExecuteHere || canCreateFinding ? (
-        <div className="mt-2.5 flex flex-wrap gap-2">
-          {canExecuteHere ? (
-            <Button type="button" variant="secondary" onClick={() => onExecute(item)}>
-              {pending ? "Verify" : "Review / Edit"}
-            </Button>
-          ) : null}
-          {canCreateFinding ? (
-            <Button
-              type="button"
-              variant={item.result === "issue_identified" && findingCount === 0 ? "primary" : "secondary"}
-              onClick={() => onCreateFinding(item)}
-            >
-              {findingCount === 0 ? "Create Finding" : "Add another Finding"}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   );
 }

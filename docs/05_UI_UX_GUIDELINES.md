@@ -78,6 +78,15 @@ foundation (Phase 0C).
 
 ## Content and interaction
 
+- *(Phase 4E.6)* A record's single current state (e.g. Activity status) is shown **once** as one
+  labelled control ("Status: [value ▾]") — never as a row of tab-like buttons, which read as
+  separate content sections. Verification free text is labelled "Notes"; "Observation" is only a
+  Finding Type. Buttons that create a new business record carry "+" ("+ New Finding",
+  "+ New Action", "+ Add Check", "+ Add Corrective Action"); inline follow-on actions do not
+  ("Add Evidence", "Add another Finding", "Create Finding"). On cards, the result / Finding actions
+  come first and Evidence is a trailing text link. Toasts appear at the top on phones so they never
+  cover a sheet's footer buttons or the bottom navigation.
+
 - Plain, professional language; consistent terms with `04_BUSINESS_RULES.md`
   (e.g. the UI says **"Finding"** — database table `issues` — and the Project tab reads
   "Findings & Actions"; the Verification result label stays "Issue Identified". ADR-018).

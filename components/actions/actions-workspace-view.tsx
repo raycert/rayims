@@ -214,7 +214,11 @@ export function ActionsWorkspaceView({
                       </td>
                       <td className="max-w-[200px] px-2.5 py-3 text-muted">
                         {a.findingId ? (
-                          <Link href={`/projects/${projectId}/findings/${a.findingId}`} className="text-primary hover:underline">
+                          <Link
+                            href={`/projects/${projectId}/findings/${a.findingId}`}
+                            title={a.findingTitle ?? undefined}
+                            className="line-clamp-2 text-primary hover:underline"
+                          >
                             {a.findingTitle}
                           </Link>
                         ) : (

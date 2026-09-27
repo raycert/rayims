@@ -908,6 +908,41 @@ visible buttons — they are now fully hidden. Full suite re-run to 122/122.
 `P4E-ACCEPT-` fixtures removed and **17 test objects deleted from Storage**: attachments 0, files 0,
 bucket objects 0; genuine Chinh Long / Test 1 data hashed identical; bucket still private (10 MB).
 
+### Phase 4E.6 — UX polish (executed 2026-09-27)
+
+Result: **PASS — 65/65 checks, 0 failures** on the final code (hosted Supabase, production build,
+Playwright/Edge, 1280×800, 390px, 412px). Fixtures used a `P4E6-ACCEPT-` client. The genuine data
+was snapshotted **fresh** at pre-flight (it had changed through the user's own use during 4E.5) and
+is identical afterwards.
+
+Covered: Activity Detail shows one "Status:" select with the current value, no tab-like buttons and
+no duplicate status badge (desktop and both phone widths); Planned → In Progress → Completed →
+In Progress (reverse) each saved with the existing toast, the same page and all four sections kept;
+Cancel via the menu shows in the same control and Cancelled → In Progress still works; section order
+Plan → Verification → Activity Evidence → Outcome; control height ≥ 40 px, no overflow, last control
+above the bottom navigation; on every card state (pending, verified OK, follow-up, issue with 2
+findings, completed elsewhere) the result / Finding actions precede the Evidence link; card heights at
+390 px not increased (the multi-finding card shrank 338 → 290 px because its two buttons now share a
+row); "View Findings" tap area 36 px; "Notes:" on cards and "Notes" in the execution drawer, never
+"Observation:"; Finding "Open" badge neutral (Observation row now 2 amber badges instead of 3);
+Findings Site cell one line; Finding section without a repeated Title; "Not reviewed yet." before a
+review and full metadata after; editable action shows its status once (control), frozen action shows
+a badge; NC reopen wording (result, notes, Correction, RCA, Corrective Actions); Actions table Finding
+title clamped to 2 lines with the full title as a tooltip; at 390 px the "Evidence added" toast
+(top of screen) no longer covers the next sheet's Cancel / Save, and Owner / Due Date are stacked at
+full width. Regression: Issue Identified alone creates 0 Findings and saves `notes`; Create Finding
+still prefills the description from the notes; NC warnings and the OFI blocker unchanged;
+Verification workspace, Excel import, Master Plan, Overview.
+
+Notes on the run: the first two runs failed only on test-script checks (a stricter-than-specified
+amber-count threshold, measuring row height instead of wrapping, picking a standalone row, reading
+the close panel before it loaded) and exposed two real layout issues — the 36 px tap target made the
+card 20 px taller and the two card buttons still wrapped at 390 px — both fixed (negative margin for
+the tap area; tighter button padding), then the suite re-run to 65/65.
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. Fixtures and
+the one test Storage object removed; issues / actions / attachments / files / objects all 0.
+
 ### Phase 5 — Documents / Versions / Reviews
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to

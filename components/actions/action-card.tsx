@@ -33,7 +33,7 @@ export function ActionCard({
   return (
     <div data-testid="action-card" className="rounded-lg border border-border bg-surface p-3.5 shadow-sm">
       <div className="flex flex-wrap items-center gap-1.5">
-        <StatusBadge label={actionStatusLabel(action.status)} tone={actionStatusTone(action.status)} />
+        {frozen ? <StatusBadge label={actionStatusLabel(action.status)} tone={actionStatusTone(action.status)} /> : null}
         {overdue ? <StatusBadge label="Overdue" tone="danger" /> : null}
         <StatusBadge label={priorityLabel(action.priority)} tone={priorityTone(action.priority)} />
       </div>

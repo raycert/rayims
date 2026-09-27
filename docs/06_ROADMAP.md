@@ -502,6 +502,19 @@ freeze their evidence (viewable, not changeable) until reopened; Verification / 
 stays editable. Document Review evidence waits for Phase 5 (schema only). No schema, RLS, grant or
 Storage-policy change. **Verified (2026-09-27): 122/122** — see `08_TESTING.md`.
 
+### Phase 4E.5 / 4E.6 — UX review and polish [COMPLETED]
+
+4E.5 reviewed the whole Phase 4 flow (390 / 412 / 1280 px). 4E.6 applied the approved fixes: one
+**Status:** select on Activity Detail (no tab-like buttons, no duplicate badge); section order
+Plan → Verification → Activity Evidence → Outcome; Verification card actions before the Evidence
+link (and on one row at 390 px), 36 px "View Finding(s)" tap area; Verification "Observation" →
+**"Notes"**; neutral Finding "Open" badge; toast at the top on phones; compact "Not reviewed yet."
+effectiveness state; no repeated Finding title; editable actions show status once; Actions
+table Finding titles clamped to two lines; Findings Site column does not wrap; fuller NC reopen
+wording; Owner / Due Date stacked on phones. No schema or rule change. **Verified (2026-09-27):
+65/65** — see `08_TESTING.md`. Backlog: hide inert tabs on mobile, collapsible mobile filters,
+Finding origin in the header.
+
 ### Phase 4F — Controlled delete, overdue actions, Phase 4 final acceptance [NEXT]
 
 Controlled Finding and Verification delete (attachments CASCADE and `SET NULL` links must be

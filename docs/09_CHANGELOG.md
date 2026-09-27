@@ -3,6 +3,29 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 4E.6 — UX polish (2026-09-27)
+
+Applies the approved fixes from the Phase 4E.5 UX review. **Result: 65/65 checks.** No schema, RLS,
+grant, Storage or business-rule change.
+
+### Changed
+
+- Activity Detail: one **Status:** select (no tab-like Planned / In Progress / Completed buttons, no
+  duplicate status badge; Cancel stays in the menu); sections ordered Plan → Verification → Activity
+  Evidence → Outcome / Visit Summary.
+- Verification cards: Verify / Review / Edit and Create Finding / Add another Finding come first (one
+  row at 390 px), Evidence is a trailing link; "View Finding(s)" has a 36 px tap area.
+- Terminology: the Verification free-text field is labelled **"Notes"** (was "Observation");
+  "Observation" is only a Finding Type (BR-107).
+- Finding "Open" badge is neutral, like Action "Open".
+- Toasts show at the top on phones (never over sheet footers or the bottom navigation).
+- Finding Detail: no repeated Title row; "Not reviewed yet." before an effectiveness review; fuller
+  NC reopen wording.
+- Action cards show status once when editable (badge only when read-only); Actions table Finding
+  titles clamp to two lines (full title as tooltip); Findings Site column does not wrap; Owner / Due
+  Date stack on phones.
+- Button "+" convention documented in `05_UI_UX_GUIDELINES.md` (already followed).
+
 ## Phase 4E — Evidence / Attachments (2026-09-27)
 
 **Result: 122/122 acceptance checks, 0 P0/P1 findings.** No migration, no RLS / grant / Storage

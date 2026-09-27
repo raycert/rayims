@@ -84,6 +84,10 @@ Product behavior that the schema and UI must respect. Database details are in
   Activity Detail's one quick status control is the single interaction for
   Planned/In Progress/Completed; **Cancel** (`status = cancelled`) is its own
   explicitly labeled, confirmed action, not offered a second way (Phase 3B-3).
+  *(Phase 4E.6)* An Activity has **one current status**: Activity Detail shows it once, as a
+  single "Status:" select (not a badge plus three tab-like buttons). Changing it never changes
+  which sections are shown — Plan, Verification, Activity Evidence and Outcome / Visit Summary
+  always stay visible, in that order.
 - **BR-69** Cancel means `status = cancelled`. It is not delete: identity, schedule,
   Plan, Outcome and every reference to the Activity are preserved unchanged. A
   cancelled Activity remains in the Master Plan (searchable, filterable, openable,
@@ -186,7 +190,7 @@ Product behavior that the schema and UI must respect. Database details are in
   (the current route's Activity, the session user, the server clock) — never accepted
   as client input, so a request can't backdate a result or attribute it to someone
   else. Re-recording a result (Review/Edit) overwrites the previous result,
-  Observation, `verified_by` and `verified_at` in place; there is no verification
+  notes, `verified_by` and `verified_at` in place; there is no verification
   history/version table in V1.
 - **BR-76** An item may be executed from Activity X only when it is genuinely related
   to X (`target_activity_id = X` or `verified_activity_id = X`) **and** not already
@@ -321,7 +325,7 @@ Product behavior that the schema and UI must respect. Database details are in
 - **BR-92** A Finding created from a Verification stores `verification_item_id` (immutable
   origin lineage) and `activity_id` (the executing Activity — observation context, not the
   planned Target Activity), plus `created_by` and status Open from the session/server. Prefill:
-  Description ← the Observation (blank if none; the check question is never substituted),
+  Description ← the verification Notes (blank if none; the check question is never substituted),
   Priority ← the check's, Framework Requirement ← the check's; **Title and Finding Type are blank**
   and must be entered (no result implies a type). Site: a site-specific Activity fixes the Site
   (BR-73, server-enforced); for a project-wide Activity the Site starts as the check's Site and
@@ -427,6 +431,11 @@ Product behavior that the schema and UI must respect. Database details are in
   **Remove Evidence** deletes the attachment and, when no other attachment or document version
   references the file, the `files` row and the stored object. Removing evidence is not deleting
   a business record (Phase 4F).
+- **BR-107** *(Phase 4E.6, terminology)* The free-text field recorded with a Verification result
+  (`verification_items.notes`) is labelled **"Notes"** everywhere in the UI (execution drawer,
+  checklist cards, Create Finding prefill). **"Observation"** is used only as a Finding Type. The
+  Verification result label **Issue Identified** is unchanged. A Finding's **Open** status uses a
+  neutral badge, like an Action's Open (Open is a normal state, not a warning).
 - **BR-106** Evidence editability follows its parent: a **closed Finding** and a **closed Action**
   (or an action of a closed Finding) accept no new evidence and no removal until reopened —
   existing evidence stays viewable; **Verification** and **Activity** evidence stay editable after

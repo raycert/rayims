@@ -11,7 +11,7 @@ import { recordVerificationResult } from "@/lib/mutations/verification-items";
 import type { ActivityVerificationItemRow } from "@/lib/queries/verification-items";
 
 /**
- * Focused onsite execution UI (Phase 4B): Result + Observation only. No planning
+ * Focused onsite execution UI (Phase 4B): Result + Notes only. No planning
  * fields (Question/Priority/Site/Target Activity/Framework) — those stay in the 4A
  * planning Edit form, a deliberately separate surface.
  */
@@ -109,7 +109,7 @@ export function VerificationExecutionDrawer({
 
         <div className="border-t border-border pt-4">
           <label htmlFor="ve-notes" className="mb-1.5 block text-sm font-medium">
-            Observation
+            Notes
           </label>
           <Textarea
             id="ve-notes"

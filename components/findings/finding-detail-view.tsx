@@ -327,7 +327,7 @@ export function FindingDetailView({
             <>
               <p className="text-sm text-warning">
                 {isNc
-                  ? "Reopening this Finding clears the current Effectiveness Result and reviewer timestamp. The previous effectiveness notes are retained."
+                  ? "Reopening this Finding clears the current Effectiveness Result and its reviewer and timestamp. The effectiveness notes, Correction, Root Cause Analysis and Corrective Actions are kept."
                   : "Reopen this finding? It returns to Open and can be edited again."}
               </p>
               <div className="mt-2.5 flex gap-2">
@@ -355,7 +355,6 @@ export function FindingDetailView({
             <h2 className="text-sm font-semibold">Finding</h2>
           </div>
           <div className="divide-y divide-border">
-            <TextField label="Title" value={finding.title} />
             <TextField label="Description" value={finding.description} />
           </div>
         </section>
@@ -459,23 +458,27 @@ export function FindingDetailView({
                 </Button>
               ) : null}
             </div>
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-1 px-4 py-3 text-sm sm:grid-cols-[140px_1fr] sm:gap-y-2.5">
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Result</dt>
-              <dd className="mb-1.5 sm:mb-0">
-                <StatusBadge
-                  label={effectivenessLabel(finding.effectivenessResult)}
-                  tone={effectivenessTone(finding.effectivenessResult)}
-                />
-              </dd>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Notes</dt>
-              <dd className="mb-1.5 whitespace-pre-wrap sm:mb-0">{finding.effectivenessNotes ?? "—"}</dd>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Reviewed By</dt>
-              <dd className="mb-1.5 sm:mb-0">
-                {finding.effectivenessResult ? (finding.effectivenessReviewerName ?? "Unknown user") : "—"}
-              </dd>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Reviewed At</dt>
-              <dd>{finding.effectivenessReviewedAt ? formatDateTime(finding.effectivenessReviewedAt) : "—"}</dd>
-            </dl>
+            {finding.effectivenessResult ? (
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-1 px-4 py-3 text-sm sm:grid-cols-[140px_1fr] sm:gap-y-2.5">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Result</dt>
+                <dd className="mb-1.5 sm:mb-0">
+                  <StatusBadge
+                    label={effectivenessLabel(finding.effectivenessResult)}
+                    tone={effectivenessTone(finding.effectivenessResult)}
+                  />
+                </dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Notes</dt>
+                <dd className="mb-1.5 whitespace-pre-wrap sm:mb-0">{finding.effectivenessNotes ?? "—"}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Reviewed By</dt>
+                <dd className="mb-1.5 sm:mb-0">
+                  {finding.effectivenessResult ? (finding.effectivenessReviewerName ?? "Unknown user") : "—"}
+                </dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Reviewed At</dt>
+                <dd>{finding.effectivenessReviewedAt ? formatDateTime(finding.effectivenessReviewedAt) : "—"}</dd>
+              </dl>
+            ) : (
+              <p className="px-4 py-3 text-sm text-muted">Not reviewed yet.</p>
+            )}
           </section>
         ) : null}
 

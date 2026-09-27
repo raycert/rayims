@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { OverflowMenu } from "@/components/ui/overflow-menu";
 import { Toast, useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import { activityStatusLabel, activityStatusTone } from "@/lib/ui/status-tones";
+import { activityStatusLabel } from "@/lib/ui/status-tones";
 import { activityModeLabel, formatActivityDateTime, isActivityOverdue } from "@/lib/ui/format";
 import { ACTIVITY_STATUSES } from "@/lib/validation/activities";
 import { deleteActivity, setActivityStatus } from "@/lib/mutations/activities";
@@ -18,8 +18,9 @@ import { EvidenceSection } from "@/components/evidence/evidence-panel";
 import type { ActivityDetail, ActivityFormCatalog } from "@/lib/queries/activities";
 import type { ActivityVerificationItemRow, VerificationFormCatalog } from "@/lib/queries/verification-items";
 
-/** Quick-change target statuses — Cancel is its own confirmed action (§5), not part of
- *  this control, so cancelling is never available two ways at once. */
+/** Values offered by the status control — Cancel stays its own confirmed action (overflow menu),
+ *  so cancelling is never available two ways at once. An Activity has ONE current status; this is
+ *  a single field, not tab navigation. */
 const QUICK_STATUSES = ACTIVITY_STATUSES.filter((s) => s !== "cancelled");
 
 function TextField({ label, value }: { label: string; value: string | null }) {
@@ -135,9 +136,6 @@ export function ActivityDetailView({
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted">
-        <StatusBadge label={activityStatusLabel(activity.status)} tone={activityStatusTone(activity.status)} />
-        {overdue ? <StatusBadge label="Overdue" tone="danger" /> : null}
-        <span>·</span>
         <span>
           {activity.activityTypeLabel}
           {activity.activityTypeIsActive ? "" : " (Inactive)"}
@@ -153,26 +151,31 @@ export function ActivityDetailView({
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted">Status</span>
-        <div className="flex flex-wrap gap-1.5">
+        <label htmlFor="activity-status" className="text-sm font-medium text-muted">
+          Status:
+        </label>
+        <select
+          id="activity-status"
+          value={activity.status}
+          disabled={pending}
+          onChange={(e) => changeStatus(e.target.value)}
+          className={cn(
+            "min-h-10 rounded-md border px-3 pr-8 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60",
+            activity.status === "cancelled" ? "border-border bg-neutral-soft text-muted" : "border-border bg-surface text-foreground",
+          )}
+        >
           {QUICK_STATUSES.map((value) => (
-            <button
-              key={value}
-              type="button"
-              disabled={pending}
-              onClick={() => changeStatus(value)}
-              aria-pressed={activity.status === value}
-              className={cn(
-                "min-h-9 rounded-md border px-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60",
-                activity.status === value
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted hover:bg-neutral-soft",
-              )}
-            >
+            <option key={value} value={value}>
               {activityStatusLabel(value)}
-            </button>
+            </option>
           ))}
-        </div>
+          {activity.status === "cancelled" ? (
+            <option value="cancelled" disabled>
+              {activityStatusLabel("cancelled")}
+            </option>
+          ) : null}
+        </select>
+        {overdue ? <StatusBadge label="Overdue" tone="danger" /> : null}
       </div>
 
       {confirmAction === "cancel" ? (
@@ -272,16 +275,6 @@ export function ActivityDetailView({
           }}
         />
 
-        <section className="rounded-lg border border-border bg-surface">
-          <div className="border-b border-border px-4 py-3">
-            <h2 className="text-sm font-semibold">Outcome / Visit Summary</h2>
-          </div>
-          <div className="divide-y divide-border">
-            <TextField label="Work Performed" value={activity.workPerformed} />
-            <TextField label="Next Steps" value={activity.nextSteps} />
-          </div>
-        </section>
-
         <EvidenceSection
           title="Activity Evidence"
           projectId={activity.projectId}
@@ -293,6 +286,16 @@ export function ActivityDetailView({
             show(msg);
           }}
         />
+
+        <section className="rounded-lg border border-border bg-surface">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="text-sm font-semibold">Outcome / Visit Summary</h2>
+          </div>
+          <div className="divide-y divide-border">
+            <TextField label="Work Performed" value={activity.workPerformed} />
+            <TextField label="Next Steps" value={activity.nextSteps} />
+          </div>
+        </section>
       </div>
 
       {editing ? (
