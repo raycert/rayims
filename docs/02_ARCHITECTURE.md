@@ -57,7 +57,8 @@ Module boundary rules (ADR-010):
    columns to the Core `attachments` table (ADR-009).
 6. Module-specific issue data should use 1:1 extension tables keyed by
    `issue_id` (or an additive nullable column), not ISO- or module-specific
-   columns on the Core `issues` table.
+   columns on the Core `issues` table. (The generic Finding Type and lightweight NC
+   response columns are Core and approved in ADR-018; they are not module-specific.)
 
 No domain module or calculation engine is created in V1.
 
@@ -75,7 +76,7 @@ RayIMS/
 │  │  ├─ dashboard/
 │  │  ├─ clients/
 │  │  ├─ projects/[projectId]/   overview, sites, plan, documents, verification,
-│  │  │                          issues, actions, reports
+│  │  │                          findings (UI term; table `issues`), actions, reports
 │  │  └─ frameworks/       Framework library and detail (consultants browse; Admin administers, ADR-016)
 │  └─ layout.tsx, globals.css
 ├─ components/

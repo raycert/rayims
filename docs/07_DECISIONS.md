@@ -327,6 +327,85 @@ No schema, migration, RLS, or application code exists yet; this ADR records the 
 for the future Phase 3A implementation.
 **Status:** Approved
 
+## ADR-018 — Findings on `issues` with a lightweight NC response
+
+**Context:** the Phase 4 model was Verification → Issue → Action. The intended consulting /
+internal-audit workflow is a practical nonconformity response: a finding, the correction of
+it, the root cause, corrective actions, a review of their effectiveness, and closure.
+
+**Decision:** RayIMS V1 supports a **lightweight**
+
+    Finding → Correction → Root Cause → Corrective Actions → Effectiveness Review → Closure
+
+recorded on the existing `issues` and `actions` tables. This is **not** a full CAPA
+management system.
+
+- **Table / terminology.** The table stays **`issues`** (no rename migration). The
+  application/UI term is **Finding** ("Findings & Actions"): *UI Finding = database
+  `issues`*. Routes: `/projects/[projectId]/findings` and `…/findings/[findingId]`. The
+  Verification result value/label **Issue Identified** is unchanged and remains only a
+  result — it never creates a Finding automatically.
+- **Finding Type.** `issues.finding_type` — a system-controlled closed set enforced by a
+  CHECK (ADR-012; not master data): `nonconformity | observation |
+  opportunity_for_improvement`. Required in the application with **no preselected value**;
+  the migration's `DEFAULT 'observation'` exists only for safe backfill.
+- **Correction ≠ Corrective Action.** A *correction* is the immediate containment of the
+  detected problem; a *corrective action* addresses the cause and prevents recurrence.
+  Correction (`correction`), root cause (`root_cause`) and the effectiveness review are
+  stored **on the issue**; Corrective Actions are **`actions`** rows linked by `issue_id`
+  (0..N per Finding; standalone actions remain possible). No `corrective_actions` table.
+- **One current effectiveness review** on the issue (`effectiveness_result`
+  `effective | not_effective`, NULL = not reviewed; `effectiveness_notes`,
+  `effectiveness_reviewed_by`, `effectiveness_reviewed_at`). **No effectiveness history** in
+  V1 — a repeat review overwrites the current one. No separate review table.
+- **Status stays `open | closed`.** Workflow progress (correction / root cause recorded,
+  "N of M actions closed", effectiveness state) is **derived**, never stored. Closure is a
+  deliberate **Close Finding** / **Reopen Finding** action (`closed_at` + new `closed_by`),
+  not a status dropdown; closed Findings are read-only until reopened.
+- **Reopen invalidates the current effectiveness result** (`effectiveness_result`,
+  `effectiveness_reviewed_by`, `effectiveness_reviewed_at` reset to NULL) so a reopened
+  Finding never keeps an old "Effective" as its current state; correction, root cause,
+  effectiveness notes and actions are preserved.
+- **Closure rules.** Observation / Opportunity for Improvement: closable while no linked
+  Action is not Closed. **Nonconformity (Phase 4D-2):** hard blockers are (A) any linked
+  Corrective Action not Closed and (B) `effectiveness_result = not_effective`; a missing
+  Correction, Root Cause or Effectiveness Review is a **warning** the user may explicitly
+  override ("Close Anyway") — the software never forces fake "N/A" text. (This overrides the
+  design review's proposal to hard-block on those three.) Nonconformity cannot be closed in
+  4C-1.
+- **`activity_id` is observation context.** `verification_item_id` /
+  `document_review_id` remain the origin *lineage* ("store the closest origin"); a Finding may
+  also carry `activity_id` (where it was observed) alongside a `verification_item_id`.
+- **Finding number is deferred** (ADR-015 stands): stable Finding/NC numbering is a **Phase 6
+  prerequisite**, not solved now.
+- **Still excluded:** CAPA workflow engine, configurable approval workflow, escalation
+  engine, RCA methodology tooling (5 Why, Fishbone), revision/history engine, e-signatures,
+  AI root-cause analysis, enterprise CAPA automation. Not added: target closure date,
+  Finding owner, Major/Minor, correction date, reopen history fields, `updated_by`,
+  evidence category.
+
+**Reason:** the Core already had the right shape (an issue with many actions, origin links
+and site integrity); the NC response is a handful of nullable columns and one closed-set
+CHECK, not a new subsystem. ISO 9001/14001/45001 §10.2 require reacting to a nonconformity,
+evaluating the need for action to eliminate the cause, and reviewing the effectiveness of
+action taken — recording those on the Finding, without prescribing a software sequence, is
+enough for V1.
+
+**Consequences:** one additive migration in 4C-1 establishes the final schema once (8
+`issues` columns, 2 CHECKs, 2 FK indexes; no new table, no RLS or grant change), so Phase 4D
+builds the response workflow without another `issues` migration. Slicing: **4C-1** Finding
+foundation, **4C-2** Verification → Finding, **4D-1** NC response and Corrective Actions,
+**4D-2** Effectiveness Review, NC closure rules and Reopen for Nonconformity, **4E**
+Evidence, **4F** controlled delete, overdue-actions overview and Phase 4 acceptance.
+**Amends / refines:** ADR-007 (its "additive columns or 1:1 extension tables" consequence is
+exercised here, as additive columns), ADR-011 and the V1 scope exclusion "Full CAPA /
+root-cause analysis" (now: full CAPA *management system* and RCA *methodology tooling*),
+the `CLAUDE.md` / `03_DATABASE.md` "no NC/OFI classification in Core" statements (the Core
+stays free of ISO clause columns; the finding type is a generic audit-finding taxonomy) and
+the `05_UI_UX_GUIDELINES.md` terminology line ("Finding", not "Issue"). ADR-015 is
+unchanged.
+**Status:** Approved
+
 ---
 
 ## Open Items (history)

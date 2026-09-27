@@ -79,7 +79,8 @@ foundation (Phase 0C).
 ## Content and interaction
 
 - Plain, professional language; consistent terms with `04_BUSINESS_RULES.md`
-  (e.g. "Issue", not "Nonconformity", unless a future module says otherwise).
+  (e.g. the UI says **"Finding"** — database table `issues` — and the Project tab reads
+  "Findings & Actions"; the Verification result label stays "Issue Identified". ADR-018).
 - Derived statuses (document status, overdue) are shown as badges but are
   computed, not edited directly.
 - Empty states explain the next step.

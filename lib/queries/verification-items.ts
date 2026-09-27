@@ -224,6 +224,18 @@ export type VerificationFormCatalog = {
  * item's Edit form can preserve its historical selection (§26).
  */
 export async function getVerificationFormCatalog(projectId: string): Promise<VerificationFormCatalog> {
+  return loadScopeCatalog(projectId, "verification_items");
+}
+
+/**
+ * The project-scope catalog (sites, activities, assigned framework items + any historically
+ * referenced but now-unassigned ones) shared by Verification and Findings forms.
+ * `referencedTable` is the table whose rows' framework_item_id values must stay selectable.
+ */
+export async function loadScopeCatalog(
+  projectId: string,
+  referencedTable: "verification_items" | "issues",
+): Promise<VerificationFormCatalog> {
   const supabase = await createClient();
   const [sitesRes, activitiesRes, assignedRes, referencedRes] = await Promise.all([
     supabase.from("project_sites").select("sites(id, name)").eq("project_id", projectId),
@@ -237,7 +249,7 @@ export async function getVerificationFormCatalog(projectId: string): Promise<Ver
       .from("project_frameworks")
       .select("frameworks(code, edition, framework_items(id, code, title))")
       .eq("project_id", projectId),
-    supabase.from("verification_items").select("framework_item_id").eq("project_id", projectId).not("framework_item_id", "is", null),
+    supabase.from(referencedTable).select("framework_item_id").eq("project_id", projectId).not("framework_item_id", "is", null),
   ]);
   if (sitesRes.error) throw new Error("Could not load the project's sites.");
   if (activitiesRes.error) throw new Error("Could not load the project's activities.");

@@ -297,19 +297,45 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
   item never stores an `issue_id`.
 
 ### issues
-- **Purpose:** a generic finding/problem — not necessarily a nonconformity.
-- **Fields:** `id`, `project_id` (FK, NOT NULL), `site_id` (nullable), `title`,
-  `description`, `framework_item_id` (nullable), origin FKs (all nullable):
-  `activity_id`, `verification_item_id`, `document_review_id`; `priority`,
-  `status` (CHECK `open | closed`), `closed_at`, `created_by`, timestamps.
-  `priority` uses CHECK `low | medium | high`.
-- **Origin:** expressed by explicit nullable FKs; there is no `source_type`
-  column. Store only the closest origin (do not copy `document_review_id` onto
-  an issue that already has `verification_item_id`).
-- **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
-- **Delete:** `activity_id`, `verification_item_id`, `document_review_id` SET NULL
-  (optional origin context; the issue survives); `framework_item_id` NO ACTION.
-- **Not present:** NC / Observation / OFI classification, root cause, `number`.
+- **UI term:** the application calls an issue a **Finding** — *UI Finding = database
+  `issues`* (ADR-018). The table is not renamed.
+- **Purpose:** an audit / site finding — a Nonconformity, an Observation or an Opportunity
+  for Improvement — with a lightweight NC response (correction, root cause, one effectiveness
+  review). Not a full CAPA system.
+- **Fields (23):**
+  - Identity and context: `id`, `project_id` (FK, NOT NULL), `site_id` (nullable),
+    `title`, `description`, `framework_item_id` (nullable), `priority` (CHECK
+    `low | medium | high`).
+  - Origin FKs (all nullable): `verification_item_id`, `document_review_id` (lineage) and
+    `activity_id`.
+  - Lifecycle: `status` (CHECK `open | closed`), `closed_at`, **`closed_by`** (→ `profiles`).
+  - **`finding_type`** `text NOT NULL DEFAULT 'observation'`, CHECK
+    `nonconformity | observation | opportunity_for_improvement` (system-controlled closed
+    set, not master data; the default exists only for backfill — the application requires an
+    explicit choice).
+  - NC response (UI in Phase 4D): **`correction`** (text), **`root_cause`** (text).
+  - ONE current effectiveness review: **`effectiveness_result`** (CHECK
+    `effective | not_effective`; NULL = not reviewed), **`effectiveness_notes`**,
+    **`effectiveness_reviewed_by`** (→ `profiles`), **`effectiveness_reviewed_at`**. No
+    history — a repeat review overwrites it.
+  - `created_by`, `created_at`, `updated_at`.
+- **Origin:** expressed by explicit nullable FKs; there is no `source_type` column.
+  `verification_item_id` / `document_review_id` are the *lineage* origin: store only the
+  closest (do not copy `document_review_id` onto an issue that already has
+  `verification_item_id`). `activity_id` is **observation context** (where the finding was
+  seen) and may accompany a `verification_item_id`. Many issues may reference one verification
+  item (no unique constraint).
+- **Site integrity:** composite FK `(project_id, site_id) → project_sites`. The database does
+  **not** verify that a referenced activity / verification item / framework item belongs to
+  the same project — the application validates it.
+- **Delete:** `activity_id`, `verification_item_id`, `document_review_id` SET NULL (optional
+  context; the issue survives); `framework_item_id` NO ACTION; `closed_by` and
+  `effectiveness_reviewed_by` SET NULL (user references, indexed). Deleting an issue
+  CASCADES its `attachments` rows, so a Finding delete must be controlled in the application
+  (Phase 4F).
+- **Not present:** a Finding / NC number (deferred — a Phase 6 prerequisite, ADR-015 /
+  ADR-018), target closure date, owner, Major/Minor classification, correction date,
+  reopen or effectiveness history.
 
 ### actions
 - **Purpose:** a trackable unit of follow-up. May exist without an issue.
@@ -498,7 +524,7 @@ project-owned.
 | Relationship                                                        | On delete   |
 | ------------------------------------------------------------------- | ----------- |
 | `profiles.id` → `auth.users`                                        | CASCADE     |
-| All user references (`created_by`, `consultant_id`, `reviewer_id`, `uploaded_by`, `verified_by`) → `profiles` | SET NULL |
+| All user references (`created_by`, `consultant_id`, `reviewer_id`, `uploaded_by`, `verified_by`, `closed_by`, `effectiveness_reviewed_by`) → `profiles` | SET NULL |
 | `sites.client_id`, `projects.client_id` → `clients`                 | NO ACTION   |
 | Project-owned children `project_id` → `projects` (`project_sites`, `project_frameworks`, `activities`, `documents`, `verification_items`, `issues`, `actions`, `files`, `attachments`) | CASCADE |
 | `project_sites.site_id` → `sites`                                   | NO ACTION   |

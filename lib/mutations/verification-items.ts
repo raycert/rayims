@@ -4,75 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { verificationExecutionSchema, verificationItemSchema } from "@/lib/validation/verification-items";
-import { siteInProjectScope, type SupabaseServerClient } from "./scope-validation";
+import { frameworkItemInProjectScope, validateSiteAndActivity } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
-
-/**
- * Resolves the target Activity (must belong to projectId) and applies the approved
- * site-inheritance rule (Phase 4 review §18-19): if the Activity is site-specific,
- * the submitted siteId MUST equal it; if the Activity is project-wide (site_id NULL),
- * the submitted siteId is validated normally against the project's scope instead.
- * Returns a field error on any violation, or null when everything is consistent.
- */
-async function validateSiteAndTargetActivity(
-  supabase: SupabaseServerClient,
-  projectId: string,
-  siteId: string | null,
-  targetActivityId: string | null,
-): Promise<{ error: string; field: "siteId" | "targetActivityId" } | null> {
-  if (!targetActivityId) {
-    const ok = await siteInProjectScope(supabase, projectId, siteId);
-    return ok ? null : { error: "The selected site is not in this project's scope.", field: "siteId" };
-  }
-
-  const { data: activity, error } = await supabase
-    .from("activities")
-    .select("id, project_id, site_id")
-    .eq("id", targetActivityId)
-    .maybeSingle();
-  if (error) return { error: "Couldn't verify the Target Activity. Try again.", field: "targetActivityId" };
-  if (!activity || activity.project_id !== projectId) {
-    return { error: "The selected Target Activity could not be found.", field: "targetActivityId" };
-  }
-
-  if (activity.site_id) {
-    if (siteId !== activity.site_id) {
-      return {
-        error: "Site must match the Target Activity's site.",
-        field: "siteId",
-      };
-    }
-    return null;
-  }
-
-  // Target Activity is project-wide: site is freely chosen (may be NULL or any project site).
-  const ok = await siteInProjectScope(supabase, projectId, siteId);
-  return ok ? null : { error: "The selected site is not in this project's scope.", field: "siteId" };
-}
-
-/** framework_item_id, if supplied, must belong to a Framework currently assigned to the project. */
-async function frameworkItemInProjectScope(
-  supabase: SupabaseServerClient,
-  projectId: string,
-  frameworkItemId: string | null,
-): Promise<boolean> {
-  if (!frameworkItemId) return true;
-  const { data: item, error: itemError } = await supabase
-    .from("framework_items")
-    .select("framework_id")
-    .eq("id", frameworkItemId)
-    .maybeSingle();
-  if (itemError || !item) return false;
-
-  const { data: assigned, error: assignedError } = await supabase
-    .from("project_frameworks")
-    .select("framework_id")
-    .eq("project_id", projectId)
-    .eq("framework_id", item.framework_id)
-    .maybeSingle();
-  if (assignedError) return false;
-  return !!assigned;
-}
 
 /**
  * Creates a planning-only Verification Item. projectId is always a trusted route/prop
@@ -95,7 +28,7 @@ export async function createVerificationItem(
 
   const supabase = await createSupabaseClient();
 
-  const siteCheck = await validateSiteAndTargetActivity(supabase, projectId, d.siteId, d.targetActivityId);
+  const siteCheck = await validateSiteAndActivity(supabase, projectId, d.siteId, d.targetActivityId);
   if (siteCheck) return { ok: false, error: siteCheck.error, fieldErrors: { [siteCheck.field]: siteCheck.error } };
 
   const frameworkOk = await frameworkItemInProjectScope(supabase, projectId, d.frameworkItemId);
@@ -161,7 +94,7 @@ export async function updateVerificationItem(
     return { ok: false, error: "This verification item could not be found." };
   }
 
-  const siteCheck = await validateSiteAndTargetActivity(supabase, projectId, d.siteId, d.targetActivityId);
+  const siteCheck = await validateSiteAndActivity(supabase, projectId, d.siteId, d.targetActivityId);
   if (siteCheck) return { ok: false, error: siteCheck.error, fieldErrors: { [siteCheck.field]: siteCheck.error } };
 
   // Historical preservation (mirrors Activity Type's inactive-type rule): a framework

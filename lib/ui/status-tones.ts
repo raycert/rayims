@@ -69,6 +69,32 @@ export function priorityTone(priority: string): Tone {
   return PRIORITY_TONES[priority] ?? "neutral";
 }
 
+/** Finding = the `issues` table (ADR-018). Type is a closed system set. */
+const FINDING_TYPE_LABELS: Record<string, string> = {
+  nonconformity: "Nonconformity",
+  observation: "Observation",
+  opportunity_for_improvement: "Opportunity for Improvement",
+};
+const FINDING_TYPE_TONES: Record<string, Tone> = {
+  nonconformity: "danger",
+  observation: "warning",
+  opportunity_for_improvement: "neutral",
+};
+
+export function findingTypeLabel(type: string): string {
+  return FINDING_TYPE_LABELS[type] ?? type;
+}
+export function findingTypeTone(type: string): Tone {
+  return FINDING_TYPE_TONES[type] ?? "neutral";
+}
+
+export function findingStatusLabel(status: string): string {
+  return status === "closed" ? "Closed" : "Open";
+}
+export function findingStatusTone(status: string): Tone {
+  return status === "closed" ? "success" : "warning";
+}
+
 /** null = Pending (not yet verified) — never rendered as a raw null/blank. */
 const VERIFICATION_RESULT_LABELS: Record<string, string> = {
   verified_ok: "Verified OK",

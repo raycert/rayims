@@ -17,7 +17,12 @@
 | — 4A  | Verification foundation + workspace        | **COMPLETED** |
 | — 4B  | Activity verification + mobile execution   | **COMPLETED** |
 | — 4B.5 | Verification Excel import                 | **COMPLETED** |
-| — 4C  | Issues                                     | Planned — NEXT |
+| — 4C-1 | Finding foundation                        | **COMPLETED** |
+| — 4C-2 | Verification → Finding integration        | Planned — NEXT |
+| — 4D-1 | NC response & Corrective Actions          | Planned       |
+| — 4D-2 | Effectiveness Review, NC closure & Reopen | Planned       |
+| — 4E  | Evidence / Attachments                     | Planned       |
+| — 4F  | Controlled delete, overdue-actions overview, Phase 4 final acceptance | Planned |
 | 5     | Documents / Versions / Reviews              | Planned       |
 | 6     | Visit Summary / Reporting                   | Planned       |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
@@ -370,7 +375,7 @@ Verified OK / Issue Identified / Follow-up Required, as full-width stacked butto
 for reliable readability at any width — plus an optional Observation) records the
 result in place on the same row; Result is required to save (BR-75), and neither
 *Issue Identified* nor *Follow-up Required* creates anything beyond the Verification
-result itself (BR-77) — Phase 4C owns Verification → Issue. `recordVerificationResult`
+result itself (BR-77) — Phase 4C-2 owns Verification → Finding. `recordVerificationResult`
 derives `verified_activity_id`/`verified_by`/`verified_at` entirely server-side and
 never touches planning fields (BR-72).
 
@@ -416,11 +421,56 @@ the 1 MB default to 3 MB in `next.config.ts` so a legitimate ≤ 2 MB workbook r
 server. Not in this slice: import history, undo/delete of an import (Phase 4F owns
 delete), Verification export, checklist library.
 
-## Phase 4C — Issues [NEXT]
+### Phase 4C-1 — Finding foundation [COMPLETED]
 
-Not started. Verification → Issue (`issues.verification_item_id`, already present in
-the schema), the "Create Issue" handoff from a `result = issue_identified` item,
-standalone Issue creation, and the Project Issues & Actions workspace's Issues tab.
+Approved by the Phase 4C/4D design review and **ADR-018** (a lightweight NC response on
+the existing `issues`/`actions` tables — *not* a full CAPA system). Delivered: the
+Project tab is now **Findings & Actions** (UI *Finding* = database `issues`, no rename),
+routed to `/projects/[projectId]/findings` and `…/findings/[findingId]`; one additive
+migration (`20260927000100_finding_foundation.sql`: `finding_type` with a CHECK
+`nonconformity | observation | opportunity_for_improvement`, plus `correction`,
+`root_cause`, `effectiveness_result`/`_notes`/`_reviewed_by`/`_reviewed_at` and
+`closed_by` — the final 8-column Finding-ready schema, established once; no new table, no
+RLS/grant change; the response and effectiveness columns are **not** exposed in this slice);
+the Findings list (search, Type/Status/Site/Priority filters, deterministic order: Open first
+→ priority → newest → title; desktop table, mobile cards); **+ New Finding** (Finding Type
+required with no preselection, Title, Description, Priority, Activity/Site with the BR-73 lock,
+Framework Requirement with BR-74 historical preservation, no Verification picker); Finding
+Detail (header, Finding, Origin — no placeholder sections); Edit while Open (origin links
+immutable); **Close / Reopen for Observation and Opportunity for Improvement only** (blocked
+while a linked Action is not Closed; Reopen also invalidates the current effectiveness
+result); a Nonconformity has no Close action yet.
+
+**Verified (2026-09-27): 160/160 acceptance checks** (hosted Supabase, production build,
+Playwright/Edge, 1280×800, 390px, 412px) — see `08_TESTING.md`. Not in this slice:
+Verification → Create Finding (4C-2), Correction/RCA/Effectiveness UI and Corrective
+Actions (4D), Evidence (4E), delete (4F). **Finding/NC numbering is a Phase 6 prerequisite.**
+
+### Phase 4C-2 — Verification → Finding integration [NEXT]
+
+**Create Finding** from a verification item on Activity Detail (secondary for Follow-up
+Required; never automatic), prefilled from the verification context (activity, site,
+framework requirement, Observation → description) with the verification link immutable;
+finding counts on the card. Owns all Verification integration.
+
+### Phase 4D — NC response and Corrective Actions
+
+- **4D-1:** Correction and Root Cause editing (Nonconformity), Corrective Action CRUD
+  (`actions` linked by `issue_id`: owner, due date, status, completion), derived workflow
+  progress, and the project **Actions** tab (Findings | Actions).
+- **4D-2:** Effectiveness Review (server-derived reviewer/time), Nonconformity closure with
+  the approved hard blockers (linked action not Closed; `not_effective`) and warnings
+  (missing correction / root cause / effectiveness — "Close Anyway", BR-88), Reopen for
+  Nonconformity.
+
+### Phase 4E — Evidence / Attachments
+
+Photos/files on Finding, Corrective Action, Verification item and Activity.
+
+### Phase 4F — Controlled delete, overdue actions, Phase 4 final acceptance
+
+Controlled Finding and Verification delete (attachments CASCADE and `SET NULL` links must be
+checked), the overdue-actions overview, and the Phase 4 end-to-end NC acceptance.
 
 ## Phase 5 — Documents / Versions / Reviews
 

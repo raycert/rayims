@@ -26,8 +26,10 @@ relevant documents **before** modifying anything.
 - V1 focuses on **ISO implementation and consulting** projects
   (ISO 9001 / 14001 / 45001 / 50001, multi-site).
 - The **Core architecture is framework-agnostic**. Do **not** hard-code ISO
-  assumptions (clauses, NC/OFI classifications, ISO-specific columns) into
-  Core tables.
+  assumptions (clauses, ISO-specific columns) into Core tables. The generic
+  audit-finding type on `issues` (nonconformity / observation / opportunity for
+  improvement) and the lightweight NC response are approved in **ADR-018**; a full
+  CAPA management system is still **out of scope**.
 - `framework_items` is client-independent reference data. Never store activity
   data, emissions, calculations, products, installations, metrics or other
   operational data in it.

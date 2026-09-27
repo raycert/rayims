@@ -4,7 +4,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { projectStatusLabel, projectStatusTone } from "@/lib/ui/status-tones";
 import { formatFrameworkIdentity } from "@/lib/ui/format";
 
-export type WorkspaceTab = "overview" | "plan" | "verification";
+export type WorkspaceTab = "overview" | "plan" | "verification" | "findings";
 
 type WorkspaceHeaderProject = {
   id: string;
@@ -18,10 +18,11 @@ const LIVE_TABS: { key: WorkspaceTab; label: string; href: (id: string) => strin
   { key: "overview", label: "Overview", href: (id) => `/projects/${id}` },
   { key: "plan", label: "Plan", href: (id) => `/projects/${id}/plan` },
   { key: "verification", label: "Verification", href: (id) => `/projects/${id}/verification` },
+  { key: "findings", label: "Findings & Actions", href: (id) => `/projects/${id}/findings` },
 ];
 
-/** Not built yet — shown inert, never linked, no route exists (Phase 4B+). */
-const FUTURE_TABS = ["Documents", "Issues & Actions", "Reports"];
+/** Not built yet — shown inert, never linked, no route exists (Phase 5+). */
+const FUTURE_TABS = ["Documents", "Reports"];
 
 /**
  * Shared identity/tabs header for the Project Workspace, used by both Overview

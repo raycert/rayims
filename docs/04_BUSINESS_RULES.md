@@ -252,10 +252,10 @@ Product behavior that the schema and UI must respect. Database details are in
 
 ## Issues and actions
 
-- **BR-29** An issue is **not necessarily a nonconformity**. Issues support
-  implementation consulting, gap assessment, internal audit, site assessment
-  and future verification work. Specialized classifications belong to future
-  modules.
+- **BR-29** An issue — called a **Finding** in the UI (BR-85) — is **not necessarily a
+  nonconformity**. Findings support implementation consulting, gap assessment,
+  internal audit, site assessment and future verification work; each has a Finding
+  Type (BR-85).
 - **BR-30** An issue may originate from a document review, verification item or
   activity (explicit references; store the closest origin).
 - **BR-31** An issue may have zero or more actions.
@@ -270,6 +270,45 @@ Product behavior that the schema and UI must respect. Database details are in
   foundations; UI comes later.)
 - **BR-36** Owners of actions and documents are free-text names in V1 (no client
   accounts).
+- **BR-85** **Finding = database `issues`** (ADR-018); the table is not renamed. Every
+  Finding has a required `finding_type` — `nonconformity`, `observation` or
+  `opportunity_for_improvement` (UI: Nonconformity, Observation, Opportunity for
+  Improvement) — a system-controlled closed set, not master data. The UI never
+  preselects a type. The Verification result **Issue Identified** is unchanged and
+  never creates a Finding automatically.
+- **BR-86** A Finding is created manually (Phase 4C-1) with title (required), description,
+  priority (default medium), optional Activity, Site and Framework Requirement; status
+  starts Open and `created_by` is the session user. Site follows BR-73: a site-specific
+  Activity fixes the Finding's site (server-enforced); a project-wide or absent Activity
+  leaves Site free. A newly selected Framework Requirement must belong to an assigned
+  Framework (BR-74, with the same historical-preservation rule on edit). Origin links
+  (`verification_item_id`, `document_review_id`) are set only from their real context
+  (Verification: Phase 4C-2) and are immutable; the generic New Finding form has no
+  Verification picker. `activity_id` is observation context and may accompany a
+  `verification_item_id`.
+- **BR-87** A Finding stays `open | closed`. **Close Finding** / **Reopen Finding** are
+  deliberate actions (no status dropdown); `closed_at`, `closed_by` are server-derived. A
+  closed Finding is read-only until reopened. **Reopen** returns it to Open, clears
+  `closed_at`/`closed_by` **and invalidates the current effectiveness result**
+  (`effectiveness_result`, `effectiveness_reviewed_by`, `effectiveness_reviewed_at` → NULL);
+  correction, root cause, effectiveness notes and linked actions are preserved. In
+  Phase 4C-1 only Observation and Opportunity for Improvement can be closed, and only when
+  no linked Action is not Closed; a Nonconformity has no Close action yet.
+- **BR-88** *(Approved for Phase 4D-2; not implemented in 4C-1.)* Nonconformity closure:
+  **hard blockers** are (A) any linked Corrective Action not Closed and (B)
+  `effectiveness_result = not_effective`. A missing Correction, Root Cause Analysis or
+  Effectiveness Review is a **warning** the user may explicitly override ("Close Anyway");
+  users are never required to type placeholder text such as "N/A". Observation and
+  Opportunity for Improvement need no correction, root cause or effectiveness review.
+- **BR-89** The lightweight NC response is stored on the Finding (`correction`,
+  `root_cause`, and ONE current effectiveness review with reviewer and timestamp); a
+  *correction* is not a *corrective action*. Corrective Actions are `actions` rows linked by
+  `issue_id` (0..N; standalone actions remain possible); action statuses are unchanged and
+  effectiveness is never an action status. There is no effectiveness or reopen history in
+  V1: a repeat review overwrites the current one. Workflow progress is derived, not stored.
+  The NC response UI is Phase 4D; the columns exist from 4C-1 and are not exposed there.
+- **BR-90** Finding / NC numbering (e.g. NC-001) is **deferred** — a Phase 6 (reporting)
+  prerequisite. No `finding_number` / `issue_number` column exists.
 
 ## Evidence
 
@@ -295,7 +334,8 @@ Product behavior that the schema and UI must respect. Database details are in
 
 - **BR-43** Human-readable numbering (e.g. ACT-014) is **deferred**. Do not add
   `issue_seq` / `action_seq` or numbering triggers unless approved when the
-  Issues/Actions feature is implemented.
+  Issues/Actions feature is implemented. Finding/NC numbering is a Phase 6 prerequisite
+  (BR-90, ADR-018).
 
 ## Reference data
 

@@ -633,6 +633,77 @@ All `P4B5-ACCEPT-` fixtures removed — zero residue; the genuine Chinh Long / T
 identical before and after; Frameworks/Items 4/149, Activity Types 8, and
 issues/actions/attachments/files all still 0.
 
+### Phase 4C-1 — Finding foundation (executed 2026-09-27)
+
+Result: **PASS — 160/160 acceptance checks, 0 failures** on the final code (hosted Supabase,
+production build, Playwright/Edge, desktop 1280×800, mobile 390px and 412px, Admin +
+Consultant + anon). All fixtures used a `P4C1-ACCEPT-` client; the genuine "Chinh Long" and
+"Test 1" data was never used.
+
+**Migration** (`20260927000100_finding_foundation.sql`, applied with `supabase db push` after a
+dry run showing exactly that one file). Before: issues 0, actions 0, attachments 0, files 0,
+verification items 3 (the genuine ones), 20 tables, 15 `issues` columns. After: 23 columns —
+exactly the 8 new (`finding_type text NOT NULL DEFAULT 'observation'`, `correction`,
+`root_cause`, `effectiveness_result`, `effectiveness_notes`, `effectiveness_reviewed_by`,
+`effectiveness_reviewed_at`, `closed_by`), 2 new CHECKs (`issues_finding_type_check`,
+`issues_effectiveness_result_check`), 2 new FKs to `profiles` (both ON DELETE SET NULL), 2 new
+indexes; table count still 20; `actions` columns, the `issues` RLS policy (one "authenticated
+full access") and grants (authenticated only) byte-identical; row counts unchanged. Generated
+`types/database.ts` regenerated; its diff is only those columns/relationships.
+
+Covered: DB-level closed sets (invalid `finding_type` and `effectiveness_result` rejected over
+REST, no rows left); navigation ("Findings & Actions" tab, no "Issues & Actions" left on
+Overview/Plan/Verification, no Actions sub-tab, empty state); create form (Finding Type has no
+preselection, Priority defaults to Medium, no Verification picker / Correction / RCA / Actions /
+Effectiveness / Evidence / Status fields, Type and Title validation, whitespace-only Title
+rejected); manual create for all three types with the exact stored values (project-wide
+Observation with site/activity/framework NULL, status Open, every origin/response/effectiveness/
+closure column NULL, `created_by` = the session user; a Nonconformity with site, ISO 14001:2015 ·
+8.1 and High priority; an OFI on a site-specific Activity with Site auto-filled and locked;
+project-wide Activity with Site left project-wide and with a chosen Site); **server-side
+enforcement proven through the real Server Action endpoint** by rewriting the request body after
+the UI check (Site differing from a site-specific Activity, a Site from another project, an
+Activity from another project, a Framework Item from an unassigned Framework, an invalid Finding
+Type — each rejected with nothing created — and smuggled `status` / `closed_by` /
+`verification_item_id` / `correction` keys ignored); the framework picker offers only assigned
+Frameworks for a new selection; historical Framework (after unassigning ISO 14001 the current
+item stays selected, is marked "(not currently assigned)", is the only unassigned item offered,
+saves unchanged, and a newly chosen unassigned item is rejected server-side); Detail (header,
+"Recorded manually", no placeholder or response/effectiveness/actions text, **no Close action for
+a Nonconformity**, no Delete/overflow menu, no UUIDs); Edit (core fields only — correction/
+root_cause/effectiveness_notes, origin links and `created_by` preserved); Observation and OFI
+Close (`closed_at` fresh server timestamp, `closed_by` = the user, Edit/Close gone, Reopen
+offered), the server refusing an edit of a closed Finding from a stale form, and the server
+refusing to close a Nonconformity even with a tampered id; Reopen (status open, `closed_at`/
+`closed_by` and `effectiveness_result`/`_reviewed_by`/`_reviewed_at` reset to NULL;
+`effectiveness_notes`, `correction`, `root_cause` and linked actions preserved); linked-Action
+safety using a directly inserted open Action (Close blocked with a friendly message, allowed once
+the Action is closed; no Actions UI built); the list (columns, no response columns, the exact
+deterministic order over a 6-row fixture including a same-timestamp tie, search over title /
+description / site / framework, Type / Status / Site / Priority filters, no-match state, clear,
+row click); project scope protection (a Project B Finding is "Page not found" through a Project A
+URL and vice versa, never listed); regression (Verification workspace, Excel import page and
+template, Master Plan, Project Overview, Framework Library, Phase 4B execution of "Issue
+Identified" creating **no** Finding — issues 6 → 6 — and Activity Detail showing no Create Finding
+action or Finding counts); Consultant creates and closes (`created_by`/`closed_by` = the
+consultant); anon is redirected to `/login` and denied a direct `issues` insert/select; mobile
+(cards, no horizontal overflow, bottom navigation does not cover the last card, full-width New
+Finding sheet, comfortable Type tap targets, Create button inside the viewport, Site lock state,
+Detail not clipped) at 390px and 412px; desktop (drawer ≤ 400px, no overflow).
+
+Notes on the run (not defects): the first runs failed only because of test-script faults — the
+create-form text check matched the seeded ISO item "10.2 — Nonconformity and corrective action"
+inside the framework picker, the not-found regex did not match the app's own "Page not found"
+copy, the Frameworks page has no heading role, and a mobile selector matched the hidden
+desktop-table link; the script was fixed and the whole suite re-run to 160/160. The Findings
+list, detail and create screens were reviewed visually (screenshots).
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All
+`P4C1-ACCEPT-` fixtures removed — zero residue; the genuine Chinh Long / Test 1 data
+(verification_items, activities, projects, clients, sites, project_frameworks) hashed identical
+before and after; Frameworks/Items 4/149, Activity Types 8, and issues/actions/attachments/files
+all 0.
+
 ### Phase 5 — Documents / Versions / Reviews
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to

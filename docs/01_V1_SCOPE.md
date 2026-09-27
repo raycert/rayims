@@ -20,8 +20,12 @@ without explicit approval.
    objectives, planned work, status. Also holds the visit summary fields.
 7. **Verification** — verification items created from document review or
    manually, scheduled to an activity, and completed with a result.
-8. **Issues** — generic issues (not necessarily nonconformities).
-9. **Actions** — trackable actions, with or without an issue.
+8. **Findings** (database table `issues`) — audit / site findings: Nonconformity,
+   Observation or Opportunity for Improvement, with a lightweight NC response
+   (correction, root cause, corrective actions, one effectiveness review, closure —
+   ADR-018; not a full CAPA system).
+9. **Actions** — trackable actions, with or without a Finding (Corrective Actions are
+   actions linked to a Finding).
 10. **Documents** — a document register (project-wide or site-specific).
 11. **Document Versions** — multiple uploaded revisions per document.
 12. **Document Review** — review of a document version, with a result.
@@ -56,7 +60,9 @@ RayIMS V1 **must not** implement:
 - Complex RBAC (organizations, teams, invitations, permissions)
 - Complex approval workflows
 - Electronic signatures
-- Full CAPA / root-cause analysis
+- Full CAPA **management system** (workflow engine, configurable approvals, escalation,
+  RCA methodology tooling such as 5 Why / Fishbone). A *lightweight* NC response on a
+  Finding is in V1 (ADR-018).
 - GHG calculation engine
 - ESG scoring engine
 - CBAM calculation engine
@@ -78,7 +84,7 @@ Where such things look useful, they are **future considerations only**.
 | Activity ↔ framework junction (`activity_frameworks`)     | Frameworks derived from project and from item references             |
 | Per-project, per-item assessment status matrix            | Future additive table (gap assessment)                                |
 | Organizations, `project_members`, client contacts         | Future multi-user / portal work                                       |
-| Issue classification (NC / Observation / OFI), CAPA       | Future additive column or 1:1 extension table                         |
+| Finding number (NC-001 style), target closure date, Major/Minor, effectiveness history, evidence category | Backlog; Finding/NC numbering is a Phase 6 prerequisite (ADR-018, ADR-015) |
 | `ltree` paths, full-text search                           | Adjacency list + recursive query is sufficient                        |
 | Soft delete, audit log                                    | `created_by` + `updated_at` are sufficient for V1                     |
 | Image thumbnails / storage image transformations          | Cost; compress client-side at upload instead                          |

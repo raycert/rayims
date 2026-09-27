@@ -763,14 +763,22 @@ export type Database = {
         Row: {
           activity_id: string | null
           closed_at: string | null
+          closed_by: string | null
+          correction: string | null
           created_at: string
           created_by: string | null
           description: string | null
           document_review_id: string | null
+          effectiveness_notes: string | null
+          effectiveness_result: string | null
+          effectiveness_reviewed_at: string | null
+          effectiveness_reviewed_by: string | null
+          finding_type: string
           framework_item_id: string | null
           id: string
           priority: string
           project_id: string
+          root_cause: string | null
           site_id: string | null
           status: string
           title: string
@@ -780,14 +788,22 @@ export type Database = {
         Insert: {
           activity_id?: string | null
           closed_at?: string | null
+          closed_by?: string | null
+          correction?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           document_review_id?: string | null
+          effectiveness_notes?: string | null
+          effectiveness_result?: string | null
+          effectiveness_reviewed_at?: string | null
+          effectiveness_reviewed_by?: string | null
+          finding_type?: string
           framework_item_id?: string | null
           id?: string
           priority?: string
           project_id: string
+          root_cause?: string | null
           site_id?: string | null
           status?: string
           title: string
@@ -797,14 +813,22 @@ export type Database = {
         Update: {
           activity_id?: string | null
           closed_at?: string | null
+          closed_by?: string | null
+          correction?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           document_review_id?: string | null
+          effectiveness_notes?: string | null
+          effectiveness_result?: string | null
+          effectiveness_reviewed_at?: string | null
+          effectiveness_reviewed_by?: string | null
+          finding_type?: string
           framework_item_id?: string | null
           id?: string
           priority?: string
           project_id?: string
+          root_cause?: string | null
           site_id?: string | null
           status?: string
           title?: string
@@ -817,6 +841,13 @@ export type Database = {
             columns: ["activity_id"]
             isOneToOne: false
             referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issues_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -838,6 +869,13 @@ export type Database = {
             columns: ["document_review_id"]
             isOneToOne: false
             referencedRelation: "document_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issues_effectiveness_reviewed_by_fkey"
+            columns: ["effectiveness_reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

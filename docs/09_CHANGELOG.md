@@ -3,6 +3,71 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 4C-1 — Finding foundation (2026-09-27)
+
+First slice of the revised Phase 4C/4D (Findings & NC workflow). **Result: 160/160 acceptance
+checks, 0 P0/P1 findings.** Full result in `08_TESTING.md`; roadmap in `06_ROADMAP.md`. Phase
+4C-2 (Verification → Finding) has not started. Approved by the Phase 4C/4D design review and
+**ADR-018** (a lightweight NC response — not a full CAPA system).
+
+### Added
+
+- **ADR-018** — Findings on `issues` with a lightweight NC response, and the matching
+  amendments: `CLAUDE.md` (Core rule), `01_V1_SCOPE.md` (Findings; exclusion narrowed to a full
+  CAPA *management system*), `03_DATABASE.md` (issues section), `04_BUSINESS_RULES.md` (BR-29,
+  BR-43, new BR-85 – BR-90), `05_UI_UX_GUIDELINES.md` (terminology), `02_ARCHITECTURE.md`,
+  `06_ROADMAP.md` (4C-1 / 4C-2 / 4D-1 / 4D-2 / 4E / 4F).
+- **Migration `20260927000100_finding_foundation.sql`** — one additive migration on `issues`:
+  `finding_type` (NOT NULL, DEFAULT `observation` for backfill only, CHECK
+  `nonconformity | observation | opportunity_for_improvement`), `correction`, `root_cause`,
+  `effectiveness_result` (CHECK `effective | not_effective`, NULL = not reviewed),
+  `effectiveness_notes`, `effectiveness_reviewed_by` and `closed_by` (FKs to `profiles`, ON DELETE
+  SET NULL, indexed), `effectiveness_reviewed_at`. No new table, no RLS/grant change. The
+  response and effectiveness columns are established now and **not exposed** until Phase 4D.
+  `types/database.ts` regenerated.
+- **Findings & Actions** project tab (was the inert "Issues & Actions"), routed to
+  `/projects/[projectId]/findings`; **Findings list** (`FindingsWorkspaceView`: search over
+  title/description/site/framework, Type/Status/Site/Priority filters, deterministic order —
+  Open first, priority, newest, title — desktop table and mobile cards); **New / Edit Finding**
+  (`FindingFormDrawer`: Finding Type required with no default, Title, Description, Priority,
+  Activity/Site with the BR-73 lock, Framework Requirement); **Finding Detail**
+  (`/findings/[findingId]`: header, Finding, Origin); `createFinding`, `updateFinding`,
+  `closeFinding`, `reopenFinding` (`lib/mutations/findings.ts`); `listFindings`, `getFinding`,
+  `getFindingFormCatalog` (`lib/queries/findings.ts`); `findingSchema` (`lib/validation/findings.ts`).
+- **Close / Reopen** for Observation and Opportunity for Improvement (blocked while a linked
+  Action is not Closed; `closed_at`/`closed_by` server-derived; closed Findings are read-only).
+  **Reopen** clears `closed_at`/`closed_by` and invalidates the current effectiveness result while
+  preserving correction, root cause, effectiveness notes and actions. A Nonconformity has no Close
+  action yet (server-enforced too).
+
+### Changed
+
+- The Site↔Activity rule (BR-73) and the assigned-framework check (BR-74) moved from the
+  Verification mutation into the shared `lib/mutations/scope-validation.ts`
+  (`validateSiteAndActivity`, `frameworkItemInProjectScope`) and are reused by Findings; the
+  Verification wording/behaviour is unchanged. `getVerificationFormCatalog` now delegates to a
+  shared `loadScopeCatalog` (historical framework items taken from the table being edited).
+
+### Verified
+
+Hosted Supabase, production build, Playwright/Edge, 1280×800 and 390/412px, Admin, Consultant and
+anon — see `08_TESTING.md`. Server-side rules were proven through the real Server Action endpoint
+by rewriting request bodies. Fixtures removed to zero residue; the genuine Chinh Long / Test 1
+data hashed identical before and after.
+
+### Findings
+
+- **Design note:** the `issues` table has no DB constraint tying an issue to the same project as
+  its activity / verification item / framework item (nor `actions` to its issue); the application
+  validates project scope (Findings do, as earlier phases did). Recorded in `03_DATABASE.md`.
+- **BACKLOG:** Finding/NC number (Phase 6 prerequisite), target closure date, Major/Minor,
+  effectiveness history, evidence category.
+
+### Not done (intentionally)
+
+Verification → Create Finding and Finding counts (4C-2), Correction / Root Cause / Effectiveness
+UI, Corrective Actions and the Actions tab (4D), Evidence (4E), Finding delete (4F), NC closure.
+
 ## Phase 4B.5 — Verification Excel import (2026-09-26)
 
 Bulk creation of Verification planning items from `.xlsx`. **Result: 149/149 acceptance
