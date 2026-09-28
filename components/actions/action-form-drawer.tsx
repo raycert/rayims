@@ -9,7 +9,8 @@ import { cn, openNativePicker } from "@/lib/utils";
 import { VERIFICATION_PRIORITIES } from "@/lib/validation/verification-items";
 import { priorityLabel } from "@/lib/ui/status-tones";
 import { formatDate } from "@/lib/ui/format";
-import { createAction, updateAction } from "@/lib/mutations/actions";
+import { createAction, deleteAction, getActionDeleteState, updateAction } from "@/lib/mutations/actions";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { ActionRow } from "@/lib/queries/actions";
 import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
 
@@ -66,6 +67,7 @@ export function ActionFormDrawer({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [deleting, setDeleting] = useState(false);
 
   const selectedActivity = useMemo(
     () => catalog.activities.find((a) => a.id === activityId),
@@ -131,6 +133,17 @@ export function ActionFormDrawer({
       title={mode === "create" ? `New ${noun}` : `Edit ${noun}`}
       footer={
         <>
+          {mode === "edit" ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDeleting(true)}
+              disabled={pending}
+              className="mr-auto px-3! text-danger! hover:bg-danger-soft!"
+            >
+              Delete
+            </Button>
+          ) : null}
           <Button type="button" variant="secondary" onClick={onClose} disabled={pending}>
             Cancel
           </Button>
@@ -330,6 +343,17 @@ export function ActionFormDrawer({
           </p>
         ) : null}
       </div>
+      {deleting && action ? (
+        <ConfirmDeleteDialog
+          title="Delete Action?"
+          message="This permanently removes the Action."
+          blockedTitle="This Action can't be deleted"
+          loadState={() => getActionDeleteState(projectId, action.id)}
+          onDelete={() => deleteAction(projectId, action.id)}
+          onClose={() => setDeleting(false)}
+          onDeleted={() => onSaved(`${noun} deleted`)}
+        />
+      ) : null}
     </Drawer>
   );
 }

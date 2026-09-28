@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { actionSchema, actionStatusSchema } from "@/lib/validation/actions";
+import { evaluateActionDelete, type DeleteEvaluation } from "@/lib/domain/delete-rules";
 import { validateSiteAndActivity, type SupabaseServerClient } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
 
@@ -192,4 +193,64 @@ export async function setActionStatus(projectId: string, actionId: string, input
 
   revalidateActions(projectId, action.issue_id);
   return { ok: true, data: undefined };
+}
+
+type LoadedActionDelete =
+  | { ok: true; findingId: string | null; evaluation: DeleteEvaluation }
+  | { ok: false; error: string };
+
+async function loadActionDelete(supabase: SupabaseServerClient, projectId: string, actionId: string): Promise<LoadedActionDelete> {
+  const { data, error } = await supabase
+    .from("actions")
+    .select("id, project_id, issue_id, status, issues(status), attachments(count)")
+    .eq("id", actionId)
+    .maybeSingle();
+  if (error) return { ok: false, error: "Couldn't load the action. Try again." };
+  if (!data || data.project_id !== projectId) return { ok: false, error: "This action could not be found." };
+  return {
+    ok: true,
+    findingId: data.issue_id,
+    evaluation: evaluateActionDelete({
+      status: data.status,
+      findingStatus: data.issues?.status ?? null,
+      evidenceCount: data.attachments[0]?.count ?? 0,
+    }),
+  };
+}
+
+/** Whether an Action may be deleted, with every blocker (read-only; delete re-checks). */
+export async function getActionDeleteState(projectId: string, actionId: string): Promise<ActionResult<DeleteEvaluation>> {
+  await requireUser();
+  const supabase = await createSupabaseClient();
+  const loaded = await loadActionDelete(supabase, projectId, actionId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  return { ok: true, data: loaded.evaluation };
+}
+
+/**
+ * Controlled delete (Phase 4F): only an Action that is not Closed, has no Evidence and whose
+ * Finding (if any) is not Closed. Rules are re-evaluated on fresh data; the DELETE is conditioned
+ * on the status still not being Closed. The Finding itself is never changed.
+ */
+export async function deleteAction(projectId: string, actionId: string): Promise<ActionResult<DeleteEvaluation>> {
+  await requireUser();
+  const supabase = await createSupabaseClient();
+
+  const loaded = await loadActionDelete(supabase, projectId, actionId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  if (!loaded.evaluation.canDelete) return { ok: false, error: loaded.evaluation.blockers.join(" ") };
+
+  const { data, error } = await supabase
+    .from("actions")
+    .delete()
+    .eq("id", actionId)
+    .eq("project_id", projectId)
+    .neq("status", "closed")
+    .select("id");
+  if (error) return { ok: false, error: "Couldn't delete the action. Try again." };
+  if (!data || data.length === 0) return { ok: false, error: "This action could not be deleted. It may have been changed." };
+
+  revalidateActions(projectId, loaded.findingId);
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true, data: loaded.evaluation };
 }

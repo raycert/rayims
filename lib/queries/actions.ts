@@ -106,6 +106,34 @@ export function compareActions(a: ActionRow, b: ActionRow): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
+/**
+ * Project Overview (Phase 4F): the overdue actions of one project — the same rule as everywhere
+ * (due date before today, status not Closed; isActionOverdue) — soonest due first, then priority.
+ * Returns at most `limit` rows plus the total overdue count. One query; the database pre-filters.
+ */
+export async function listOverdueActions(
+  projectId: string,
+  limit = 5,
+): Promise<{ items: ActionRow[]; total: number }> {
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const [res, siteMap] = await Promise.all([
+    supabase
+      .from("actions")
+      .select(ACTION_COLUMNS)
+      .eq("project_id", projectId)
+      .neq("status", "closed")
+      .lt("due_date", today),
+    siteNameMap(supabase, projectId),
+  ]);
+  if (res.error) throw new Error("Could not load overdue actions.");
+  const overdue = (res.data ?? [])
+    .map((a) => mapAction(a as RawAction, siteMap))
+    .filter(isActionOverdue)
+    .sort(compareActions);
+  return { items: overdue.slice(0, limit), total: overdue.length };
+}
+
 /** Project Actions workspace: linked AND standalone actions of one project, in one query. */
 export async function listProjectActions(projectId: string): Promise<ActionRow[]> {
   const supabase = await createClient();

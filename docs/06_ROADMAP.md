@@ -13,7 +13,7 @@
 | — 3B-1 | Foundation + Master Plan (read)            | **COMPLETED** |
 | — 3B-2 | Create / Edit + Activity Detail            | **COMPLETED** |
 | — 3B-3 | Status / Cancel / Delete + final 3B acceptance | **COMPLETED** |
-| 4     | Verification / Issues / Actions             | **IN PROGRESS** |
+| 4     | Verification / Issues / Actions             | **COMPLETED / CLOSED** |
 | — 4A  | Verification foundation + workspace        | **COMPLETED** |
 | — 4B  | Activity verification + mobile execution   | **COMPLETED** |
 | — 4B.5 | Verification Excel import                 | **COMPLETED** |
@@ -22,8 +22,9 @@
 | — 4D-1 | NC response & Corrective Actions          | **COMPLETED** |
 | — 4D-2 | Effectiveness Review, NC closure & Reopen | **COMPLETED** |
 | — 4E  | Evidence / Attachments                     | **COMPLETED** |
-| — 4F  | Controlled delete, overdue-actions overview, Phase 4 final acceptance | Planned — NEXT |
-| 5     | Documents / Versions / Reviews              | Planned       |
+| — 4E.6 | UX polish                                 | **COMPLETED** |
+| — 4F  | Controlled delete, overdue-actions overview, Phase 4 final acceptance | **COMPLETED** |
+| 5     | Documents / Versions / Reviews              | Planned — NEXT |
 | 6     | Visit Summary / Reporting                   | Planned       |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
 
@@ -311,7 +312,7 @@ described in `01_V1_SCOPE.md` item 6, with no schema beyond the Phase 3B-1
 `start_time`/`end_time` addition and no new RLS/grants beyond what `activities`
 already had since Phase 0C/0D.
 
-## Phase 4 — Verification / Issues / Actions [IN PROGRESS]
+## Phase 4 — Verification / Issues / Actions [COMPLETED / CLOSED]
 
 Verification items (manual, scheduled, completed with result, carry-over),
 issues, actions, open-action surfacing data. First evidence upload and
@@ -515,12 +516,26 @@ wording; Owner / Due Date stacked on phones. No schema or rule change. **Verifie
 65/65** — see `08_TESTING.md`. Backlog: hide inert tabs on mobile, collapsible mobile filters,
 Finding origin in the header.
 
-### Phase 4F — Controlled delete, overdue actions, Phase 4 final acceptance [NEXT]
+### Phase 4F — Controlled delete, overdue actions, Phase 4 final acceptance [COMPLETED]
 
-Controlled Finding and Verification delete (attachments CASCADE and `SET NULL` links must be
-checked), the overdue-actions overview, and the Phase 4 end-to-end NC acceptance.
+Controlled delete for Verification items, Findings and Actions (BR-108 – BR-111): one shared
+evaluator per record type listing every blocker, re-checked by the delete mutation on fresh data;
+no FK, migration, RLS, grant or Storage change, Evidence never auto-deleted. Verification delete
+from the Verification workspace "…" menu; Finding delete from the Finding Detail "…" menu; Action
+delete from the Action edit drawer. **Overdue Actions** on the Project Overview (BR-112, top 5 +
+total + "View all Actions" → Overdue filter). Activity evidence section renamed **General Activity
+Evidence** with a helper line. Phase 4 final acceptance — see `08_TESTING.md`.
 
-## Phase 5 — Documents / Versions / Reviews
+## Phase 4 — Verification / Issues / Actions: CLOSED
+
+Planning (manual + Excel import), mobile onsite execution, Verification → Finding, NC response,
+Corrective Actions, effectiveness review, closure / reopen, Observation and OFI, standalone
+actions, Evidence, controlled delete and the overdue-actions overview are complete and verified
+against the hosted project. Backlog carried forward: "today" for overdue is the UTC date
+(timezone handling), hide inert tabs on mobile, collapsible mobile filters, Finding origin in the
+header.
+
+## Phase 5 — Documents / Versions / Reviews [NEXT]
 
 Document register, versions and uploads, framework mapping, reviews, derived
 status view, review → issue / verification.

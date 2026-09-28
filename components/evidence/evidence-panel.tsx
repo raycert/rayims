@@ -33,13 +33,14 @@ function Body({ projectId, parent, items, editable, lockedReason, onChanged }: C
 }
 
 /** Full Evidence section (Finding Detail, Activity Detail). */
-export function EvidenceSection(props: Common & { title?: string }) {
+export function EvidenceSection(props: Common & { title?: string; description?: string }) {
   const [adding, setAdding] = useState(false);
   return (
     <section data-testid={`evidence-section-${props.parent.kind}`} className="rounded-lg border border-border bg-surface">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div>
           <h2 className="text-sm font-semibold">{props.title ?? "Evidence"}</h2>
+          {props.description ? <p className="mt-0.5 text-xs text-muted">{props.description}</p> : null}
           <p className="text-xs text-muted">
             {props.items.length} {props.items.length === 1 ? "file" : "files"}
           </p>

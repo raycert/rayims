@@ -943,6 +943,65 @@ the tap area; tighter button padding), then the suite re-run to 65/65.
 `npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. Fixtures and
 the one test Storage object removed; issues / actions / attachments / files / objects all 0.
 
+### Phase 4F — Controlled delete, overdue actions, Phase 4 final acceptance (executed 2026-09-27 / 28)
+
+Result: **PASS — 78/78 checks, 0 failures** on the final code (hosted Supabase, production build,
+Playwright/Edge, 1280×800, 390px, 412px). Fixtures used a `P4F-ACCEPT-` client; the genuine data was
+snapshotted fresh at pre-flight and compared afterwards (below).
+
+Covered: Verification delete from the workspace row / card "…" menu — confirmation title and message,
+`role="alertdialog"` with a labelled title, focus on Cancel, red Delete, Cancel and Escape keep the
+item; an unused planning check is deleted with a toast and disappears from the list; blocked with the
+exact message for an executed check, for a check with only non-blank notes (execution history), for a
+pending check with Evidence, and all three blockers together for an executed check with 2 Findings and
+Evidence (Close only, no Delete); the Finding count never drops through a verification delete; an
+Activity's "3 checks · 3 pending" becomes "2 checks · 2 pending" after deleting one of its checks, the
+Activity itself unchanged; no delete control on Activity verification cards. Finding delete from the
+Finding Detail "…" menu — confirmation text; an open Finding without Actions / Evidence is deleted and
+the page returns to the Findings list; its Verification item (result, notes, execution fields) and its
+Activity are byte-for-byte unchanged; blocked for a Finding with an Action, a closed Finding (exact
+"retained as project history" message) and a Finding with Evidence. Action delete from the edit drawer
+— "Delete Action?" / "This permanently removes the Action."; Escape closes only the confirmation, not
+the drawer; a standalone and a corrective action (from Finding Detail, same mutation) are deleted, the
+Finding unchanged and then itself deletable; blocked for an action with Evidence and — after a **real**
+Storage upload added evidence — the action becomes undeletable (evidence never auto-deleted). Server
+enforcement: tampered Server Action requests that swap an allowed id for an executed verification item,
+a closed Finding, a closed action or an action of a closed Finding are all refused and nothing is
+deleted; the dialog then shows the server's current blockers. Overdue Actions on the Overview — 6 of 9
+actions overdue: exactly 5 shown, ordered due date ascending then priority High → Low, total "(6)",
+due-today / no-due-date / closed excluded; each row shows description, red due date, owner, Finding (or
+"Standalone") and status; "View all Actions" opens the Actions workspace with the Overdue filter
+preselected (6 rows); another project shows "No overdue actions.". "General Activity Evidence" title and
+helper text, section order unchanged, card-level "Add Evidence" / "Evidence (n)" labels unchanged. 390 /
+412 px: the delete dialog is a bottom sheet fully on screen, Delete 44 px tall, "…" target 32 × 32, no
+horizontal overflow on the Verification workspace, Finding Detail, Overview and Activity Detail.
+Consultant can delete an unused check, an open Finding and an open Action, with the same blockers.
+Anonymous: REST delete refused (HTTP 401, nothing deleted), workspace redirects to login.
+
+Notes on the run: the first run scored 69/78 — all 9 failures were test-script issues (toasts checked
+after slow DB polling, the upload step not pressing Upload, a date-format regex, reading "(6)" without
+the visual margin, the 0-evidence label "Add Evidence", and a blocked-dialog check that ignored an action
+the script itself had added earlier). A second attempt failed during fixture setup because two suites
+run in parallel shared one temporary SQL file in the test harness (fixed: per-process file); the suite
+was then re-run to 78/78 with no product change.
+
+**Phase 4 regression (re-run on the final 4F code):** 4B.5 Excel import 149/149 · 4C-1 Finding
+foundation 160/160 · 4C-2 Verification → Finding 155/155 · 4D-1 NC response & actions 145/145 · 4D-2
+Effectiveness & closure 122/122 · 4E Evidence 122/122 · 4E.6 UX polish 65/65. Older suites encoded
+"not yet" states that later approved slices deliberately changed (e.g. "a Nonconformity cannot be
+closed", "no Effectiveness section", "no Actions sub-tab", "no Create Finding on Activity Detail", "no
+delete menu", the pre-4D-2 close banner and the pre-4E.6 wording / section order); those assertions were
+updated to the current approved behaviour, each marked in the script, before the final runs. One 4E
+check read the page before a streamed "Page not found" rendered (verified manually: the cross-project
+URL correctly shows Page not found); it now waits for the text.
+
+Not covered by automation: a real phone camera ("Take Photo" uses the standard file input with
+`capture`; no physical device was available, so camera capture was **not** tested). Timezone: "today"
+for overdue is the UTC date (backlog, unchanged).
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All fixtures and
+Storage objects removed.
+
 ### Phase 5 — Documents / Versions / Reviews
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to

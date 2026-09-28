@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { verificationExecutionSchema, verificationItemSchema } from "@/lib/validation/verification-items";
-import { frameworkItemInProjectScope, validateSiteAndActivity } from "./scope-validation";
+import { evaluateVerificationDelete, type DeleteEvaluation } from "@/lib/domain/delete-rules";
+import { frameworkItemInProjectScope, validateSiteAndActivity, type SupabaseServerClient } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
 
 /**
@@ -209,4 +210,80 @@ export async function recordVerificationResult(
   revalidatePath(`/projects/${projectId}/verification`);
   revalidatePath(`/projects/${projectId}/activities/${activityId}`);
   return { ok: true, data: undefined };
+}
+
+type LoadedVerificationDelete =
+  | { ok: true; targetActivityId: string | null; evaluation: DeleteEvaluation }
+  | { ok: false; error: string };
+
+async function loadVerificationDelete(
+  supabase: SupabaseServerClient,
+  projectId: string,
+  itemId: string,
+): Promise<LoadedVerificationDelete> {
+  const { data, error } = await supabase
+    .from("verification_items")
+    .select(
+      "id, project_id, target_activity_id, result, notes, verified_activity_id, verified_by, verified_at, issues(count), attachments(count)",
+    )
+    .eq("id", itemId)
+    .maybeSingle();
+  if (error) return { ok: false, error: "Couldn't load the verification item. Try again." };
+  if (!data || data.project_id !== projectId) return { ok: false, error: "This verification item could not be found." };
+  return {
+    ok: true,
+    targetActivityId: data.target_activity_id,
+    evaluation: evaluateVerificationDelete({
+      result: data.result,
+      notes: data.notes,
+      verifiedActivityId: data.verified_activity_id,
+      verifiedBy: data.verified_by,
+      verifiedAt: data.verified_at,
+      findingCount: data.issues[0]?.count ?? 0,
+      evidenceCount: data.attachments[0]?.count ?? 0,
+    }),
+  };
+}
+
+/** Whether a verification item may be deleted, with every blocker (read-only; delete re-checks). */
+export async function getVerificationDeleteState(projectId: string, itemId: string): Promise<ActionResult<DeleteEvaluation>> {
+  await requireUser();
+  const supabase = await createSupabaseClient();
+  const loaded = await loadVerificationDelete(supabase, projectId, itemId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  return { ok: true, data: loaded.evaluation };
+}
+
+/**
+ * Controlled delete (Phase 4F): only an unexecuted planning check with no Findings and no
+ * Evidence. Rules are re-evaluated on freshly loaded data; the DELETE is additionally conditioned
+ * on the execution fields still being empty. Nothing else is deleted or changed.
+ */
+export async function deleteVerificationItem(projectId: string, itemId: string): Promise<ActionResult<DeleteEvaluation>> {
+  await requireUser();
+  const supabase = await createSupabaseClient();
+
+  const loaded = await loadVerificationDelete(supabase, projectId, itemId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  if (!loaded.evaluation.canDelete) return { ok: false, error: loaded.evaluation.blockers.join(" ") };
+
+  const { data, error } = await supabase
+    .from("verification_items")
+    .delete()
+    .eq("id", itemId)
+    .eq("project_id", projectId)
+    .is("result", null)
+    .is("verified_activity_id", null)
+    .is("verified_by", null)
+    .is("verified_at", null)
+    .select("id");
+  if (error) return { ok: false, error: "Couldn't delete the verification item. Try again." };
+  if (!data || data.length === 0) {
+    return { ok: false, error: "This verification item could not be deleted. It may have been changed." };
+  }
+
+  revalidatePath(`/projects/${projectId}/verification`);
+  revalidatePath(`/projects/${projectId}`);
+  if (loaded.targetActivityId) revalidatePath(`/projects/${projectId}/activities/${loaded.targetActivityId}`);
+  return { ok: true, data: loaded.evaluation };
 }

@@ -276,7 +276,8 @@ export function ActivityDetailView({
         />
 
         <EvidenceSection
-          title="Activity Evidence"
+          title="General Activity Evidence"
+          description="Files or photos for this activity that are not linked to a specific verification check."
           projectId={activity.projectId}
           parent={{ kind: "activity", id: activity.id }}
           items={activity.evidence}

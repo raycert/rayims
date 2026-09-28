@@ -7,6 +7,7 @@ import { findingSchema, verificationFindingSchema } from "@/lib/validation/findi
 import { effectivenessSchema, ncResponseSchema } from "@/lib/validation/actions";
 import { frameworkItemInProjectScope, validateSiteAndActivity, type SupabaseServerClient } from "./scope-validation";
 import { evaluateFindingClosure, type ClosureEvaluation } from "@/lib/domain/finding-closure";
+import { evaluateFindingDelete, type DeleteEvaluation } from "@/lib/domain/delete-rules";
 import { fieldErrorsFrom, type ActionResult } from "./types";
 
 function revalidateFinding(projectId: string, findingId?: string) {
@@ -445,4 +446,73 @@ export async function updateNcResponse(projectId: string, findingId: string, inp
 
   revalidatePath(`/projects/${projectId}/findings/${findingId}`);
   return { ok: true, data: undefined };
+}
+
+type LoadedFindingDelete =
+  | { ok: true; activityId: string | null; evaluation: DeleteEvaluation }
+  | { ok: false; error: string };
+
+async function loadFindingDelete(
+  supabase: SupabaseServerClient,
+  projectId: string,
+  findingId: string,
+): Promise<LoadedFindingDelete> {
+  const { data, error } = await supabase
+    .from("issues")
+    .select("id, project_id, status, activity_id, actions(count), attachments(count)")
+    .eq("id", findingId)
+    .maybeSingle();
+  if (error) return { ok: false, error: "Couldn't load the finding. Try again." };
+  if (!data || data.project_id !== projectId) return { ok: false, error: "This finding could not be found." };
+  return {
+    ok: true,
+    activityId: data.activity_id,
+    evaluation: evaluateFindingDelete({
+      status: data.status,
+      actionCount: data.actions[0]?.count ?? 0,
+      evidenceCount: data.attachments[0]?.count ?? 0,
+    }),
+  };
+}
+
+/** Whether a Finding may be deleted, with every blocker (read-only; delete re-checks). */
+export async function getFindingDeleteState(projectId: string, findingId: string): Promise<ActionResult<DeleteEvaluation>> {
+  await requireUser();
+  const supabase = await createSupabaseClient();
+  const loaded = await loadFindingDelete(supabase, projectId, findingId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  return { ok: true, data: loaded.evaluation };
+}
+
+/**
+ * Controlled delete (Phase 4F): only an Open Finding with no Actions and no Evidence. Deleting it
+ * never touches its Verification item or Activity (the link lives on the Finding row). Rules are
+ * re-evaluated on fresh data; the DELETE is conditioned on status still being Open, and a
+ * concurrently added Action is refused by the existing foreign key.
+ */
+export async function deleteFinding(projectId: string, findingId: string): Promise<ActionResult<DeleteEvaluation>> {
+  await requireUser();
+  const supabase = await createSupabaseClient();
+
+  const loaded = await loadFindingDelete(supabase, projectId, findingId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  if (!loaded.evaluation.canDelete) return { ok: false, error: loaded.evaluation.blockers.join(" ") };
+
+  const { data, error } = await supabase
+    .from("issues")
+    .delete()
+    .eq("id", findingId)
+    .eq("project_id", projectId)
+    .eq("status", "open")
+    .select("id");
+  if (error) {
+    if (error.code === "23503") return { ok: false, error: "This Finding has linked Actions and cannot be deleted." };
+    return { ok: false, error: "Couldn't delete the finding. Try again." };
+  }
+  if (!data || data.length === 0) return { ok: false, error: "This finding could not be deleted. It may have been changed." };
+
+  revalidateFinding(projectId);
+  revalidatePath(`/projects/${projectId}/verification`);
+  if (loaded.activityId) revalidatePath(`/projects/${projectId}/activities/${loaded.activityId}`);
+  return { ok: true, data: loaded.evaluation };
 }

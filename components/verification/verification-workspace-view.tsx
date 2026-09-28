@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Toast, useToast } from "@/components/ui/toast";
+import { OverflowMenu } from "@/components/ui/overflow-menu";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
+import { deleteVerificationItem, getVerificationDeleteState } from "@/lib/mutations/verification-items";
 import { priorityLabel, priorityTone, verificationResultLabel, verificationResultTone } from "@/lib/ui/status-tones";
 import { formatDate } from "@/lib/ui/format";
 import { VerificationItemFormDrawer } from "./verification-item-form-drawer";
@@ -47,7 +50,13 @@ export function VerificationWorkspaceView({
   const [resultFilter, setResultFilter] = useState("all");
   const [frameworkFilter, setFrameworkFilter] = useState("all");
   const [drawer, setDrawer] = useState<{ mode: "create" } | { mode: "edit"; item: VerificationItemRow } | null>(null);
+  const [deleting, setDeleting] = useState<VerificationItemRow | null>(null);
   const { message, show } = useToast();
+
+  const menuItems = (v: VerificationItemRow) => [
+    { label: "Edit", onSelect: () => setDrawer({ mode: "edit", item: v }) },
+    { label: "Delete", onSelect: () => setDeleting(v), danger: true },
+  ];
 
   useEffect(() => {
     if (importedCount <= 0) return;
@@ -193,7 +202,8 @@ export function VerificationWorkspaceView({
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden overflow-hidden rounded-lg border border-border bg-surface shadow-sm md:block">
+          {/* Not overflow-hidden: the row menu must not be clipped on the last rows. */}
+          <div className="hidden rounded-lg border border-border bg-surface shadow-sm md:block">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
@@ -215,6 +225,9 @@ export function VerificationWorkspaceView({
                   <th className="px-4 py-3 text-left text-[13px] font-semibold uppercase tracking-wide text-muted">
                     Result
                   </th>
+                  <th className="w-12 px-2 py-3">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -224,7 +237,7 @@ export function VerificationWorkspaceView({
                     tabIndex={0}
                     onClick={() => setDrawer({ mode: "edit", item: v })}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") setDrawer({ mode: "edit", item: v });
+                      if (e.key === "Enter" && e.target === e.currentTarget) setDrawer({ mode: "edit", item: v });
                     }}
                     className="cursor-pointer border-t border-border hover:bg-neutral-soft/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2"
                   >
@@ -247,6 +260,9 @@ export function VerificationWorkspaceView({
                     <td className="px-4 py-3">
                       <StatusBadge label={verificationResultLabel(v.result)} tone={verificationResultTone(v.result)} />
                     </td>
+                    <td className="px-2 py-3 text-right">
+                      <OverflowMenu items={menuItems(v)} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -268,7 +284,10 @@ export function VerificationWorkspaceView({
               >
                 <div className="mb-1.5 flex items-center justify-between gap-2">
                   <StatusBadge label={priorityLabel(v.priority)} tone={priorityTone(v.priority)} />
-                  <StatusBadge label={verificationResultLabel(v.result)} tone={verificationResultTone(v.result)} />
+                  <div className="-my-1 -mr-1.5 flex items-center gap-1">
+                    <StatusBadge label={verificationResultLabel(v.result)} tone={verificationResultTone(v.result)} />
+                    <OverflowMenu items={menuItems(v)} />
+                  </div>
                 </div>
                 <div className="text-sm font-semibold">{v.question}</div>
                 {v.frameworkIdentity ? (
@@ -293,6 +312,21 @@ export function VerificationWorkspaceView({
           item={drawer.mode === "edit" ? drawer.item : undefined}
           onClose={() => setDrawer(null)}
           onSaved={handleSaved}
+        />
+      ) : null}
+      {deleting ? (
+        <ConfirmDeleteDialog
+          title="Delete verification item?"
+          message="This will permanently remove the planning check."
+          blockedTitle="This verification item can't be deleted"
+          loadState={() => getVerificationDeleteState(projectId, deleting.id)}
+          onDelete={() => deleteVerificationItem(projectId, deleting.id)}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => {
+            setDeleting(null);
+            router.refresh();
+            show("Verification item deleted");
+          }}
         />
       ) : null}
       <Toast message={message} />

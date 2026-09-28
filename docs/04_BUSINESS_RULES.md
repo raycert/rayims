@@ -87,7 +87,9 @@ Product behavior that the schema and UI must respect. Database details are in
   *(Phase 4E.6)* An Activity has **one current status**: Activity Detail shows it once, as a
   single "Status:" select (not a badge plus three tab-like buttons). Changing it never changes
   which sections are shown — Plan, Verification, Activity Evidence and Outcome / Visit Summary
-  always stay visible, in that order.
+  always stay visible, in that order. *(Phase 4F)* The Activity-level evidence section is titled
+  **General Activity Evidence** ("Files or photos for this activity that are not linked to a
+  specific verification check."); evidence on a verification card or Action is unchanged.
 - **BR-69** Cancel means `status = cancelled`. It is not delete: identity, schedule,
   Plan, Outcome and every reference to the Activity are preserved unchanged. A
   cancelled Activity remains in the Master Plan (searchable, filterable, openable,
@@ -441,6 +443,43 @@ Product behavior that the schema and UI must respect. Database details are in
   existing evidence stays viewable; **Verification** and **Activity** evidence stay editable after
   a result is recorded or the Activity is completed. Any authenticated user may add or remove
   evidence where the parent is editable (no uploader-only rule); anon is denied.
+
+## Controlled delete (Phase 4F)
+
+Deletion exists only to remove records created by mistake. Anything that carries work history is
+retained; nothing is cascaded, archived or soft-deleted to make a record deletable, and Evidence is
+never removed automatically. Rules are application-level (no FK change): each record type has one
+shared evaluator (`lib/domain/delete-rules.ts`) that returns *can delete* plus **every** blocker,
+used both to show the confirmation and — re-run on freshly loaded data — by the delete mutation
+itself. Admin and Consultant have the same rights; anonymous users have none.
+
+- **BR-108** A **Verification item** may be deleted only when it has **no execution history**
+  (`result`, `verified_activity_id`, `verified_by`, `verified_at` all empty and `notes` blank),
+  **no Finding** references it, and it has **no Evidence**. Blockers: "This verification has
+  execution history and cannot be deleted." / "This verification has linked Findings and cannot be
+  deleted." / "This verification has Evidence and cannot be deleted." Offered from the row / card
+  "…" menu of the Project Verification workspace only (not on Activity cards). Deleting it changes
+  no Activity; the Activity's check count simply drops (e.g. 3 checks → 2 checks).
+- **BR-109** A **Finding** may be deleted only while **Open**, with **no linked Actions** (of any
+  status) and **no Evidence**. A closed Finding shows "Closed Findings are retained as project
+  history. Reopen it if you need to continue working on it." Offered from the Finding Detail "…"
+  menu ("Delete Finding"). Its Verification item (result, notes, execution) and Activity are never
+  changed.
+- **BR-110** An **Action** may be deleted only when it is **not Closed**, has **no Evidence**, and
+  its Finding (if any) is **not Closed**. Offered from the Action edit drawer (Finding Detail and
+  Actions workspace share the same mutation). The Finding is never changed.
+- **BR-111** Evidence that was added by mistake is removed with **Remove Evidence** (BR-105)
+  first; only then can its parent be deleted. A delete is refused if the record gained history
+  after the confirmation opened (the delete statement is also conditioned on the record's state).
+
+## Overdue actions on the Project Overview (Phase 4F)
+
+- **BR-112** The Project Overview shows **Overdue Actions**: the project's actions matching BR-34
+  (`due_date` before today, status not Closed — the same `isActionOverdue` rule as the Actions
+  workspace; today is the UTC date, see backlog), at most **5**, ordered by due date (oldest
+  first), then priority High → Low, then newest created, then id; with the total count, each row's
+  description, due date, owner, Finding (or "Standalone") and status, and **View all Actions**
+  (Actions workspace pre-filtered to Overdue). Empty state: "No overdue actions." No KPI or chart.
 
 ## Access and identity
 

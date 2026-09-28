@@ -111,6 +111,13 @@ and prototype/demo data is not a requirement.
 - **Destructive actions are secondary**: per-row overflow (…) menus and confirmations;
   they never dominate a list. Deletion follows the FK rules (BR-53, BR-58) and explains
   why a delete is blocked.
+- *(Phase 4F)* Controlled delete of Verification items, Findings and Actions uses one shared
+  confirmation (`ConfirmDeleteDialog`): a centred dialog on desktop, a bottom sheet on phones,
+  `role="alertdialog"`, focus starts on **Cancel**, Escape closes only the dialog. It first shows the
+  server's current evaluation — when blocked, the title says the record can't be deleted, **every**
+  reason is listed and only **Close** is offered; otherwise a short message with Cancel and a red
+  **Delete**. Entry points: Verification workspace row / card "…" menu, Finding Detail "…" menu
+  ("Delete Finding"), the Action edit drawer footer (a quiet red "Delete" on the left).
 - **Primary navigation** is the row or name (client, project, framework, site row with a
   chevron); secondary actions live in the overflow.
 - **No fabricated future-domain data.** Do not show placeholder or zero values for

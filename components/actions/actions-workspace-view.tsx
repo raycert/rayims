@@ -25,14 +25,17 @@ export function ActionsWorkspaceView({
   projectId,
   actions,
   catalog,
+  initialStatusFilter = "all",
 }: {
   projectId: string;
   actions: ActionRow[];
   catalog: VerificationFormCatalog;
+  /** From ?filter=overdue (Project Overview's "View all Actions"). */
+  initialStatusFilter?: string;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
   const [siteFilter, setSiteFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [linkFilter, setLinkFilter] = useState("all");

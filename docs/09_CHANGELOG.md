@@ -3,6 +3,27 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 4F — Controlled delete, overdue actions, Phase 4 final acceptance (2026-09-28)
+
+Completes Phase 4. **Result: 78/78 acceptance checks**, Phase 4 regression suites all passing (see
+`08_TESTING.md`). No migration, FK, RLS, grant or Storage change; no ADR.
+
+### Added
+
+- Controlled delete (BR-108 – BR-111) with one evaluator per record type
+  (`lib/domain/delete-rules.ts`) listing every blocker, re-checked by the delete mutations
+  (`deleteVerificationItem`, `deleteFinding`, `deleteAction`) on freshly loaded data; the DELETE
+  statements are also conditioned on the record's state. Evidence is never deleted automatically.
+- Shared `ConfirmDeleteDialog` (alertdialog; bottom sheet on phones). Entry points: Verification
+  workspace row / card "…" menu, Finding Detail "…" menu, Action edit drawer.
+- **Overdue Actions** on the Project Overview (BR-112): top 5, total count, "View all Actions" → Actions
+  workspace with the Overdue filter (`?filter=overdue`).
+
+### Changed
+
+- Activity Detail: "Activity Evidence" → **General Activity Evidence**, with a one-line helper.
+- Phase 4 marked **COMPLETED / CLOSED**; next is Phase 5 — Documents / Versions / Reviews.
+
 ## Phase 4E.6 — UX polish (2026-09-27)
 
 Applies the approved fixes from the Phase 4E.5 UX review. **Result: 65/65 checks.** No schema, RLS,

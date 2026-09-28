@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Toast, useToast } from "@/components/ui/toast";
+import { OverflowMenu } from "@/components/ui/overflow-menu";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import {
   findingStatusLabel,
   findingStatusTone,
@@ -17,7 +19,13 @@ import {
   priorityTone,
 } from "@/lib/ui/status-tones";
 import { formatDate } from "@/lib/ui/format";
-import { closeFinding, getFindingClosureState, reopenFinding } from "@/lib/mutations/findings";
+import {
+  closeFinding,
+  deleteFinding,
+  getFindingClosureState,
+  getFindingDeleteState,
+  reopenFinding,
+} from "@/lib/mutations/findings";
 import type { ClosureEvaluation } from "@/lib/domain/finding-closure";
 import { EffectivenessDrawer } from "./effectiveness-drawer";
 import { EvidenceSection } from "@/components/evidence/evidence-panel";
@@ -78,6 +86,7 @@ export function FindingDetailView({
   const [editingResponse, setEditingResponse] = useState(false);
   const [editingEffectiveness, setEditingEffectiveness] = useState(false);
   const [closure, setClosure] = useState<ClosureEvaluation | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [actionDrawer, setActionDrawer] = useState<{ mode: "create" } | { mode: "edit"; action: ActionRow } | null>(null);
   const { message, show } = useToast();
 
@@ -202,6 +211,7 @@ export function FindingDetailView({
               Reopen Finding
             </Button>
           ) : null}
+          <OverflowMenu items={[{ label: "Delete Finding", onSelect: () => setDeleting(true), danger: true }]} />
         </div>
       </div>
 
@@ -584,6 +594,17 @@ export function FindingDetailView({
           finding={finding}
           onClose={() => setEditing(false)}
           onSaved={handleSaved}
+        />
+      ) : null}
+      {deleting ? (
+        <ConfirmDeleteDialog
+          title="Delete Finding?"
+          message="This permanently removes this Finding."
+          blockedTitle="This Finding can't be deleted"
+          loadState={() => getFindingDeleteState(finding.projectId, finding.id)}
+          onDelete={() => deleteFinding(finding.projectId, finding.id)}
+          onClose={() => setDeleting(false)}
+          onDeleted={() => router.replace(`/projects/${finding.projectId}/findings`)}
         />
       ) : null}
       <Toast message={message} />

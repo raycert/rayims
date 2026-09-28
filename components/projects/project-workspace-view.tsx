@@ -1,17 +1,26 @@
 import Link from "next/link";
-import { activityStatusLabel, activityStatusTone, projectStatusLabel } from "@/lib/ui/status-tones";
+import {
+  actionStatusLabel,
+  actionStatusTone,
+  activityStatusLabel,
+  activityStatusTone,
+  projectStatusLabel,
+} from "@/lib/ui/status-tones";
 import { formatActivityDateTime, formatDate, formatFrameworkIdentity } from "@/lib/ui/format";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { ProjectWorkspace } from "@/lib/queries/projects";
 import type { ActivityPlanRow } from "@/lib/queries/activities";
+import type { ActionRow } from "@/lib/queries/actions";
 
 /** The Overview tab's body only — the shared identity/tabs header lives in ProjectWorkspaceHeader. */
 export function ProjectWorkspaceView({
   project,
   upcomingActivities,
+  overdueActions,
 }: {
   project: ProjectWorkspace;
   upcomingActivities: ActivityPlanRow[];
+  overdueActions: { items: ActionRow[]; total: number };
 }) {
   return (
     <div>
@@ -82,6 +91,44 @@ export function ProjectWorkspaceView({
                     </div>
                   </div>
                   <StatusBadge label={activityStatusLabel(a.status)} tone={activityStatusTone(a.status)} />
+                </Link>
+              ))
+            )}
+          </section>
+
+          <section data-testid="overdue-actions" className="rounded-lg border border-border bg-surface">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h2 className="text-sm font-semibold">
+                Overdue Actions
+                {overdueActions.total > 0 ? <span className="ml-1.5 font-normal text-muted">({overdueActions.total})</span> : null}
+              </h2>
+              <Link
+                href={`/projects/${project.id}/actions?filter=overdue`}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                View all Actions
+              </Link>
+            </div>
+            {overdueActions.items.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-muted">No overdue actions.</p>
+            ) : (
+              overdueActions.items.map((a) => (
+                <Link
+                  key={a.id}
+                  href={a.findingId ? `/projects/${project.id}/findings/${a.findingId}` : `/projects/${project.id}/actions?filter=overdue`}
+                  className="flex min-h-10 items-center justify-between gap-2 border-t border-border px-4 py-2 text-sm first:border-t-0 hover:bg-neutral-soft/60"
+                >
+                  <div className="min-w-0">
+                    <div className="line-clamp-2 font-semibold">{a.description}</div>
+                    <div className="text-xs text-muted">
+                      <span className="font-semibold text-danger">Due {formatDate(a.dueDate)}</span>
+                      {" · "}
+                      {a.ownerName ?? "No owner"}
+                      {" · "}
+                      {a.findingTitle ?? "Standalone"}
+                    </div>
+                  </div>
+                  <StatusBadge label={actionStatusLabel(a.status)} tone={actionStatusTone(a.status)} />
                 </Link>
               ))
             )}

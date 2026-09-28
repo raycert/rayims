@@ -19,10 +19,13 @@ export async function generateMetadata({
 
 export default async function ProjectActionsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ filter?: string }>;
 }) {
   const { projectId } = await params;
+  const { filter } = await searchParams;
   const project = await getProjectWorkspace(projectId);
   if (!project) notFound();
 
@@ -32,7 +35,12 @@ export default async function ProjectActionsPage({
     <PageContainer>
       <ProjectWorkspaceHeader project={project} activeTab="findings" />
       <FindingsSubnav projectId={projectId} active="actions" />
-      <ActionsWorkspaceView projectId={projectId} actions={actions} catalog={catalog} />
+      <ActionsWorkspaceView
+        projectId={projectId}
+        actions={actions}
+        catalog={catalog}
+        initialStatusFilter={filter === "overdue" ? "overdue" : "all"}
+      />
     </PageContainer>
   );
 }
