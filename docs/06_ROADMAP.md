@@ -24,7 +24,12 @@
 | — 4E  | Evidence / Attachments                     | **COMPLETED** |
 | — 4E.6 | UX polish                                 | **COMPLETED** |
 | — 4F  | Controlled delete, overdue-actions overview, Phase 4 final acceptance | **COMPLETED** |
-| 5     | Documents / Versions / Reviews              | Planned — NEXT |
+| 5     | Documents / Versions / Reviews              | **IN PROGRESS** |
+| — 5A  | Document Register foundation                | **COMPLETED** |
+| — 5B  | Document Versions                           | Planned — NEXT |
+| — 5C  | Document Reviews                            | Planned |
+| — 5D  | Review → Finding / Verification Item        | Planned |
+| — 5E  | Phase 5 final acceptance                    | Planned |
 | 6     | Visit Summary / Reporting                   | Planned       |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
 
@@ -535,10 +540,41 @@ against the hosted project. Backlog carried forward: "today" for overdue is the 
 (timezone handling), hide inert tabs on mobile, collapsible mobile filters, Finding origin in the
 header.
 
-## Phase 5 — Documents / Versions / Reviews [NEXT]
+## Phase 5 — Documents / Versions / Reviews [IN PROGRESS]
 
 Document register, versions and uploads, framework mapping, reviews, derived
-status view, review → issue / verification.
+status view, review → issue / verification. The Phase 5 pre-implementation review confirmed the
+Phase 0C schema covers all of it: **no migration, no RLS / grant change, no new ADR**. Approved
+decisions: Document = logical record; version files immutable; derived status only; review →
+Finding and review → Verification Item are explicit (5D); Review Evidence, document import,
+N/A reason, required flag, due date and an Overview summary are backlog.
+
+### Phase 5A — Document Register foundation [COMPLETED]
+
+Documents tab (`/projects/[projectId]/documents`) with the register (Document / Site /
+Framework Requirements / Latest Version / Status / Last Review; cards on phones), search (title,
+code, type, owner), Status / Site / Framework filters, Title A–Z order; + New Document and Edit
+(Title, Document Code, Document Type, Owner, Project-wide / site, Applicable, Framework
+Requirements multi-select) in one save; Document Detail (information, requirements, read-only
+Versions area — "No versions received yet."); status from `document_register`; controlled
+Document delete (no versions). See `08_TESTING.md`.
+
+### Phase 5B — Document Versions [NEXT]
+
+Upload a version (private Storage, shared file infrastructure), V{n} + client revision label,
+version timeline, View / Download, controlled delete of an unreviewed latest version.
+
+### Phase 5C — Document Reviews
+
+Record / complete a review of the latest version, one open review per version, concluded
+reviews immutable, full derived status.
+
+### Phase 5D — Review → Finding / Verification Item
+
+Explicit Create Finding and Add Verification Item from a review, origin traceability.
+
+### Phase 5E — Phase 5 final acceptance
+
 
 ## Phase 6 — Visit Summary / Reporting
 

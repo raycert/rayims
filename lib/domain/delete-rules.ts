@@ -35,6 +35,13 @@ export function evaluateFindingDelete(f: { status: string; actionCount: number; 
   return done(blockers);
 }
 
+/** Phase 5A: only a Document with no Versions. Framework mappings are setup data and do not block. */
+export function evaluateDocumentDelete(d: { versionCount: number }): DeleteEvaluation {
+  const blockers: string[] = [];
+  if (d.versionCount > 0) blockers.push("This document has versions and cannot be deleted.");
+  return done(blockers);
+}
+
 export function evaluateActionDelete(a: { status: string; findingStatus: string | null; evidenceCount: number }): DeleteEvaluation {
   const blockers: string[] = [];
   if (a.findingStatus === "closed") blockers.push("This Action belongs to a closed Finding. Reopen the Finding first.");

@@ -6,6 +6,7 @@ const TONE_CLASSES: Record<Tone, string> = {
   warning: "bg-warning-soft text-warning",
   danger: "bg-danger-soft text-danger",
   neutral: "bg-neutral-soft text-neutral",
+  info: "bg-primary/10 text-primary",
 };
 
 /** Color reinforces meaning but never carries it alone: always paired with a text label. */

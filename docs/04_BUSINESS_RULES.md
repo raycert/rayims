@@ -138,7 +138,34 @@ Product behavior that the schema and UI must respect. Database details are in
   one with the most recent `created_at`: `under_review` → Under Review,
   `revision_required` → Revision Required, `accepted` → Accepted.
 - **BR-21** From a review, the consultant may **create an issue** or **add to
-  site verification**.
+  site verification**. *(Phase 5 review)* Both are **explicit** actions (Phase 5D, approved):
+  a review result never creates a Finding or a Verification item on its own. Review Evidence
+  (attachments on a review) is **backlog**.
+- **BR-113** *(Phase 5A)* A **Document** is the logical controlled document (e.g. "Document
+  Control Procedure"), never an uploaded file; files belong to Versions (Phase 5B). Identity:
+  **Title** (required, trimmed), optional **Document Code** (`doc_code`, free text, **not
+  unique** — duplicates only show a non-blocking hint), optional **Document Type** and **Owner**
+  (free text; Owner is the client-side owner, not a user). No description, department,
+  required/optional flag or due date in V1.
+- **BR-114** *(Phase 5A)* A Document is **Project-wide** (`site_id` NULL) or **site-specific**;
+  the site must be in the project's scope (validated on the server and by the
+  `(project_id, site_id)` FK).
+- **BR-115** *(Phase 5A)* **Applicable** (`is_applicable`, default true). Unticking it makes the
+  derived status **Not Applicable**; nothing is deleted and it can be switched back at any time
+  (status recomputes; mappings, versions and reviews are kept). No N/A reason in V1. Approved for
+  later slices: while Not Applicable, **new Versions and Reviews are refused** (existing history
+  stays visible).
+- **BR-116** *(Phase 5A)* **Framework Requirements** are mapped at Document level
+  (`document_framework_items`, 0..N, across Frameworks) in the Document create / edit form.
+  **New** mappings must belong to a Framework currently assigned to the project (server-checked);
+  a mapping to a Framework that is later unassigned stays visible as "(not currently assigned)"
+  and may be kept or removed, but no other item of that Framework can be added.
+- **BR-117** *(Phase 5A)* **Document status is derived only** — from the `document_register` view
+  (BR-20). UI labels: Not Applicable, Not Received, Received, Under Review, Revision Required,
+  Accepted. A registered document with no version is **Not Received**.
+- **BR-118** *(Phase 5A)* **Controlled Document delete:** only a Document with **no Versions**.
+  Its Framework mappings are removed with it (setup data); versions, files and reviews are never
+  cascade-deleted by the application — "This document has versions and cannot be deleted."
 
 ## Verification
 

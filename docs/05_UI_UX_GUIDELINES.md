@@ -72,6 +72,11 @@ label.
 | **Yellow**  | Needs attention                  | Attention, Under Review, Revision Required |
 | **Red**     | Problem                          | Issue, Overdue                             |
 | **Neutral** | Not started / draft              | Draft, Not Started                         |
+| **Blue (info)** | In progress, no problem       | Received, Under Review (documents)         |
+
+*(Phase 5A)* Document statuses: Not Applicable and Not Received **neutral**, Received and Under
+Review **blue / informational** (the primary tint — not amber), Revision Required **amber**,
+Accepted **green**. Only the status that needs attention is amber.
 
 Statuses not listed above default to neutral until assigned in the design
 foundation (Phase 0C).

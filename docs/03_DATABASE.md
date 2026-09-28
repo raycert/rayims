@@ -220,6 +220,10 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
 - **No status column.** Current status is derived (see below).
 - A document with zero versions is a valid "expected document" (Not Received).
+- **Used by Phase 5A (Document Register):** all columns above; no schema change. `doc_code` is
+  not unique (BR-113). Deleting a document CASCADES its versions (→ reviews → review attachments)
+  and mappings, and leaves version `files` rows / objects orphaned — so the application only
+  deletes a document that has **no versions** (BR-118).
 
 ### document_versions
 - **Purpose:** an actual uploaded revision of a document.
@@ -240,6 +244,8 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Delete:** `document_id` CASCADE; `framework_item_id` NO ACTION (a framework
   item in use cannot be deleted).
 - **Index:** reverse lookup on `framework_item_id`.
+- **Phase 5A:** edited as a set with the document (server diff: add validated new items, remove
+  dropped ones). New items must be in the project's assigned Frameworks; historical ones may stay.
 
 ### document_reviews
 - **Purpose:** a review record for one document version.

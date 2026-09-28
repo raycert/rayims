@@ -1002,7 +1002,56 @@ for overdue is the UTC date (backlog, unchanged).
 `npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All fixtures and
 Storage objects removed.
 
-### Phase 5 — Documents / Versions / Reviews
+### Phase 5A — Document Register foundation (executed 2026-09-28)
+
+Result: **PASS — 104/104 checks, 0 failures** on the final code (hosted Supabase, production
+build, Playwright/Edge, 1280×800, 390px, 412px). Fixtures used `P5A-ACCEPT-` clients (two
+clients, three projects); the genuine data was snapshotted fresh at pre-flight (documents,
+versions, reviews and mappings all 0) and is identical afterwards.
+
+Covered: Documents tab is a live link with the active state (Reports stays the only inert tab);
+at 390 / 412 px the tab row stays one scrollable line and the active Documents tab is scrolled
+fully into view (`aria-current="page"`). Register columns and derived status from
+`document_register` for all six statuses via DB fixtures (Received / Under Review → blue info
+tint, Revision Required → amber, Accepted → green, Not Received / Not Applicable → neutral),
+including the latest-review rules (older accepted version + latest version revised; revision
+then acceptance on the same version), "V2 · Rev.01", Last Review date, "—" without versions.
+Create "Document Control Procedure" (code PR-QMS-01, Procedure, Quality Manager, project-wide,
+applicable, ISO 9001 7.5 + 6.1 — the seeded ISO 9001 goes down to 7.5, not 7.5.2 / 7.5.3): title
+trimmed, created_by = session user, 2 mappings, Not Received in register and detail, human-readable
+requirements, "No versions received yet.", no Upload button, no UUIDs; non-blocking duplicate-code
+hint; form has no status / version / file / review / description / due-date field; drawer 400 px.
+Site-specific multi-framework document (Viet Long; ISO 14001 8.2 + 6.1.2 + ISO 45001 8.2):
+register shows two requirements "+1", detail all three. Server rejects (tampered requests) a
+Project B site and an ISO 50001 item, with no document written; picker offers only assigned
+Frameworks. Applicable → Not Applicable → Applicable recomputes the status, keeps the mappings and
+never touches created_by / created_at. Historical mapping: after unassigning ISO 45001 the mapping
+shows "(not currently assigned)", is kept on save, no ISO 45001 item is offered, a tampered add of
+another ISO 45001 item is rejected, and the mapping can be removed. Search (title, code), Status /
+Site / Framework filters, no-results state, Title A–Z order. Delete: confirmation text, document and
+mappings removed, framework data and project assignments untouched; a document with a (fixture)
+version is blocked with "This document has versions and cannot be deleted." and Close only — the
+version and its file remain and are shown read-only on Detail; tampered delete refused. Isolation:
+a Project B document through a Project A URL is not found with nothing leaked; editing / deleting it
+through Project A refused. Empty register. Mobile: cards, filters, bottom-sheet form with a usable
+multi-select and site controls, Create not covered by the bottom navigation, detail and overflow
+reachable, no horizontal overflow. Consultant creates / edits / deletes; anonymous redirected and
+REST read denied.
+
+Notes on the run: the first run scored 77/79 — both failures were test-script issues (the helper
+text of "Applicable" contains the word "status"; a mobile selector also matched the hidden desktop
+table link). Review of the screenshots then led to two product fixes before the final runs:
+Frameworks now sort naturally (ISO 9001 before ISO 14001) and the active project tab is scrolled
+into view on phones (it was cut off at 390 px).
+
+Regression on the final build: Phase 4E.6 suite 65/65 and Phase 4F suite 78/78 (Activity Detail,
+Verification, Findings, Actions, Evidence, Overview); plus Plan, Verification, Findings, Actions,
+Overview and Framework Library smoke checks inside the 5A suite.
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All
+fixtures removed; documents / versions / reviews / mappings / files all 0.
+
+### Phase 5 — Documents / Versions / Reviews (5B–5E)
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to
 Received; multiple reviews of one version; derived status rules; framework

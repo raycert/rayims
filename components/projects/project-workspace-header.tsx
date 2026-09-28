@@ -3,8 +3,9 @@ import { buttonClasses } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { projectStatusLabel, projectStatusTone } from "@/lib/ui/status-tones";
 import { formatFrameworkIdentity } from "@/lib/ui/format";
+import { KeepActiveTabVisible } from "./keep-active-tab-visible";
 
-export type WorkspaceTab = "overview" | "plan" | "verification" | "findings";
+export type WorkspaceTab = "overview" | "plan" | "verification" | "findings" | "documents";
 
 type WorkspaceHeaderProject = {
   id: string;
@@ -19,10 +20,11 @@ const LIVE_TABS: { key: WorkspaceTab; label: string; href: (id: string) => strin
   { key: "plan", label: "Plan", href: (id) => `/projects/${id}/plan` },
   { key: "verification", label: "Verification", href: (id) => `/projects/${id}/verification` },
   { key: "findings", label: "Findings & Actions", href: (id) => `/projects/${id}/findings` },
+  { key: "documents", label: "Documents", href: (id) => `/projects/${id}/documents` },
 ];
 
-/** Not built yet — shown inert, never linked, no route exists (Phase 5+). */
-const FUTURE_TABS = ["Documents", "Reports"];
+/** Not built yet — shown inert, never linked, no route exists (Phase 6+). */
+const FUTURE_TABS = ["Reports"];
 
 /**
  * Shared identity/tabs header for the Project Workspace, used by both Overview
@@ -72,6 +74,7 @@ export function ProjectWorkspaceHeader({
           <Link
             key={tab.key}
             href={tab.href(project.id)}
+            aria-current={tab.key === activeTab ? "page" : undefined}
             className={
               tab.key === activeTab
                 ? "flex min-h-10 items-center whitespace-nowrap border-b-2 border-primary px-1 text-sm font-medium text-primary"
@@ -91,6 +94,7 @@ export function ProjectWorkspaceHeader({
             {label}
           </span>
         ))}
+        <KeepActiveTabVisible />
       </div>
     </div>
   );

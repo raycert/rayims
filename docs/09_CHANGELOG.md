@@ -3,6 +3,31 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 5A — Document Register foundation (2026-09-28)
+
+**Result: 104/104 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.
+
+### Added
+
+- **Documents** project tab (`/projects/[projectId]/documents`): register of logical documents
+  with derived status from the `document_register` view, compact Framework Requirements, latest
+  version and last review; search, Status / Site / Framework filters; cards on phones.
+- **+ New Document / Edit Document** (drawer / bottom sheet): Title, Document Code, Document
+  Type, Owner, Project-wide or site, Applicable, and a searchable, grouped **Framework
+  Requirements** multi-select — saved together; server validates site and new requirements
+  before any write; historical mappings are kept when a Framework is unassigned.
+- **Document Detail** (`/projects/[projectId]/documents/[documentId]`): information,
+  requirements, read-only Versions area ("No versions received yet.").
+- Controlled **Document delete** (no versions only), using the shared confirmation dialog.
+- `info` badge tone (primary tint) for Received / Under Review.
+
+### Changed
+
+- Project tabs: Documents is live (Reports stays inert); the active tab is marked
+  `aria-current="page"` and scrolled into view on narrow screens.
+- Business rules BR-113 – BR-118; BR-21 clarified (explicit Review → Finding / Verification in
+  5D; Review Evidence backlog). Phase 5 slicing 5A–5E in the roadmap.
+
 ## Phase 4F — Controlled delete, overdue actions, Phase 4 final acceptance (2026-09-28)
 
 Completes Phase 4. **Result: 78/78 acceptance checks**, Phase 4 regression suites all passing (see

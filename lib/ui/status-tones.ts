@@ -1,4 +1,5 @@
-export type Tone = "success" | "warning" | "danger" | "neutral";
+/** `info` (Phase 5A) = informational, in progress but not a problem — the primary tint. */
+export type Tone = "success" | "warning" | "danger" | "neutral" | "info";
 
 export function clientStatusLabel(status: string): string {
   return status === "active" ? "Active" : "Inactive";
@@ -135,6 +136,35 @@ export function verificationResultLabel(result: string | null): string {
 export function verificationResultTone(result: string | null): Tone {
   if (!result) return "neutral";
   return VERIFICATION_RESULT_TONES[result] ?? "neutral";
+}
+
+/**
+ * Derived document status (ADR-005, `document_register.status`). Never stored. Restrained tones:
+ * only Revision Required needs attention; Received / Under Review are informational.
+ */
+export const DOCUMENT_STATUSES = ["not_received", "received", "under_review", "revision_required", "accepted", "n_a"] as const;
+const DOCUMENT_STATUS_LABELS: Record<string, string> = {
+  n_a: "Not Applicable",
+  not_received: "Not Received",
+  received: "Received",
+  under_review: "Under Review",
+  revision_required: "Revision Required",
+  accepted: "Accepted",
+};
+const DOCUMENT_STATUS_TONES: Record<string, Tone> = {
+  n_a: "neutral",
+  not_received: "neutral",
+  received: "info",
+  under_review: "info",
+  revision_required: "warning",
+  accepted: "success",
+};
+
+export function documentStatusLabel(status: string): string {
+  return DOCUMENT_STATUS_LABELS[status] ?? status;
+}
+export function documentStatusTone(status: string): Tone {
+  return DOCUMENT_STATUS_TONES[status] ?? "neutral";
 }
 
 /** Effectiveness Review (Nonconformity). null = Not Reviewed. */

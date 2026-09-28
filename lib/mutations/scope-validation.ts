@@ -68,6 +68,26 @@ export async function validateSiteAndActivity(
   return ok ? null : { error: "The selected site is not in this project's scope.", field: "siteId" };
 }
 
+/**
+ * Batched form of frameworkItemInProjectScope (Phase 5A, document mappings): true only when EVERY
+ * id exists and belongs to a Framework currently assigned to the project. Two queries in total.
+ */
+export async function frameworkItemsInProjectScope(
+  supabase: SupabaseServerClient,
+  projectId: string,
+  frameworkItemIds: string[],
+): Promise<boolean> {
+  if (frameworkItemIds.length === 0) return true;
+  const [itemsRes, assignedRes] = await Promise.all([
+    supabase.from("framework_items").select("id, framework_id").in("id", frameworkItemIds),
+    supabase.from("project_frameworks").select("framework_id").eq("project_id", projectId),
+  ]);
+  if (itemsRes.error || assignedRes.error) return false;
+  const assigned = new Set((assignedRes.data ?? []).map((r) => r.framework_id));
+  const items = itemsRes.data ?? [];
+  return items.length === frameworkItemIds.length && items.every((i) => assigned.has(i.framework_id));
+}
+
 /** framework_item_id, if supplied, must belong to a Framework currently assigned to the project (BR-74). */
 export async function frameworkItemInProjectScope(
   supabase: SupabaseServerClient,
