@@ -241,7 +241,10 @@ export function VerificationWorkspaceView({
                     }}
                     className="cursor-pointer border-t border-border hover:bg-neutral-soft/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2"
                   >
-                    <td className="max-w-sm px-4 py-3 font-semibold">{v.question}</td>
+                    <td className="max-w-sm px-4 py-3">
+                      <div className="font-semibold">{v.question}</div>
+                      <ReviewSource v={v} />
+                    </td>
                     <td className="px-2.5 py-3 text-muted">
                       {v.frameworkIdentity ? (
                         <>
@@ -290,6 +293,7 @@ export function VerificationWorkspaceView({
                   </div>
                 </div>
                 <div className="text-sm font-semibold">{v.question}</div>
+                <ReviewSource v={v} />
                 {v.frameworkIdentity ? (
                   <div className="mt-1 text-[12.5px] text-muted">
                     {v.frameworkIdentity} · {v.frameworkItemLabel}
@@ -310,6 +314,7 @@ export function VerificationWorkspaceView({
           projectId={projectId}
           catalog={catalog}
           item={drawer.mode === "edit" ? drawer.item : undefined}
+          lockedSiteId={drawer.mode === "edit" ? (drawer.item.reviewOrigin?.documentSiteId ?? null) : null}
           onClose={() => setDrawer(null)}
           onSaved={handleSaved}
         />
@@ -330,6 +335,16 @@ export function VerificationWorkspaceView({
         />
       ) : null}
       <Toast message={message} />
+    </div>
+  );
+}
+
+/** Subtle source line for a check added from a Document Gap Assessment (Phase 5D). */
+function ReviewSource({ v }: { v: VerificationItemRow }) {
+  if (!v.reviewOrigin) return null;
+  return (
+    <div data-testid="verification-review-source" className="mt-0.5 text-xs font-normal text-muted">
+      From Gap Assessment · {v.reviewOrigin.documentTitle} · V{v.reviewOrigin.versionNo}
     </div>
   );
 }

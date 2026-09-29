@@ -48,14 +48,28 @@ export type FindingDetail = FindingRow & {
   verificationQuestion: string | null;
   /** Set only when created from a Document Review (Phase 5). */
   documentReviewId: string | null;
+  /** The Gap Assessment this Finding was created from directly (Phase 5D); null otherwise. */
+  reviewOrigin: FindingReviewOrigin | null;
   createdByName: string | null;
   closedByName: string | null;
+};
+
+export type FindingReviewOrigin = {
+  documentId: string;
+  documentTitle: string;
+  /** "V2 · Rev.01" */
+  versionLabel: string;
+  /** review status: revision_required | accepted (under_review cannot create follow-up) */
+  result: string;
+  notes: string | null;
+  /** A site-specific Document keeps the Finding's site fixed. */
+  documentSiteId: string | null;
 };
 
 const FINDING_COLUMNS =
   "id, project_id, finding_type, title, description, priority, status, site_id, activity_id, framework_item_id, verification_item_id, created_at, closed_at, framework_items(id, code, title, frameworks(code, edition)), activities(id, name, start_date, start_time)";
 
-const DETAIL_COLUMNS = `${FINDING_COLUMNS}, correction, root_cause, effectiveness_result, effectiveness_notes, effectiveness_reviewed_by, effectiveness_reviewed_at, effectiveness_reviewer:profiles!issues_effectiveness_reviewed_by_fkey(display_name, email), actions(id, project_id, description, owner_name, due_date, priority, status, completion_notes, completed_at, site_id, activity_id, issue_id, created_at, activities(id, name, start_date), ${EVIDENCE_EMBED}), ${EVIDENCE_EMBED}, document_review_id, verification_items(id, question), created_by_profile:profiles!issues_created_by_fkey(display_name), closed_by_profile:profiles!issues_closed_by_fkey(display_name, email)`;
+const DETAIL_COLUMNS = `${FINDING_COLUMNS}, correction, root_cause, effectiveness_result, effectiveness_notes, effectiveness_reviewed_by, effectiveness_reviewed_at, effectiveness_reviewer:profiles!issues_effectiveness_reviewed_by_fkey(display_name, email), actions(id, project_id, description, owner_name, due_date, priority, status, completion_notes, completed_at, site_id, activity_id, issue_id, created_at, activities(id, name, start_date), ${EVIDENCE_EMBED}), ${EVIDENCE_EMBED}, document_review_id, document_reviews(status, notes, document_versions(version_no, revision, documents(id, title, site_id))), verification_items(id, question), created_by_profile:profiles!issues_created_by_fkey(display_name), closed_by_profile:profiles!issues_closed_by_fkey(display_name, email)`;
 
 type RawFinding = {
   id: string;
@@ -160,6 +174,18 @@ export async function getFinding(projectId: string, findingId: string): Promise<
       .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1)),
     verificationQuestion: f.verification_items?.question ?? null,
     documentReviewId: f.document_review_id,
+    reviewOrigin: f.document_reviews?.document_versions?.documents
+      ? {
+          documentId: f.document_reviews.document_versions.documents.id,
+          documentTitle: f.document_reviews.document_versions.documents.title,
+          versionLabel: f.document_reviews.document_versions.revision
+            ? `V${f.document_reviews.document_versions.version_no} · ${f.document_reviews.document_versions.revision}`
+            : `V${f.document_reviews.document_versions.version_no}`,
+          result: f.document_reviews.status,
+          notes: f.document_reviews.notes,
+          documentSiteId: f.document_reviews.document_versions.documents.site_id,
+        }
+      : null,
     createdByName: f.created_by_profile?.display_name ?? null,
     closedByName: f.closed_by_profile?.display_name ?? f.closed_by_profile?.email ?? null,
   };

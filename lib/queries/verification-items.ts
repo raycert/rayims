@@ -21,10 +21,21 @@ export type VerificationItemRow = {
   frameworkItemLabel: string | null;
   /** "ISO 9001:2015" */
   frameworkIdentity: string | null;
+  /** Set when the check was added from a Document Gap Assessment (Phase 5D). */
+  reviewOrigin: VerificationReviewSource | null;
+};
+
+/** The Gap Assessment a check came from: Document + Version (for the source line and the site lock). */
+export type VerificationReviewSource = {
+  documentId: string;
+  documentTitle: string;
+  versionNo: number;
+  revision: string | null;
+  documentSiteId: string | null;
 };
 
 const VERIFICATION_ITEM_COLUMNS =
-  "id, project_id, question, priority, result, site_id, target_activity_id, framework_item_id, framework_items(id, code, title, framework_id, frameworks(code, edition)), activities!verification_items_target_activity_id_fkey(id, name, start_date, start_time, site_id)";
+  "id, project_id, question, priority, result, site_id, target_activity_id, framework_item_id, framework_items(id, code, title, framework_id, frameworks(code, edition)), activities!verification_items_target_activity_id_fkey(id, name, start_date, start_time, site_id), document_reviews(document_versions(version_no, revision, documents(id, title, site_id)))";
 
 type RawVerificationItemRow = {
   id: string;
@@ -37,6 +48,9 @@ type RawVerificationItemRow = {
   framework_item_id: string | null;
   framework_items: { id: string; code: string | null; title: string; framework_id: string; frameworks: { code: string; edition: string } | null } | null;
   activities: { id: string; name: string; start_date: string | null; start_time: string | null; site_id: string | null } | null;
+  document_reviews: {
+    document_versions: { version_no: number; revision: string | null; documents: { id: string; title: string; site_id: string | null } | null } | null;
+  } | null;
 };
 
 function mapRow(v: RawVerificationItemRow, siteMap: Map<string, string>): VerificationItemRow {
@@ -56,6 +70,15 @@ function mapRow(v: RawVerificationItemRow, siteMap: Map<string, string>): Verifi
     frameworkItemLabel: v.framework_items ? [v.framework_items.code, v.framework_items.title].filter(Boolean).join(" — ") : null,
     frameworkIdentity: v.framework_items?.frameworks
       ? formatFrameworkIdentity(v.framework_items.frameworks.code, v.framework_items.frameworks.edition)
+      : null,
+    reviewOrigin: v.document_reviews?.document_versions?.documents
+      ? {
+          documentId: v.document_reviews.document_versions.documents.id,
+          documentTitle: v.document_reviews.document_versions.documents.title,
+          versionNo: v.document_reviews.document_versions.version_no,
+          revision: v.document_reviews.document_versions.revision,
+          documentSiteId: v.document_reviews.document_versions.documents.site_id,
+        }
       : null,
   };
 }
@@ -223,6 +246,8 @@ export type VerificationFrameworkItemOption = {
   /** false = the item's framework is not currently assigned to the project — only
    *  possible for the current value of an existing item (historical preservation). */
   inAssignedScope: boolean;
+  /** Optional explicit option group (Phase 5D: "Mapped to this document" listed first). */
+  groupLabel?: string;
 };
 
 export type VerificationFormCatalog = {

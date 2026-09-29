@@ -1,15 +1,106 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
-import { documentStatusLabel, documentStatusTone } from "@/lib/ui/status-tones";
+import {
+  documentStatusLabel,
+  documentStatusTone,
+  findingStatusLabel,
+  findingStatusTone,
+  findingTypeLabel,
+  findingTypeTone,
+  verificationResultLabel,
+  verificationResultTone,
+} from "@/lib/ui/status-tones";
 import { formatEvidenceDate } from "@/components/evidence/evidence-format";
 import { completeDocumentReview, startDocumentReview, updateDocumentReview } from "@/lib/mutations/document-reviews";
+import { FindingFormDrawer } from "@/components/findings/finding-form-drawer";
+import { VerificationItemFormDrawer } from "@/components/verification/verification-item-form-drawer";
 import type { DocumentFrameworkItem, DocumentReviewEntry, DocumentVersionSummary } from "@/lib/queries/documents";
+import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
+
+/** Document context needed to create follow-up from an assessment (Phase 5D). */
+export type FollowUpContext = {
+  projectId: string;
+  documentTitle: string;
+  /** A site-specific Document fixes the follow-up's site. */
+  documentSiteId: string | null;
+  /** Project sites / activities / assigned framework items (the Phase 4 form catalog). */
+  catalog: VerificationFormCatalog;
+};
+
+/**
+ * The form catalog with the Document's mapped requirements listed FIRST ("Mapped to this document",
+ * including historical ones), then the other items of the project's assigned Frameworks. Nothing is
+ * preselected unless the Document maps exactly one requirement.
+ */
+function followUpCatalog(catalog: VerificationFormCatalog, mapped: DocumentFrameworkItem[]): VerificationFormCatalog {
+  const mappedIds = new Set(mapped.map((m) => m.id));
+  return {
+    ...catalog,
+    frameworkItems: [
+      ...mapped.map((m) => ({
+        id: m.id,
+        label: `${m.frameworkIdentity} · ${m.label}`,
+        frameworkIdentity: m.frameworkIdentity,
+        inAssignedScope: m.inAssignedScope,
+        groupLabel: "Mapped to this document",
+      })),
+      ...catalog.frameworkItems.filter((fi) => fi.inAssignedScope && !mappedIds.has(fi.id)),
+    ],
+  };
+}
+
+/**
+ * Compact follow-up summary of one assessment: "2 Findings · 1 Verification Item" → list with links.
+ * Existing links are always visible (also on historical assessments).
+ */
+export function FollowUpSummary({ projectId, review }: { projectId: string; review: DocumentReviewEntry }) {
+  const [open, setOpen] = useState(false);
+  const f = review.findings.length;
+  const v = review.verificationItems.length;
+  if (f + v === 0) return null;
+  const parts = [f ? `${f} ${f === 1 ? "Finding" : "Findings"}` : null, v ? `${v} ${v === 1 ? "Verification Item" : "Verification Items"}` : null];
+  return (
+    <div data-testid="follow-up-summary">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="inline-flex min-h-9 items-center text-sm font-semibold text-primary hover:underline"
+      >
+        Follow-up: {parts.filter(Boolean).join(" · ")}
+      </button>
+      {open ? (
+        <ul data-testid="follow-up-list" className="divide-y divide-border rounded-md border border-border bg-surface">
+          {review.findings.map((fi) => (
+            <li key={fi.id} className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 text-sm">
+              <StatusBadge label={findingTypeLabel(fi.findingType)} tone={findingTypeTone(fi.findingType)} />
+              <Link href={`/projects/${projectId}/findings/${fi.id}`} className="min-w-0 font-semibold text-primary hover:underline">
+                {fi.title}
+              </Link>
+              <StatusBadge label={findingStatusLabel(fi.status)} tone={findingStatusTone(fi.status)} />
+            </li>
+          ))}
+          {review.verificationItems.map((vi) => (
+            <li key={vi.id} className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 text-sm">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">Verification</span>
+              <Link href={`/projects/${projectId}/verification`} className="min-w-0 text-primary hover:underline">
+                {vi.question}
+              </Link>
+              <StatusBadge label={verificationResultLabel(vi.result)} tone={verificationResultTone(vi.result)} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
 
 /** "ISO 9001 7.5, ISO 14001 8.2" — the requirements the Version is assessed against (Document mappings). */
 function AssessedAgainst({ items }: { items: DocumentFrameworkItem[] }) {
@@ -59,15 +150,18 @@ export function GapAssessmentPanel({
   version,
   isApplicable,
   frameworkItems,
+  followUp,
   onChanged,
 }: {
   projectId: string;
   version: DocumentVersionSummary;
   isApplicable: boolean;
   frameworkItems: DocumentFrameworkItem[];
+  followUp: FollowUpContext;
   onChanged: (message: string) => void;
 }) {
   const [drawer, setDrawer] = useState<{ mode: "edit" | "complete"; review: DocumentReviewEntry } | null>(null);
+  const [followUpForm, setFollowUpForm] = useState<"finding" | "verification" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const current = version.reviews[0] ?? null;
@@ -136,6 +230,79 @@ export function GapAssessmentPanel({
         </p>
       ) : null}
 
+      {/* Follow-up (Phase 5D): only from the latest, concluded assessment of the Current version of an
+          Applicable Document. A Not Applicable Document keeps its existing links, read-only. */}
+      {current && !open && !isApplicable ? <FollowUpSummary projectId={projectId} review={current} /> : null}
+      {current && !open && isApplicable ? (
+        <div data-testid="review-follow-up" className="space-y-1.5 border-t border-border pt-2">
+          <p className="text-xs text-muted">
+            Follow-up: Create Finding for a gap the document already shows · Add to Verification to confirm it onsite.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant={current.status === "accepted" ? "ghost" : "secondary"}
+              className={cn("min-h-9 px-3!", current.status === "accepted" && "border-border!")}
+              onClick={() => setFollowUpForm("finding")}
+            >
+              {current.findings.length > 0 ? "Add another Finding" : "Create Finding"}
+            </Button>
+            <Button
+              type="button"
+              variant={current.status === "accepted" ? "ghost" : "secondary"}
+              className={cn("min-h-9 px-3!", current.status === "accepted" && "border-border!")}
+              onClick={() => setFollowUpForm("verification")}
+            >
+              Add to Verification
+            </Button>
+          </div>
+          <FollowUpSummary projectId={projectId} review={current} />
+        </div>
+      ) : null}
+
+      {followUpForm && current ? (
+        followUpForm === "finding" ? (
+          <FindingFormDrawer
+            mode="create"
+            projectId={projectId}
+            catalog={followUpCatalog(followUp.catalog, frameworkItems)}
+            reviewOrigin={{
+              reviewId: current.id,
+              documentTitle: followUp.documentTitle,
+              versionLabel: version.revision ? `V${version.versionNo} · ${version.revision}` : `V${version.versionNo}`,
+              resultLabel: documentStatusLabel(current.status),
+              documentSiteId: followUp.documentSiteId,
+              notes: current.notes,
+              prefillFrameworkItemId: frameworkItems.length === 1 ? frameworkItems[0].id : null,
+            }}
+            onClose={() => setFollowUpForm(null)}
+            onSaved={(msg) => {
+              setFollowUpForm(null);
+              onChanged(msg);
+            }}
+          />
+        ) : (
+          <VerificationItemFormDrawer
+            mode="create"
+            projectId={projectId}
+            catalog={followUpCatalog(followUp.catalog, frameworkItems)}
+            reviewOrigin={{
+              reviewId: current.id,
+              documentTitle: followUp.documentTitle,
+              versionLabel: version.revision ? `V${version.versionNo} · ${version.revision}` : `V${version.versionNo}`,
+              resultLabel: documentStatusLabel(current.status),
+              documentSiteId: followUp.documentSiteId,
+              prefillFrameworkItemId: frameworkItems.length === 1 ? frameworkItems[0].id : null,
+            }}
+            onClose={() => setFollowUpForm(null)}
+            onSaved={(msg) => {
+              setFollowUpForm(null);
+              onChanged(msg);
+            }}
+          />
+        )
+      ) : null}
+
       {drawer ? (
         <GapAssessmentDrawer
           mode={drawer.mode}
@@ -154,7 +321,7 @@ export function GapAssessmentPanel({
 }
 
 /** Read-only Assessment History of one version (newest first). Concluded entries are never editable. */
-export function AssessmentHistory({ reviews, label }: { reviews: DocumentReviewEntry[]; label: string }) {
+export function AssessmentHistory({ projectId, reviews, label }: { projectId: string; reviews: DocumentReviewEntry[]; label: string }) {
   const [open, setOpen] = useState(false);
   if (reviews.length === 0) return null;
   return (
@@ -174,6 +341,7 @@ export function AssessmentHistory({ reviews, label }: { reviews: DocumentReviewE
               <StatusBadge label={documentStatusLabel(r.status)} tone={documentStatusTone(r.status)} />
               {r.notes ? <p className="whitespace-pre-wrap text-sm">{r.notes}</p> : <p className="text-sm text-muted">No comments.</p>}
               <p className="text-xs text-muted">{reviewMeta(r)}</p>
+              <FollowUpSummary projectId={projectId} review={r} />
             </li>
           ))}
         </ul>

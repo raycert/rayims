@@ -64,6 +64,10 @@ export type DocumentReviewEntry = {
   createdAt: string;
   /** NULL while Under Review. */
   reviewedAt: string | null;
+  /** Findings created directly from this assessment (issues.document_review_id), oldest first. */
+  findings: { id: string; title: string; findingType: string; status: string }[];
+  /** Verification items added from this assessment (verification_items.document_review_id), oldest first. */
+  verificationItems: { id: string; question: string; result: string | null }[];
 };
 
 /** The one ordering rule for reviews everywhere in the app: created_at DESC, then id DESC. */
@@ -208,7 +212,7 @@ export async function getDocument(projectId: string, documentId: string): Promis
     supabase
       .from("documents")
       .select(
-        `id, project_id, site_id, doc_code, title, document_type, owner_name, is_applicable, created_at, document_framework_items(${ITEM_EMBED}), document_versions(id, version_no, revision, received_on, notes, created_at, files(original_name, mime_type, size_bytes), uploader:profiles!document_versions_uploaded_by_fkey(display_name, email), document_reviews(id, status, notes, created_at, reviewed_at, reviewer:profiles!document_reviews_reviewer_id_fkey(display_name, email)))`,
+        `id, project_id, site_id, doc_code, title, document_type, owner_name, is_applicable, created_at, document_framework_items(${ITEM_EMBED}), document_versions(id, version_no, revision, received_on, notes, created_at, files(original_name, mime_type, size_bytes), uploader:profiles!document_versions_uploaded_by_fkey(display_name, email), document_reviews(id, status, notes, created_at, reviewed_at, reviewer:profiles!document_reviews_reviewer_id_fkey(display_name, email), issues(id, title, finding_type, status, created_at), verification_items(id, question, result, created_at)))`,
       )
       .eq("id", documentId)
       .eq("project_id", projectId)
@@ -237,6 +241,12 @@ export async function getDocument(projectId: string, documentId: string): Promis
           reviewerName: r.reviewer?.display_name ?? r.reviewer?.email ?? null,
           createdAt: r.created_at,
           reviewedAt: r.reviewed_at,
+          findings: [...(r.issues ?? [])]
+            .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0))
+            .map((i) => ({ id: i.id, title: i.title, findingType: i.finding_type, status: i.status })),
+          verificationItems: [...(r.verification_items ?? [])]
+            .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0))
+            .map((v) => ({ id: v.id, question: v.question, result: v.result })),
         }))
         .sort(compareReviewsNewestFirst);
       return {

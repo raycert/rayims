@@ -213,6 +213,34 @@ Product behavior that the schema and UI must respect. Database details are in
   neither; they are separate, explicit actions (Phase 5D). Any review (open or concluded) blocks
   deleting its Version (BR-121). **Backlog / design follow-up:** "Expected Records / Required Evidence"
   per Document (what records must exist) — not stored in Review Comments; to be designed separately.
+- **BR-127** *(Phase 5D)* A concluded Gap Assessment (**Revision Required or Accepted** — Accepted may
+  still warrant an Observation, an OFI or an onsite check) may lead to follow-up, **only by explicit
+  user action**: **Create Finding** (a gap the document already shows) or **Add to Verification** (needs
+  onsite confirmation). New follow-up is allowed only from the **latest assessment of the current
+  Version** of an **Applicable** Document; an Under Review assessment, an earlier assessment of the same
+  Version, any assessment of an older Version and any assessment of a Not Applicable Document cannot
+  create new follow-up ("Follow-up cannot be created while this document is Not Applicable."); their
+  existing links stay visible, read-only. 0..N
+  Findings and 0..N Verification items per assessment. Creating or deleting follow-up never changes the
+  review (immutable) or the Document status; Finding and Verification lifecycles stay independent
+  (Accepted does not close a Finding; a new Revision Required does not reopen one).
+- **BR-128** *(Phase 5D)* **Review → Finding:** the existing Finding form, with the origin shown
+  (Document, Version, result). `issues.document_review_id` = the review (server-derived, immutable),
+  `verification_item_id` = NULL. Prefill: Description ← Review Comments; Title blank; **Finding Type blank
+  (never derived from the result)**; Priority Medium; no Activity (optional, never inferred). Finding
+  Detail shows "Created from Document Gap Assessment" with a link back to the Document.
+- **BR-129** *(Phase 5D)* **Review → Verification Item:** the existing Verification planning form
+  ("Add to Verification"); `verification_items.document_review_id` = the review; planning fields only
+  (result, notes, verified_* stay empty); Check blank; Priority Medium; Target Activity chosen by the
+  user (optional, as in 4A; a site-specific Target Activity fixes the site, BR-73). The check then
+  follows the normal Verification workflow; a Finding created from it links to the **Verification**
+  (`verification_item_id`), not to the review — the lineage is Review → Verification → Finding.
+- **BR-130** *(Phase 5D)* Follow-up **site**: a site-specific Document fixes the site (server-enforced,
+  also on later edits; Activity choices limited to project-wide or same-site Activities); a Project-wide
+  Document defaults to Project-wide and allows any project site. **Framework Requirement** (optional):
+  exactly one mapped item → prefilled; several → none preselected, the Document's mapped items listed
+  first, then the project's assigned items; none → the project's assigned items. The server accepts any
+  assigned item or any of the Document's mapped items (historical mappings stay valid).
 - **BR-118** *(Phase 5A)* **Controlled Document delete:** only a Document with **no Versions**.
   Its Framework mappings are removed with it (setup data); versions, files and reviews are never
   cascade-deleted by the application — "This document has versions and cannot be deleted."

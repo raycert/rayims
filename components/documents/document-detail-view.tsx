@@ -13,6 +13,7 @@ import { deleteDocument, getDocumentDeleteState } from "@/lib/mutations/document
 import { DocumentFormDrawer } from "./document-form-drawer";
 import { DocumentVersionsSection } from "./document-versions-section";
 import type { DocumentDetail, DocumentFormCatalog } from "@/lib/queries/documents";
+import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
 
 function InfoRow({ label, value }: { label: string; value: string | null }) {
   return (
@@ -25,16 +26,20 @@ function InfoRow({ label, value }: { label: string; value: string | null }) {
 
 /**
  * Document Detail (Phase 5A foundation): identity, derived status, Framework Requirements and a
- * Versions (upload / view / download / controlled delete, Phase 5B). Reviews arrive in Phase 5C.
+ * Versions (upload / view / download / controlled delete, Phase 5B), Gap Assessment (5C) and its
+ * explicit follow-up — Create Finding / Add to Verification (5D).
  */
 export function DocumentDetailView({
   projectName,
   document,
   catalog,
+  followUpCatalog,
 }: {
   projectName: string;
   document: DocumentDetail;
   catalog: DocumentFormCatalog;
+  /** Sites / activities / framework items for follow-up Findings and Verification items. */
+  followUpCatalog: VerificationFormCatalog;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -119,6 +124,7 @@ export function DocumentDetailView({
           isApplicable={document.isApplicable}
           versions={document.versions}
           frameworkItems={document.frameworkItems}
+          followUp={{ projectId: document.projectId, documentTitle: document.title, documentSiteId: document.siteId, catalog: followUpCatalog }}
           onChanged={(msg) => {
             router.refresh();
             show(msg);

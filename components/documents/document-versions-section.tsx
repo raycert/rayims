@@ -10,7 +10,7 @@ import { formatDate } from "@/lib/ui/format";
 import { deleteDocumentVersion, getDocumentVersionDeleteState, getDocumentVersionUrl } from "@/lib/mutations/document-versions";
 import { formatEvidenceDate, formatFileSize } from "@/components/evidence/evidence-format";
 import { VersionUploadDrawer } from "./version-upload-drawer";
-import { AssessmentHistory, GapAssessmentPanel } from "./gap-assessment";
+import { AssessmentHistory, GapAssessmentPanel, type FollowUpContext } from "./gap-assessment";
 import type { DocumentFrameworkItem, DocumentVersionSummary } from "@/lib/queries/documents";
 
 const COLLAPSED_COUNT = 2;
@@ -31,6 +31,7 @@ export function DocumentVersionsSection({
   isApplicable,
   versions,
   frameworkItems,
+  followUp,
   onChanged,
 }: {
   projectId: string;
@@ -39,6 +40,8 @@ export function DocumentVersionsSection({
   versions: DocumentVersionSummary[];
   /** The Document's mapped requirements — the context a Version is assessed against. */
   frameworkItems: DocumentFrameworkItem[];
+  /** Context for Gap Assessment follow-up (Create Finding / Add to Verification, Phase 5D). */
+  followUp: FollowUpContext;
   onChanged: (message: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
@@ -155,12 +158,13 @@ export function DocumentVersionsSection({
                           version={v}
                           isApplicable={isApplicable}
                           frameworkItems={frameworkItems}
+                          followUp={followUp}
                           onChanged={onChanged}
                         />
-                        <AssessmentHistory reviews={v.reviews.slice(1)} label="Earlier assessments" />
+                        <AssessmentHistory projectId={projectId} reviews={v.reviews.slice(1)} label="Earlier assessments" />
                       </>
                     ) : (
-                      <AssessmentHistory reviews={v.reviews} label="Assessment history" />
+                      <AssessmentHistory projectId={projectId} reviews={v.reviews} label="Assessment history" />
                     )}
                   </div>
                   {current ? <OverflowMenu items={[{ label: "Delete Version", onSelect: () => setDeleting(v), danger: true }]} /> : null}

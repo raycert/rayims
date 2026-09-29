@@ -6,6 +6,7 @@ import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { findingSchema, verificationFindingSchema } from "@/lib/validation/findings";
 import { effectivenessSchema, ncResponseSchema } from "@/lib/validation/actions";
 import { frameworkItemInProjectScope, validateSiteAndActivity, type SupabaseServerClient } from "./scope-validation";
+import { documentSiteError, frameworkItemAllowedForReview, loadReviewForFollowUp, reviewOriginConstraints } from "./review-followup";
 import { evaluateFindingClosure, type ClosureEvaluation } from "@/lib/domain/finding-closure";
 import { evaluateFindingDelete, type DeleteEvaluation } from "@/lib/domain/delete-rules";
 import { fieldErrorsFrom, type ActionResult } from "./types";
@@ -77,6 +78,66 @@ export async function createFinding(projectId: string, input: unknown): Promise<
 }
 
 /**
+ * Create Finding from a Gap Assessment (Phase 5D). Only from the latest, concluded assessment of
+ * the current version (loadReviewForFollowUp). The origin is server-derived and immutable:
+ * document_review_id = the authoritative review, verification_item_id = NULL. A site-specific
+ * Document fixes the site; the Activity is optional (never inferred); the Framework Requirement is
+ * optional and may be any assigned item or one of the Document's mapped ones. Finding Type has no
+ * default and is never derived from the review result. The review itself is not changed.
+ */
+export async function createFindingFromReview(
+  projectId: string,
+  reviewId: string,
+  input: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const user = await requireUser();
+  const parsed = findingSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Check the highlighted fields.", fieldErrors: fieldErrorsFrom(parsed.error) };
+  }
+  const d = parsed.data;
+  const supabase = await createSupabaseClient();
+
+  const ctx = await loadReviewForFollowUp(supabase, projectId, reviewId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const siteError = documentSiteError(ctx.documentSiteId, d.siteId);
+  if (siteError) return { ok: false, error: siteError, fieldErrors: { siteId: siteError } };
+  const scopeError = await validateSiteAndActivity(supabase, projectId, d.siteId, d.activityId, { name: "Activity", field: "activityId" });
+  if (scopeError) return { ok: false, error: scopeError.error, fieldErrors: { [scopeError.field]: scopeError.error } };
+  if (!(await frameworkItemAllowedForReview(supabase, projectId, d.frameworkItemId, ctx.mappedItemIds))) {
+    return {
+      ok: false,
+      error: "The selected Framework Requirement is not assigned to this project.",
+      fieldErrors: { frameworkItemId: "Not assigned to this project." },
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("issues")
+    .insert({
+      project_id: projectId,
+      finding_type: d.findingType,
+      title: d.title,
+      description: d.description,
+      priority: d.priority,
+      site_id: d.siteId,
+      activity_id: d.activityId,
+      framework_item_id: d.frameworkItemId,
+      document_review_id: ctx.reviewId,
+      verification_item_id: null,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: "Couldn't create the finding. Try again." };
+
+  revalidateFinding(projectId);
+  revalidatePath(`/projects/${projectId}/documents/${ctx.documentId}`);
+  return { ok: true, data: { id: data.id } };
+}
+
+/**
  * Edits the core fields of an OPEN Finding. Closed Findings are read-only (Reopen first).
  * Origin links are immutable and the NC response / effectiveness / closure fields are never
  * referenced by the UPDATE, so they are preserved byte-for-byte.
@@ -94,12 +155,16 @@ export async function updateFinding(projectId: string, findingId: string, input:
 
   const { data: existing, error: existingError } = await supabase
     .from("issues")
-    .select("id, project_id, status, framework_item_id, verification_item_id, activity_id")
+    .select("id, project_id, status, framework_item_id, verification_item_id, document_review_id, activity_id")
     .eq("id", findingId)
     .maybeSingle();
   if (existingError) return { ok: false, error: "Couldn't save the finding. Try again." };
   if (!existing || existing.project_id !== projectId) return { ok: false, error: "This finding could not be found." };
   if (existing.status === "closed") return { ok: false, error: "This finding is closed. Reopen it to edit." };
+  // Gap Assessment origin (Phase 5D): a site-specific Document keeps fixing the site.
+  const reviewOrigin = await reviewOriginConstraints(supabase, existing.document_review_id);
+  const reviewSiteError = reviewOrigin ? documentSiteError(reviewOrigin.documentSiteId, d.siteId) : null;
+  if (reviewSiteError) return { ok: false, error: reviewSiteError, fieldErrors: { siteId: reviewSiteError } };
   // Traceability (Phase 4C-2): a Finding created from a Verification keeps its observation Activity.
   if (existing.verification_item_id && d.activityId !== existing.activity_id) {
     return {
@@ -118,7 +183,10 @@ export async function updateFinding(projectId: string, findingId: string, input:
   // Historical preservation (BR-74): an existing item whose Framework was since unassigned may
   // be KEPT, but only a changed value must be currently assigned.
   if (d.frameworkItemId !== existing.framework_item_id) {
-    if (!(await frameworkItemInProjectScope(supabase, projectId, d.frameworkItemId))) {
+    const allowed = reviewOrigin
+      ? await frameworkItemAllowedForReview(supabase, projectId, d.frameworkItemId, reviewOrigin.mappedItemIds)
+      : await frameworkItemInProjectScope(supabase, projectId, d.frameworkItemId);
+    if (!allowed) {
       return {
         ok: false,
         error: "The selected Framework Requirement is not assigned to this project.",

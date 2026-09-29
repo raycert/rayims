@@ -3,6 +3,26 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 5D — Gap Assessment follow-up (2026-09-29)
+
+**Result: 78/78 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.
+
+### Added
+
+- **Create Finding** and **Add to Verification** on the latest concluded Gap Assessment of the current
+  Version (Document Detail), reusing the existing Finding and Verification forms with an origin box.
+- Server actions `createFindingFromReview` and `createVerificationItemFromReview` with a shared
+  eligibility check (concluded, current version, latest assessment, project isolation), document-site
+  lock and framework rule (assigned or mapped).
+- Follow-up summary per assessment ("n Findings · m Verification Items", with links), also on history.
+- Finding Detail: "Source: Document Gap Assessment" line and origin details with a link to the Document;
+  Verification workspace: "From Gap Assessment" source line.
+
+### Changed
+
+- Editing a review-origin Finding or check keeps a site-specific Document's site and allows the
+  Document's mapped requirements. Business rules BR-127 – BR-130.
+
 ## Phase 5C — Document Gap Assessment (2026-09-29)
 
 **Result: 74/74 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.

@@ -9,6 +9,8 @@ import { Toast, useToast } from "@/components/ui/toast";
 import { OverflowMenu } from "@/components/ui/overflow-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import {
+  documentStatusLabel,
+  documentStatusTone,
   findingStatusLabel,
   findingStatusTone,
   findingTypeLabel,
@@ -110,11 +112,14 @@ export function FindingDetailView({
   const canClose = !isClosed;
 
   const fromVerification = !!finding.verificationItemId;
+  const reviewOrigin = finding.reviewOrigin;
   const origin = fromVerification
     ? "Created from Verification"
-    : finding.documentReviewId
-      ? "From a document review"
-      : "Recorded manually";
+    : reviewOrigin
+      ? "Created from Document Gap Assessment"
+      : finding.documentReviewId
+        ? "From a document review"
+        : "Recorded manually";
 
   function handleSaved(msg: string) {
     setEditing(false);
@@ -237,6 +242,15 @@ export function FindingDetailView({
           {finding.frameworkIdentity ? `${finding.frameworkIdentity} · ${finding.frameworkItemLabel}` : "No framework requirement"}
         </span>
       </div>
+      {reviewOrigin ? (
+        <p data-testid="finding-review-source" className="-mt-3 mb-5 text-sm text-muted">
+          Source: Document Gap Assessment ·{" "}
+          <Link href={`/projects/${finding.projectId}/documents/${reviewOrigin.documentId}`} className="font-semibold text-primary hover:underline">
+            {reviewOrigin.documentTitle}
+          </Link>{" "}
+          · {reviewOrigin.versionLabel}
+        </p>
+      ) : null}
 
       {isClosed ? (
         <p className="mb-5 text-sm text-muted">This finding is closed and read-only. Reopen it to make changes.</p>
@@ -507,6 +521,30 @@ export function FindingDetailView({
           </div>
           <div className="divide-y divide-border">
             <TextField label="Origin" value={origin} />
+            {reviewOrigin ? (
+              <div data-testid="finding-review-origin-section" className="space-y-2 px-4 py-3 text-sm">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted">Document</div>
+                  <Link
+                    href={`/projects/${finding.projectId}/documents/${reviewOrigin.documentId}`}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    {reviewOrigin.documentTitle}
+                  </Link>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted">Version · Assessment result</div>
+                  <span className="mr-2">{reviewOrigin.versionLabel}</span>
+                  <StatusBadge label={documentStatusLabel(reviewOrigin.result)} tone={documentStatusTone(reviewOrigin.result)} />
+                </div>
+                {reviewOrigin.notes ? (
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted">Review Comments</div>
+                    <p className="line-clamp-3 whitespace-pre-wrap">{reviewOrigin.notes}</p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             {fromVerification ? (
               <>
                 <TextField label="Verification" value={finding.verificationQuestion} />
@@ -592,6 +630,7 @@ export function FindingDetailView({
           projectId={finding.projectId}
           catalog={catalog}
           finding={finding}
+          lockedSiteId={reviewOrigin?.documentSiteId ?? null}
           onClose={() => setEditing(false)}
           onSaved={handleSaved}
         />

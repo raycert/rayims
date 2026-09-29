@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { VERIFICATION_PRIORITIES } from "@/lib/validation/verification-items";
 import { priorityLabel } from "@/lib/ui/status-tones";
 import { formatDate } from "@/lib/ui/format";
-import { createVerificationItem, updateVerificationItem } from "@/lib/mutations/verification-items";
+import { createVerificationItem, createVerificationItemFromReview, updateVerificationItem } from "@/lib/mutations/verification-items";
 import type { VerificationFormCatalog, VerificationItemRow } from "@/lib/queries/verification-items";
 
 type Scope = "project_wide" | "specific_site";
@@ -17,6 +17,18 @@ function activityIdentity(a: { name: string; startDate: string | null }): string
   return a.startDate ? `${formatDate(a.startDate)} · ${a.name}` : `Undated · ${a.name}`;
 }
 
+/** Gap Assessment context for "Add to Verification" on Document Detail (Phase 5D). */
+export type VerificationReviewOrigin = {
+  reviewId: string;
+  documentTitle: string;
+  versionLabel: string;
+  resultLabel: string;
+  /** A site-specific Document fixes the check's site. */
+  documentSiteId: string | null;
+  /** Prefilled only when the Document maps exactly ONE requirement. */
+  prefillFrameworkItemId: string | null;
+};
+
 export function VerificationItemFormDrawer({
   mode,
   projectId,
@@ -24,6 +36,8 @@ export function VerificationItemFormDrawer({
   item,
   defaultTargetActivityId,
   defaultSiteId,
+  reviewOrigin,
+  lockedSiteId,
   onClose,
   onSaved,
 }: {
@@ -36,17 +50,26 @@ export function VerificationItemFormDrawer({
    *  manual selection) instead of opening on an empty form. */
   defaultTargetActivityId?: string;
   defaultSiteId?: string | null;
+  /** Create-only: "Add to Verification" from a Gap Assessment (Phase 5D). */
+  reviewOrigin?: VerificationReviewOrigin;
+  /** Edit of a review-origin check whose Document is site-specific: the site stays fixed. */
+  lockedSiteId?: string | null;
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
+  const documentSiteId = reviewOrigin?.documentSiteId ?? lockedSiteId ?? null;
   const [question, setQuestion] = useState(item?.question ?? "");
   const [priority, setPriority] = useState(item?.priority ?? "medium");
   const [scope, setScope] = useState<Scope>(
-    item?.siteId || defaultSiteId ? "specific_site" : "project_wide",
+    item?.siteId || defaultSiteId || documentSiteId ? "specific_site" : "project_wide",
   );
-  const [siteId, setSiteId] = useState(item?.siteId ?? defaultSiteId ?? "");
+  const [siteId, setSiteId] = useState(item?.siteId ?? defaultSiteId ?? documentSiteId ?? "");
   const [targetActivityId, setTargetActivityId] = useState(item?.targetActivityId ?? defaultTargetActivityId ?? "");
-  const [frameworkItemId, setFrameworkItemId] = useState(item?.frameworkItemId ?? "");
+  const [frameworkItemId, setFrameworkItemId] = useState(item?.frameworkItemId ?? reviewOrigin?.prefillFrameworkItemId ?? "");
+  // A site-specific Document only allows project-wide Activities or Activities at the same site.
+  const activityOptions = documentSiteId
+    ? catalog.activities.filter((a) => !a.siteId || a.siteId === documentSiteId)
+    : catalog.activities;
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -56,13 +79,16 @@ export function VerificationItemFormDrawer({
     () => catalog.activities.find((a) => a.id === targetActivityId),
     [catalog.activities, targetActivityId],
   );
-  const siteLocked = !!selectedActivity?.siteId;
-  const lockedSiteName = siteLocked ? catalog.sites.find((s) => s.id === selectedActivity!.siteId)?.name : undefined;
+  const lockedBy: "document" | "activity" | null = documentSiteId ? "document" : selectedActivity?.siteId ? "activity" : null;
+  const siteLocked = lockedBy !== null;
+  const lockedSiteName = siteLocked
+    ? catalog.sites.find((s) => s.id === (documentSiteId ?? selectedActivity!.siteId))?.name
+    : undefined;
 
   const frameworkGroups = useMemo(() => {
     const groups = new Map<string, typeof catalog.frameworkItems>();
     for (const fi of catalog.frameworkItems) {
-      const key = fi.inAssignedScope ? fi.frameworkIdentity : `${fi.frameworkIdentity} (not currently assigned)`;
+      const key = fi.groupLabel ?? (fi.inAssignedScope ? fi.frameworkIdentity : `${fi.frameworkIdentity} (not currently assigned)`);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(fi);
     }
@@ -105,8 +131,9 @@ export function VerificationItemFormDrawer({
     };
 
     startTransition(async () => {
-      const result =
-        mode === "create"
+      const result = reviewOrigin
+        ? await createVerificationItemFromReview(projectId, reviewOrigin.reviewId, payload)
+        : mode === "create"
           ? await createVerificationItem(projectId, payload)
           : await updateVerificationItem(projectId, item!.id, payload);
 
@@ -123,7 +150,7 @@ export function VerificationItemFormDrawer({
     <Drawer
       open
       onClose={onClose}
-      title={mode === "create" ? "New Verification Item" : "Edit Verification Item"}
+      title={reviewOrigin ? "Add to Verification" : mode === "create" ? "New Verification Item" : "Edit Verification Item"}
       footer={
         <>
           <Button type="button" variant="secondary" onClick={onClose} disabled={pending}>
@@ -136,6 +163,21 @@ export function VerificationItemFormDrawer({
       }
     >
       <div className="space-y-5">
+        {reviewOrigin ? (
+          <div data-testid="verification-review-origin" className="rounded-md border border-border bg-neutral-soft px-3 py-2.5 text-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted">From Gap Assessment</div>
+            <div className="mt-1">
+              <span className="text-muted">Document: </span>
+              <span className="font-semibold">{reviewOrigin.documentTitle}</span>
+            </div>
+            <div className="mt-0.5">
+              <span className="text-muted">Version: </span>
+              <span className="font-semibold">{reviewOrigin.versionLabel}</span>
+              <span className="text-muted"> · Assessment: </span>
+              <span className="font-semibold">{reviewOrigin.resultLabel}</span>
+            </div>
+          </div>
+        ) : null}
         {/* Section: Verification */}
         <div className="space-y-4">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Verification</h3>
@@ -201,7 +243,7 @@ export function VerificationItemFormDrawer({
               className="min-h-11 w-full rounded-md border border-border bg-surface px-3 text-base text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary md:text-sm"
             >
               <option value="">Not assigned yet</option>
-              {catalog.activities.map((a) => (
+              {activityOptions.map((a) => (
                 <option key={a.id} value={a.id}>
                   {activityIdentity(a)}
                 </option>
@@ -216,7 +258,9 @@ export function VerificationItemFormDrawer({
                 {lockedSiteName}
               </div>
               <p className="mt-1.5 text-xs text-muted">
-                Locked because the Target Activity is site-specific.
+                {lockedBy === "document"
+                  ? "Locked because the document is site-specific."
+                  : "Locked because the Target Activity is site-specific."}
               </p>
             </div>
           ) : (

@@ -10,7 +10,7 @@ import { FINDING_TYPES } from "@/lib/validation/findings";
 import { VERIFICATION_PRIORITIES } from "@/lib/validation/verification-items";
 import { findingTypeLabel, priorityLabel } from "@/lib/ui/status-tones";
 import { formatDate } from "@/lib/ui/format";
-import { createFinding, createFindingFromVerification, updateFinding } from "@/lib/mutations/findings";
+import { createFinding, createFindingFromReview, createFindingFromVerification, updateFinding } from "@/lib/mutations/findings";
 import type { FindingRow } from "@/lib/queries/findings";
 import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
 
@@ -32,6 +32,22 @@ export type VerificationOrigin = {
   priority: string;
 };
 
+/** Gap Assessment context for "Create Finding" on Document Detail (Phase 5D). Read-only origin + prefill. */
+export type ReviewOrigin = {
+  reviewId: string;
+  documentTitle: string;
+  /** "V2 · Rev.01" */
+  versionLabel: string;
+  /** "Revision Required" / "Accepted" */
+  resultLabel: string;
+  /** A site-specific Document fixes the site. */
+  documentSiteId: string | null;
+  /** Review Comments → Description prefill. */
+  notes: string | null;
+  /** Prefilled only when the Document maps exactly ONE requirement. */
+  prefillFrameworkItemId: string | null;
+};
+
 const SELECT_CLASS =
   "min-h-11 w-full rounded-md border border-border bg-surface px-3 text-base text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary md:text-sm";
 
@@ -42,6 +58,8 @@ export function FindingFormDrawer({
   catalog,
   finding,
   origin,
+  reviewOrigin,
+  lockedSiteId,
   onClose,
   onSaved,
 }: {
@@ -51,6 +69,10 @@ export function FindingFormDrawer({
   finding?: FindingRow;
   /** Create-only: open from a Verification. Verification link and Activity are fixed. */
   origin?: VerificationOrigin;
+  /** Create-only: open from a Gap Assessment (Phase 5D). */
+  reviewOrigin?: ReviewOrigin;
+  /** Edit of a review-origin Finding whose Document is site-specific: the site stays fixed. */
+  lockedSiteId?: string | null;
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
@@ -59,15 +81,23 @@ export function FindingFormDrawer({
   const [title, setTitle] = useState(finding?.title ?? "");
   // From a Verification: Description <- its Notes, Priority <- its priority, Framework <- its
   // requirement; Title and Finding Type stay blank (a checklist question is not a finding statement,
-  // and a result never implies a type).
-  const [description, setDescription] = useState(finding?.description ?? origin?.notes ?? "");
+  // and a result never implies a type). From a Gap Assessment: Description <- Review Comments,
+  // Priority Medium, Framework only when the Document maps exactly one requirement.
+  const [description, setDescription] = useState(finding?.description ?? origin?.notes ?? reviewOrigin?.notes ?? "");
   const [priority, setPriority] = useState(finding?.priority ?? origin?.priority ?? "medium");
   const originActivity = origin ? catalog.activities.find((a) => a.id === origin.activityId) : undefined;
-  const initialSiteId = finding?.siteId ?? originActivity?.siteId ?? origin?.siteId ?? "";
+  const documentSiteId = reviewOrigin?.documentSiteId ?? lockedSiteId ?? null;
+  const initialSiteId = finding?.siteId ?? originActivity?.siteId ?? origin?.siteId ?? documentSiteId ?? "";
   const [scope, setScope] = useState<Scope>(initialSiteId ? "specific_site" : "project_wide");
   const [siteId, setSiteId] = useState(initialSiteId);
   const [activityId, setActivityId] = useState(finding?.activityId ?? origin?.activityId ?? "");
-  const [frameworkItemId, setFrameworkItemId] = useState(finding?.frameworkItemId ?? origin?.frameworkItemId ?? "");
+  const [frameworkItemId, setFrameworkItemId] = useState(
+    finding?.frameworkItemId ?? origin?.frameworkItemId ?? reviewOrigin?.prefillFrameworkItemId ?? "",
+  );
+  // A site-specific Document only allows project-wide Activities or Activities at the same site.
+  const activityOptions = documentSiteId
+    ? catalog.activities.filter((a) => !a.siteId || a.siteId === documentSiteId)
+    : catalog.activities;
   // The Activity is fixed for a new Finding created from a Verification and for an existing
   // verification-linked Finding (traceability); manual Findings keep a free Activity picker.
   const activityFixed = !!origin || !!finding?.verificationItemId;
@@ -80,13 +110,16 @@ export function FindingFormDrawer({
     () => catalog.activities.find((a) => a.id === activityId),
     [catalog.activities, activityId],
   );
-  const siteLocked = !!selectedActivity?.siteId;
-  const lockedSiteName = siteLocked ? catalog.sites.find((s) => s.id === selectedActivity!.siteId)?.name : undefined;
+  const lockedBy: "document" | "activity" | null = documentSiteId ? "document" : selectedActivity?.siteId ? "activity" : null;
+  const siteLocked = lockedBy !== null;
+  const lockedSiteName = siteLocked
+    ? catalog.sites.find((s) => s.id === (documentSiteId ?? selectedActivity!.siteId))?.name
+    : undefined;
 
   const frameworkGroups = useMemo(() => {
     const groups = new Map<string, typeof catalog.frameworkItems>();
     for (const fi of catalog.frameworkItems) {
-      const key = fi.inAssignedScope ? fi.frameworkIdentity : `${fi.frameworkIdentity} (not currently assigned)`;
+      const key = fi.groupLabel ?? (fi.inAssignedScope ? fi.frameworkIdentity : `${fi.frameworkIdentity} (not currently assigned)`);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(fi);
     }
@@ -145,7 +178,9 @@ export function FindingFormDrawer({
             siteId: payload.siteId,
             frameworkItemId,
           })
-        : mode === "create"
+        : reviewOrigin
+          ? await createFindingFromReview(projectId, reviewOrigin.reviewId, payload)
+          : mode === "create"
           ? await createFinding(projectId, payload)
           : await updateFinding(projectId, finding!.id, payload);
 
@@ -185,6 +220,21 @@ export function FindingFormDrawer({
             <div className="mt-0.5">
               <span className="text-muted">Activity: </span>
               <span className="font-semibold">{originActivity ? activityIdentity(originActivity) : "—"}</span>
+            </div>
+          </div>
+        ) : null}
+        {reviewOrigin ? (
+          <div data-testid="finding-review-origin" className="rounded-md border border-border bg-neutral-soft px-3 py-2.5 text-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted">Origin · Document Gap Assessment</div>
+            <div className="mt-1">
+              <span className="text-muted">Document: </span>
+              <span className="font-semibold">{reviewOrigin.documentTitle}</span>
+            </div>
+            <div className="mt-0.5">
+              <span className="text-muted">Version: </span>
+              <span className="font-semibold">{reviewOrigin.versionLabel}</span>
+              <span className="text-muted"> · Assessment: </span>
+              <span className="font-semibold">{reviewOrigin.resultLabel}</span>
             </div>
           </div>
         ) : null}
@@ -314,7 +364,7 @@ export function FindingFormDrawer({
                 className={SELECT_CLASS}
               >
                 <option value="">No activity</option>
-                {catalog.activities.map((a) => (
+                {activityOptions.map((a) => (
                   <option key={a.id} value={a.id}>
                     {activityIdentity(a)}
                   </option>
@@ -337,7 +387,9 @@ export function FindingFormDrawer({
               >
                 {lockedSiteName}
               </div>
-              <p className="mt-1.5 text-xs text-muted">Locked because the Activity is site-specific.</p>
+              <p className="mt-1.5 text-xs text-muted">
+                {lockedBy === "document" ? "Locked because the document is site-specific." : "Locked because the Activity is site-specific."}
+              </p>
               {fieldErrors.siteId ? (
                 <p role="alert" className="mt-1.5 text-xs text-danger">
                   {fieldErrors.siteId}

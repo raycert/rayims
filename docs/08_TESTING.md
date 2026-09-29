@@ -1144,7 +1144,50 @@ orphan count of the next check; the immediate rerun passed 122/122 with no code 
 `npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All fixtures
 and Storage objects removed.
 
-### Phase 5 — Documents / Versions / Reviews (5D–5G)
+### Phase 5D — Gap Assessment follow-up (executed 2026-09-29)
+
+Result: **PASS — 78/78 checks, 0 failures** on the final code (hosted Supabase, production build,
+Playwright/Edge, 1280×800, 390px, 412px). Fixtures used `P5D-ACCEPT-` clients (two projects, three
+Activities, eight documents with DB-level versions and assessments); the genuine data was snapshotted
+fresh at pre-flight and is identical afterwards.
+
+Covered: a concluded Revision Required assessment offers Create Finding / Add to Verification with the
+path helper (hint "Upload a new Version…" kept). Finding form: origin box (document, version, result),
+Description = Review Comments, Title blank, **no Finding Type preselected**, Priority Medium, Project-wide,
+no Activity inferred, several mapped requirements → none preselected and "Mapped to this document" listed
+first. Created Finding: `document_review_id` = review, `verification_item_id` NULL; review byte-identical,
+Document status unchanged; "Add another Finding" → second Finding with a project site. Add to
+Verification: origin box, check and Target Activity blank; two planning-only checks (result / notes /
+verified_* NULL; site follows a site-specific Target Activity); no Finding created; summary "2 Findings ·
+2 Verification Items" with links. Tampered requests refused with nothing created: Activity / Site / review
+of Project B, a requirement of an unassigned Framework. Site-specific document: site locked, the one mapped
+requirement prefilled, only compatible Activities, another site refused for both Finding and check.
+Accepted assessment: green, follow-up buttons quiet. No mapping: nothing preselected, assigned items
+offered. Latest-assessment rule: an earlier assessment of the same version and an older version's
+assessment show their existing links but no actions, and forced follow-up from them is refused; Under
+Review and Not Applicable: no actions, forced follow-up refused, existing N/A link still listed. Finding
+Detail: "Source: Document Gap Assessment · document · V1 · Rev.00" line, origin section with result and
+comments, link back to the Document; editing keeps a site-specific document's site locked. Verification
+workspace shows "From Gap Assessment · document · V1". Deleting a planning-only review-origin check and a
+review-origin Finding leaves the review and status unchanged and refreshes the counts. Executing the
+review-origin check in its Activity (Issue Identified) and creating a Finding there gives the chain
+Review → Verification → Finding with `document_review_id` NULL on that Finding. Consultant creates both
+follow-ups from an Accepted assessment. Mobile 390 / 412: actions reachable, both sheets usable, no overflow.
+Signed out: redirected; follow-up rows not readable.
+
+Notes on the runs: the first run scored 74/76 — the origin-box checks read the small uppercase header
+(CSS text-transform) with a case-sensitive pattern. The regression run then showed a real rule gap: 5D
+offered follow-up on a Not Applicable document, conflicting with 5C's "N/A freezes new work"; follow-up is
+now refused for N/A documents (UI and server, BR-127) and the suite gained two checks (78).
+
+Regression on the final build: 5C 74/74, 5B 103/103 (one run read the register before it re-rendered after
+a version delete; the check now waits for the row and the rerun passed), 5A 104/104, 4F 78/78, 4E Evidence
+122/122, 4C-1 160/160 and 4C-2 155/155 (shared Finding form: manual create / edit / Verification origin),
+4E.6 65/65.
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All fixtures removed.
+
+### Phase 5 — Documents / Versions / Reviews (5E–5G)
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to
 Received; multiple reviews of one version; derived status rules; framework

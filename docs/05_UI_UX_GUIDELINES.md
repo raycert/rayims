@@ -134,6 +134,13 @@ and prototype/demo data is not a requirement.
   is revised."; Accepted adds "Accepted for this assessment." Older versions show their final result as a
   badge; every version has a collapsed, read-only "Assessment history (n)" ("Earlier assessments" on the
   Current version). Completing uses a drawer with a required Result choice (no default).
+- *(Phase 5D)* Under a concluded, latest assessment: one helper line ("Create Finding for a gap the
+  document already shows · Add to Verification to confirm it onsite"), two compact buttons (secondary for
+  Revision Required, quiet for Accepted) and a collapsed "Follow-up: n Findings · m Verification Items"
+  list with links; historical assessments show the list only. The Finding / Verification forms are the
+  existing ones with an origin box; a site-specific Document shows its site locked. Review-origin
+  Findings show a "Source: Document Gap Assessment · <document> · <version>" line under the header;
+  review-origin checks show "From Gap Assessment · <document> · V<n>" in the Verification workspace.
 - **Primary navigation** is the row or name (client, project, framework, site row with a
   chevron); secondary actions live in the overflow.
 - **No fabricated future-domain data.** Do not show placeholder or zero values for

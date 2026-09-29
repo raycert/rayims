@@ -274,6 +274,11 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Related framework items:** none stored on the review; gaps become issues or
   verification items with their own `framework_item_id`.
 - **Index:** `(document_version_id, created_at DESC)`.
+- **Used by Phase 5D (follow-up):** no schema change. `issues.document_review_id` and
+  `verification_items.document_review_id` (both existing, SET NULL on review delete — reviews are never
+  deleted in V1) record Review → Finding and Review → Verification. Document Detail embeds each review's
+  `issues` and `verification_items` in its single query; Finding Detail and the Verification list embed
+  the review → version → document for the origin line.
 - **Used by Phase 5C (Gap Assessment):** no schema change. Insert = `under_review` with `reviewer_id`
   = starter, `reviewed_at` NULL; edit changes `notes` only while `under_review`; completion sets
   `status` (`revision_required` | `accepted`), `notes`, `reviewer_id` = concluding user and

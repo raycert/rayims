@@ -28,8 +28,8 @@
 | — 5A  | Document Register foundation                | **COMPLETED** |
 | — 5B  | Document Versions                           | **COMPLETED** |
 | — 5C  | Document Gap Assessment (reviews)           | **COMPLETED** |
-| — 5D  | Review → Finding / Verification Item        | Planned — NEXT |
-| — 5E  | Required Document Excel Import              | Planned |
+| — 5D  | Review → Finding / Verification Item        | **COMPLETED** |
+| — 5E  | Required Document Excel Import              | Planned — NEXT |
 | — 5F  | Gap Assessment Export                       | Planned |
 | — 5G  | Phase 5 final acceptance                    | Planned |
 | 6     | Visit Summary / Reporting                   | Planned       |
@@ -582,11 +582,15 @@ versions and their Assessment History read-only; status and Last Review derived 
 created_at, id; Last Review = latest concluded). No schema, RLS, grant or Storage change. See
 `08_TESTING.md`.
 
-### Phase 5D — Review → Finding / Verification Item [NEXT]
+### Phase 5D — Review → Finding / Verification Item [COMPLETED]
 
-Explicit Create Finding and Add Verification Item from a review, origin traceability.
+Explicit **Create Finding** and **Add to Verification** from the latest concluded Gap Assessment of the
+current Version (existing forms with an origin box; site / framework prefill rules; server-derived
+`document_review_id`); linked follow-ups listed on every assessment; Finding Detail and Verification
+workspace show the review origin; lineage Document → Version → Assessment → Finding, and → Verification
+→ Finding. No schema, RLS, grant or Storage change. See `08_TESTING.md`.
 
-### Phase 5E — Required Document Excel Import
+### Phase 5E — Required Document Excel Import [NEXT]
 
 Bulk-register the expected documents of a project from Excel (title, code, type, owner, site,
 framework requirements), following the Verification import pattern.

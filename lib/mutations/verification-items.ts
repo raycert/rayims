@@ -6,6 +6,7 @@ import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { verificationExecutionSchema, verificationItemSchema } from "@/lib/validation/verification-items";
 import { evaluateVerificationDelete, type DeleteEvaluation } from "@/lib/domain/delete-rules";
 import { frameworkItemInProjectScope, validateSiteAndActivity, type SupabaseServerClient } from "./scope-validation";
+import { documentSiteError, frameworkItemAllowedForReview, loadReviewForFollowUp, reviewOriginConstraints } from "./review-followup";
 import { fieldErrorsFrom, type ActionResult } from "./types";
 
 /**
@@ -64,6 +65,63 @@ export async function createVerificationItem(
 }
 
 /**
+ * Add to Verification from a Gap Assessment (Phase 5D): a planning-only check whose
+ * document_review_id is the authoritative review (server-derived, immutable). Only from the latest,
+ * concluded assessment of the current version. Same planning rules as createVerificationItem
+ * (Target Activity optional; a site-specific Target Activity fixes the site, BR-73) PLUS a
+ * site-specific Document fixes the site; the Framework Requirement may also be one of the Document's
+ * mapped items. Execution fields are never written; no Finding is created; the review is unchanged.
+ */
+export async function createVerificationItemFromReview(
+  projectId: string,
+  reviewId: string,
+  input: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const user = await requireUser();
+  const parsed = verificationItemSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Check the highlighted fields.", fieldErrors: fieldErrorsFrom(parsed.error) };
+  }
+  const d = parsed.data;
+  const supabase = await createSupabaseClient();
+
+  const ctx = await loadReviewForFollowUp(supabase, projectId, reviewId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+  const siteError = documentSiteError(ctx.documentSiteId, d.siteId);
+  if (siteError) return { ok: false, error: siteError, fieldErrors: { siteId: siteError } };
+  const siteCheck = await validateSiteAndActivity(supabase, projectId, d.siteId, d.targetActivityId);
+  if (siteCheck) return { ok: false, error: siteCheck.error, fieldErrors: { [siteCheck.field]: siteCheck.error } };
+  if (!(await frameworkItemAllowedForReview(supabase, projectId, d.frameworkItemId, ctx.mappedItemIds))) {
+    return {
+      ok: false,
+      error: "The selected Framework Requirement is not assigned to this project.",
+      fieldErrors: { frameworkItemId: "Not assigned to this project." },
+    };
+  }
+
+  const { data, error } = await supabase
+    .from("verification_items")
+    .insert({
+      project_id: projectId,
+      question: d.question,
+      priority: d.priority,
+      site_id: d.siteId,
+      target_activity_id: d.targetActivityId,
+      framework_item_id: d.frameworkItemId,
+      document_review_id: ctx.reviewId,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, error: "Couldn't create the verification item. Try again." };
+
+  revalidatePath(`/projects/${projectId}/verification`);
+  revalidatePath(`/projects/${projectId}/documents/${ctx.documentId}`);
+  if (d.targetActivityId) revalidatePath(`/projects/${projectId}/activities/${d.targetActivityId}`);
+  return { ok: true, data: { id: data.id } };
+}
+
+/**
  * Updates ONLY the planning fields (question, priority, site_id, target_activity_id,
  * framework_item_id). The UPDATE statement below never references result, notes,
  * verified_activity_id, verified_by or verified_at, so an already-executed item's
@@ -87,13 +145,18 @@ export async function updateVerificationItem(
 
   const { data: existing, error: existingError } = await supabase
     .from("verification_items")
-    .select("id, project_id, framework_item_id")
+    .select("id, project_id, framework_item_id, document_review_id")
     .eq("id", itemId)
     .maybeSingle();
   if (existingError) return { ok: false, error: "Couldn't save the verification item. Try again." };
   if (!existing || existing.project_id !== projectId) {
     return { ok: false, error: "This verification item could not be found." };
   }
+
+  // Gap Assessment origin (Phase 5D): a site-specific Document keeps fixing the site.
+  const reviewOrigin = await reviewOriginConstraints(supabase, existing.document_review_id);
+  const reviewSiteError = reviewOrigin ? documentSiteError(reviewOrigin.documentSiteId, d.siteId) : null;
+  if (reviewSiteError) return { ok: false, error: reviewSiteError, fieldErrors: { siteId: reviewSiteError } };
 
   const siteCheck = await validateSiteAndActivity(supabase, projectId, d.siteId, d.targetActivityId);
   if (siteCheck) return { ok: false, error: siteCheck.error, fieldErrors: { [siteCheck.field]: siteCheck.error } };
@@ -102,7 +165,9 @@ export async function updateVerificationItem(
   // item that's no longer assigned to the project may be KEPT, but never newly
   // selected — only check assignment when the value is actually changing.
   if (d.frameworkItemId !== existing.framework_item_id) {
-    const frameworkOk = await frameworkItemInProjectScope(supabase, projectId, d.frameworkItemId);
+    const frameworkOk = reviewOrigin
+      ? await frameworkItemAllowedForReview(supabase, projectId, d.frameworkItemId, reviewOrigin.mappedItemIds)
+      : await frameworkItemInProjectScope(supabase, projectId, d.frameworkItemId);
     if (!frameworkOk) {
       return {
         ok: false,
