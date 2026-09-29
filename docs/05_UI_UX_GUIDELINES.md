@@ -127,6 +127,13 @@ and prototype/demo data is not a requirement.
   file, received / uploaded, notes, View (PDF) · Download), collapsed to the newest two with "Show
   earlier versions (n)". Delete sits in the "…" menu of the Current version only. Versions are never
   edited — the upload drawer is the only form (File, Revision, Received on, Notes).
+- *(Phase 5C)* The **Gap Assessment** panel sits inside the Current version: result badge (Under Review
+  blue, Revision Required amber, Accepted green), "Assessed against …" (mapped requirements), Review
+  Comments, "Reviewed by / Started by …", and one next action (Start Gap Assessment → Edit / Complete
+  Assessment → Start New Assessment). Revision Required adds "Upload a new Version if the document content
+  is revised."; Accepted adds "Accepted for this assessment." Older versions show their final result as a
+  badge; every version has a collapsed, read-only "Assessment history (n)" ("Earlier assessments" on the
+  Current version). Completing uses a drawer with a required Result choice (no default).
 - **Primary navigation** is the row or name (client, project, framework, site row with a
   chevron); secondary actions live in the overflow.
 - **No fabricated future-domain data.** Do not show placeholder or zero values for

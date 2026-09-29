@@ -10,7 +10,8 @@ import { formatDate } from "@/lib/ui/format";
 import { deleteDocumentVersion, getDocumentVersionDeleteState, getDocumentVersionUrl } from "@/lib/mutations/document-versions";
 import { formatEvidenceDate, formatFileSize } from "@/components/evidence/evidence-format";
 import { VersionUploadDrawer } from "./version-upload-drawer";
-import type { DocumentVersionSummary } from "@/lib/queries/documents";
+import { AssessmentHistory, GapAssessmentPanel } from "./gap-assessment";
+import type { DocumentFrameworkItem, DocumentVersionSummary } from "@/lib/queries/documents";
 
 const COLLAPSED_COUNT = 2;
 
@@ -21,20 +22,23 @@ export function versionLabel(v: { versionNo: number; revision: string | null }):
 /**
  * Versions of a Document (Phase 5B), newest first. Each Version is immutable history: View (PDF) /
  * Download through a 60-second signed URL generated on click; only the latest, unreviewed Version
- * of an Applicable Document offers Delete (in the "…" menu). Existing review data is shown
- * read-only (reviews arrive in Phase 5C).
+ * of an Applicable Document offers Delete (in the "…" menu). Phase 5C: the Current version carries
+ * its Gap Assessment panel; every version keeps its Assessment History (read-only).
  */
 export function DocumentVersionsSection({
   projectId,
   documentId,
   isApplicable,
   versions,
+  frameworkItems,
   onChanged,
 }: {
   projectId: string;
   documentId: string;
   isApplicable: boolean;
   versions: DocumentVersionSummary[];
+  /** The Document's mapped requirements — the context a Version is assessed against. */
+  frameworkItems: DocumentFrameworkItem[];
   onChanged: (message: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
@@ -68,7 +72,8 @@ export function DocumentVersionsSection({
         <div>
           <h2 className="text-sm font-semibold">Versions</h2>
           <p className="text-xs text-muted">
-            {versions.length} {versions.length === 1 ? "version" : "versions"}
+            {versions.length} {versions.length === 1 ? "version" : "versions"} · files received for this document, each
+            assessed separately
           </p>
         </div>
         {isApplicable ? (
@@ -97,7 +102,8 @@ export function DocumentVersionsSection({
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold">{versionLabel(v)}</span>
                       {current ? <StatusBadge label="Current" tone="info" /> : null}
-                      {v.latestReviewStatus ? (
+                      {/* The Current version's result is shown in its Gap Assessment panel; older ones keep their final result here. */}
+                      {!current && v.latestReviewStatus ? (
                         <StatusBadge label={documentStatusLabel(v.latestReviewStatus)} tone={documentStatusTone(v.latestReviewStatus)} />
                       ) : null}
                     </div>
@@ -110,7 +116,6 @@ export function DocumentVersionsSection({
                         v.receivedOn ? `Received ${formatDate(v.receivedOn)}` : null,
                         `Uploaded by ${v.uploadedByName ?? "Unknown user"}`,
                         formatEvidenceDate(v.createdAt),
-                        v.reviewCount > 0 ? `${v.reviewCount} ${v.reviewCount === 1 ? "review" : "reviews"}` : null,
                       ]
                         .filter(Boolean)
                         .join(" · ")}
@@ -143,6 +148,20 @@ export function DocumentVersionsSection({
                         {errors[v.id]}
                       </p>
                     ) : null}
+                    {current ? (
+                      <>
+                        <GapAssessmentPanel
+                          projectId={projectId}
+                          version={v}
+                          isApplicable={isApplicable}
+                          frameworkItems={frameworkItems}
+                          onChanged={onChanged}
+                        />
+                        <AssessmentHistory reviews={v.reviews.slice(1)} label="Earlier assessments" />
+                      </>
+                    ) : (
+                      <AssessmentHistory reviews={v.reviews} label="Assessment history" />
+                    )}
                   </div>
                   {current ? <OverflowMenu items={[{ label: "Delete Version", onSelect: () => setDeleting(v), danger: true }]} /> : null}
                 </div>

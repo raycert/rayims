@@ -274,6 +274,13 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Related framework items:** none stored on the review; gaps become issues or
   verification items with their own `framework_item_id`.
 - **Index:** `(document_version_id, created_at DESC)`.
+- **Used by Phase 5C (Gap Assessment):** no schema change. Insert = `under_review` with `reviewer_id`
+  = starter, `reviewed_at` NULL; edit changes `notes` only while `under_review`; completion sets
+  `status` (`revision_required` | `accepted`), `notes`, `reviewer_id` = concluding user and
+  `reviewed_at` = now(), conditioned on `status = 'under_review'` (so it happens once). One open review
+  per version and latest-version-only are application rules (no partial unique index). The application
+  orders reviews by `created_at DESC, id DESC`; the `document_register` view orders by `created_at`
+  only (ties require two reviews of one version in the same microsecond — accepted).
 
 ### verification_items
 - **Purpose:** something to be checked during an activity/site visit.

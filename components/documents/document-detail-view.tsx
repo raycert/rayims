@@ -118,6 +118,7 @@ export function DocumentDetailView({
           documentId={document.id}
           isApplicable={document.isApplicable}
           versions={document.versions}
+          frameworkItems={document.frameworkItems}
           onChanged={(msg) => {
             router.refresh();
             show(msg);

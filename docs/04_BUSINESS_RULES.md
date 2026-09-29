@@ -183,6 +183,36 @@ Product behavior that the schema and UI must respect. Database details are in
   reuse the deleted (never-reviewed) number. While **Not Applicable**, uploads are refused
   ("Versions cannot be uploaded while this document is Not Applicable.") and existing versions stay
   visible (BR-115).
+- **BR-122** *(Phase 5C)* **Gap Assessment** is the UI name for a review of a Version
+  (`document_reviews`, table not renamed). Mental model: the **Document** is the required / expected
+  controlled document, a **Version** is a file the client supplied, a **Gap Assessment** is the
+  consultant's evaluation of that Version against the Document's mapped Framework Requirements (shown
+  as context; nothing is copied onto the review). Results: **Under Review** (started, not concluded,
+  `reviewed_at` NULL), **Revision Required** (the Version does not fully meet the requirements),
+  **Accepted** (acceptable for this assessment — never "Approved"). Consultant feedback is **Review
+  Comments** (`notes`, blank → NULL).
+- **BR-123** *(Phase 5C)* Assessments start only on the **current (latest) Version** of an
+  **Applicable** Document that has a Version ("This version is no longer current. Review the current
+  version instead."; "Gap Assessments cannot start while this document is Not Applicable."), and a
+  Version has **at most one open (Under Review) assessment** ("A Gap Assessment is already open for this
+  version."). All enforced on the server on fresh data. Older Versions and N/A Documents keep their
+  history visible, read-only.
+- **BR-124** *(Phase 5C)* An open assessment's Review Comments may be edited; it is **completed** once,
+  choosing Revision Required or Accepted (no default), which sets `reviewed_at` = server time and
+  `reviewer_id` = the **concluding** user (the starter until then). A **concluded assessment is
+  immutable** — no edit, no result change, **no delete** (open ones are not deleted either; no cancel
+  status). A different conclusion on the same file is a **new assessment** on the same current Version
+  (e.g. Revision Required → clarification → Accepted); a **changed file** is a new Version, which starts
+  with no assessment (status **Received**) — the old result is never carried forward.
+- **BR-125** *(Phase 5C)* Derived status (BR-20) follows the **latest review of the latest Version**,
+  ordered **created_at DESC, id DESC** everywhere (never by `reviewed_at`). The register's **Last
+  Review** is the most recent **concluded** assessment (`reviewed_at`) of the latest Version — an open
+  assessment does not hide it; "—" when none is concluded. Review Comments are shown on Document
+  Detail only (not in the register, not searched).
+- **BR-126** *(Phase 5C)* **Review result ≠ Finding and ≠ Verification item:** Revision Required creates
+  neither; they are separate, explicit actions (Phase 5D). Any review (open or concluded) blocks
+  deleting its Version (BR-121). **Backlog / design follow-up:** "Expected Records / Required Evidence"
+  per Document (what records must exist) — not stored in Review Comments; to be designed separately.
 - **BR-118** *(Phase 5A)* **Controlled Document delete:** only a Document with **no Versions**.
   Its Framework mappings are removed with it (setup data); versions, files and reviews are never
   cascade-deleted by the application — "This document has versions and cannot be deleted."

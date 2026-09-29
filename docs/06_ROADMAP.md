@@ -27,9 +27,11 @@
 | 5     | Documents / Versions / Reviews              | **IN PROGRESS** |
 | — 5A  | Document Register foundation                | **COMPLETED** |
 | — 5B  | Document Versions                           | **COMPLETED** |
-| — 5C  | Document Reviews                            | Planned — NEXT |
-| — 5D  | Review → Finding / Verification Item        | Planned |
-| — 5E  | Phase 5 final acceptance                    | Planned |
+| — 5C  | Document Gap Assessment (reviews)           | **COMPLETED** |
+| — 5D  | Review → Finding / Verification Item        | Planned — NEXT |
+| — 5E  | Required Document Excel Import              | Planned |
+| — 5F  | Gap Assessment Export                       | Planned |
+| — 5G  | Phase 5 final acceptance                    | Planned |
 | 6     | Visit Summary / Reporting                   | Planned       |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
 
@@ -546,8 +548,10 @@ Document register, versions and uploads, framework mapping, reviews, derived
 status view, review → issue / verification. The Phase 5 pre-implementation review confirmed the
 Phase 0C schema covers all of it: **no migration, no RLS / grant change, no new ADR**. Approved
 decisions: Document = logical record; version files immutable; derived status only; review →
-Finding and review → Verification Item are explicit (5D); Review Evidence, document import,
-N/A reason, required flag, due date and an Overview summary are backlog.
+Finding and review → Verification Item are explicit (5D); Review Evidence, N/A reason, required flag,
+due date and an Overview summary are backlog. *(Revised after 5C)* Required Document Excel Import (5E)
+and Gap Assessment Export (5F) are now planned Phase 5 slices; "Expected Records / Required Evidence"
+per Document is a design follow-up (backlog).
 
 ### Phase 5A — Document Register foundation [COMPLETED]
 
@@ -569,16 +573,29 @@ Applicable document; uploads refused while Not Applicable. Shared file infrastru
 Evidence (`lib/files/policy`, `lib/files/server`) with Evidence behaviour unchanged. No schema, RLS,
 grant or Storage change. See `08_TESTING.md`.
 
-### Phase 5C — Document Reviews [NEXT]
+### Phase 5C — Document Gap Assessment [COMPLETED]
 
-Record / complete a review of the latest version, one open review per version, concluded
-reviews immutable, full derived status.
+Gap Assessment of the current Version (`document_reviews`): Start Gap Assessment (Under Review) →
+Edit Review Comments → Complete as Revision Required or Accepted (immutable afterwards) → Start New
+Assessment; one open assessment per version, latest version only, refused while Not Applicable; older
+versions and their Assessment History read-only; status and Last Review derived (latest review by
+created_at, id; Last Review = latest concluded). No schema, RLS, grant or Storage change. See
+`08_TESTING.md`.
 
-### Phase 5D — Review → Finding / Verification Item
+### Phase 5D — Review → Finding / Verification Item [NEXT]
 
 Explicit Create Finding and Add Verification Item from a review, origin traceability.
 
-### Phase 5E — Phase 5 final acceptance
+### Phase 5E — Required Document Excel Import
+
+Bulk-register the expected documents of a project from Excel (title, code, type, owner, site,
+framework requirements), following the Verification import pattern.
+
+### Phase 5F — Gap Assessment Export
+
+Export the Document register with current Version, Gap Assessment result and Review Comments.
+
+### Phase 5G — Phase 5 final acceptance
 
 
 ## Phase 6 — Visit Summary / Reporting

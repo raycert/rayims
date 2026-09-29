@@ -49,7 +49,28 @@ export type DocumentVersionSummary = {
   reviewCount: number;
   /** Status of the latest review record of this version (created_at, id), read-only; null = none. */
   latestReviewStatus: string | null;
+  /** Gap Assessment history of this version, newest first (created_at DESC, id DESC). */
+  reviews: DocumentReviewEntry[];
 };
+
+/** One `document_reviews` row = one Gap Assessment of a Version (Phase 5C). */
+export type DocumentReviewEntry = {
+  id: string;
+  /** under_review (open) | revision_required | accepted (concluded, immutable) */
+  status: string;
+  notes: string | null;
+  /** Who started it while open; who concluded it once completed. */
+  reviewerName: string | null;
+  createdAt: string;
+  /** NULL while Under Review. */
+  reviewedAt: string | null;
+};
+
+/** The one ordering rule for reviews everywhere in the app: created_at DESC, then id DESC. */
+export function compareReviewsNewestFirst(a: { createdAt: string; id: string }, b: { createdAt: string; id: string }): number {
+  if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? 1 : -1;
+  return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+}
 
 export type DocumentDetail = DocumentRow & {
   projectId: string;
@@ -115,14 +136,15 @@ async function assignedFrameworkIds(supabase: Awaited<ReturnType<typeof createCl
  *   1. `document_register` view (identity + derived status + latest version) for the project
  *   2. all framework mappings of the project's documents (inner join on documents.project_id)
  *   3. site names + assigned frameworks (small lookups)
- *   4. only if any latest review exists: those review rows, for "Last Review"
+ *   4. only if any document has a version: the CONCLUDED reviews of those latest versions, in one
+ *      batched query, for "Last Review" (see lastConcludedReviewAt)
  */
 export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
   const supabase = await createClient();
   const [registerRes, mappingsRes, siteMap, assigned] = await Promise.all([
     supabase
       .from("document_register")
-      .select("document_id, title, doc_code, document_type, owner_name, site_id, is_applicable, status, latest_version_no, latest_revision, latest_review_id")
+      .select("document_id, title, doc_code, document_type, owner_name, site_id, is_applicable, status, latest_version_id, latest_version_no, latest_revision")
       .eq("project_id", projectId),
     supabase
       .from("document_framework_items")
@@ -142,12 +164,21 @@ export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
     itemsByDoc.set(m.document_id, list);
   }
 
-  const reviewIds = (registerRes.data ?? []).map((r) => r.latest_review_id).filter((id): id is string => !!id);
+  // Last Review = the most recent CONCLUDED assessment (reviewed_at) of the latest version. An open
+  // (Under Review) assessment has no reviewed_at, so it never hides the previous conclusion date.
+  const latestVersionIds = (registerRes.data ?? []).map((r) => r.latest_version_id).filter((id): id is string => !!id);
   const reviewDates = new Map<string, string>();
-  if (reviewIds.length > 0) {
-    const { data, error } = await supabase.from("document_reviews").select("id, reviewed_at, created_at").in("id", reviewIds);
+  if (latestVersionIds.length > 0) {
+    const { data, error } = await supabase
+      .from("document_reviews")
+      .select("document_version_id, reviewed_at")
+      .in("document_version_id", latestVersionIds)
+      .not("reviewed_at", "is", null);
     if (error) throw new Error("Could not load document reviews.");
-    for (const r of data ?? []) reviewDates.set(r.id, r.reviewed_at ?? r.created_at);
+    for (const r of data ?? []) {
+      const prev = reviewDates.get(r.document_version_id);
+      if (r.reviewed_at && (!prev || r.reviewed_at > prev)) reviewDates.set(r.document_version_id, r.reviewed_at);
+    }
   }
 
   return (registerRes.data ?? [])
@@ -164,7 +195,7 @@ export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
       status: r.status ?? "not_received",
       latestVersionNo: r.latest_version_no,
       latestRevision: r.latest_revision,
-      lastReviewAt: r.latest_review_id ? (reviewDates.get(r.latest_review_id) ?? null) : null,
+      lastReviewAt: r.latest_version_id ? (reviewDates.get(r.latest_version_id) ?? null) : null,
       frameworkItems: (itemsByDoc.get(r.document_id) ?? []).sort(compareFrameworkItems),
     }))
     .sort(compareDocuments);
@@ -177,14 +208,14 @@ export async function getDocument(projectId: string, documentId: string): Promis
     supabase
       .from("documents")
       .select(
-        `id, project_id, site_id, doc_code, title, document_type, owner_name, is_applicable, created_at, document_framework_items(${ITEM_EMBED}), document_versions(id, version_no, revision, received_on, notes, created_at, files(original_name, mime_type, size_bytes), uploader:profiles!document_versions_uploaded_by_fkey(display_name, email), document_reviews(id, status, created_at))`,
+        `id, project_id, site_id, doc_code, title, document_type, owner_name, is_applicable, created_at, document_framework_items(${ITEM_EMBED}), document_versions(id, version_no, revision, received_on, notes, created_at, files(original_name, mime_type, size_bytes), uploader:profiles!document_versions_uploaded_by_fkey(display_name, email), document_reviews(id, status, notes, created_at, reviewed_at, reviewer:profiles!document_reviews_reviewer_id_fkey(display_name, email)))`,
       )
       .eq("id", documentId)
       .eq("project_id", projectId)
       .maybeSingle(),
     supabase
       .from("document_register")
-      .select("status, latest_version_no, latest_revision, latest_review_id")
+      .select("status, latest_version_no, latest_revision")
       .eq("document_id", documentId)
       .eq("project_id", projectId)
       .maybeSingle(),
@@ -196,11 +227,38 @@ export async function getDocument(projectId: string, documentId: string): Promis
   if (!d || !registerRes.data) return null;
   const reg = registerRes.data;
 
-  let lastReviewAt: string | null = null;
-  if (reg.latest_review_id) {
-    const { data } = await supabase.from("document_reviews").select("reviewed_at, created_at").eq("id", reg.latest_review_id).maybeSingle();
-    lastReviewAt = data ? (data.reviewed_at ?? data.created_at) : null;
-  }
+  const versions: DocumentVersionSummary[] = (d.document_versions ?? [])
+    .map((v) => {
+      const reviews: DocumentReviewEntry[] = (v.document_reviews ?? [])
+        .map((r) => ({
+          id: r.id,
+          status: r.status,
+          notes: r.notes,
+          reviewerName: r.reviewer?.display_name ?? r.reviewer?.email ?? null,
+          createdAt: r.created_at,
+          reviewedAt: r.reviewed_at,
+        }))
+        .sort(compareReviewsNewestFirst);
+      return {
+        id: v.id,
+        versionNo: v.version_no,
+        revision: v.revision,
+        receivedOn: v.received_on,
+        notes: v.notes,
+        fileName: v.files?.original_name ?? null,
+        mimeType: v.files?.mime_type ?? null,
+        sizeBytes: v.files?.size_bytes ?? null,
+        uploadedByName: v.uploader?.display_name ?? v.uploader?.email ?? null,
+        createdAt: v.created_at,
+        reviewCount: reviews.length,
+        latestReviewStatus: reviews[0]?.status ?? null,
+        reviews,
+      };
+    })
+    .sort((a, b) => b.versionNo - a.versionNo);
+  // Same Last Review rule as the register: latest concluded assessment of the latest version.
+  const lastReviewAt =
+    (versions[0]?.reviews ?? []).map((r) => r.reviewedAt).filter((t): t is string => !!t).sort().at(-1) ?? null;
 
   return {
     id: d.id,
@@ -222,27 +280,7 @@ export async function getDocument(projectId: string, documentId: string): Promis
       .filter((i): i is NonNullable<typeof i> => !!i)
       .map((i) => mapItem(i as RawItem, assigned))
       .sort(compareFrameworkItems),
-    versions: (d.document_versions ?? [])
-      .map((v) => {
-        const reviews = [...(v.document_reviews ?? [])].sort((a, b) =>
-          a.created_at !== b.created_at ? (a.created_at < b.created_at ? 1 : -1) : a.id < b.id ? 1 : -1,
-        );
-        return {
-          id: v.id,
-          versionNo: v.version_no,
-          revision: v.revision,
-          receivedOn: v.received_on,
-          notes: v.notes,
-          fileName: v.files?.original_name ?? null,
-          mimeType: v.files?.mime_type ?? null,
-          sizeBytes: v.files?.size_bytes ?? null,
-          uploadedByName: v.uploader?.display_name ?? v.uploader?.email ?? null,
-          createdAt: v.created_at,
-          reviewCount: reviews.length,
-          latestReviewStatus: reviews[0]?.status ?? null,
-        };
-      })
-      .sort((a, b) => b.versionNo - a.versionNo),
+    versions,
   };
 }
 

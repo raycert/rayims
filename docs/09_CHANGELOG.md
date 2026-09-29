@@ -3,6 +3,28 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 5C — Document Gap Assessment (2026-09-29)
+
+**Result: 74/74 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.
+
+### Added
+
+- **Gap Assessment** on the Current version (Document Detail): Start Gap Assessment → Edit Assessment
+  (Review Comments) → Complete Assessment (Revision Required / Accepted, required choice) → Start New
+  Assessment; mapped Framework Requirements shown as "Assessed against"; next-step hints.
+- Server actions `startDocumentReview`, `updateDocumentReview`, `completeDocumentReview`: latest
+  version only, Applicable only, one open assessment per version, concluded assessments immutable,
+  reviewer = concluding user, project isolation through Version → Document → project.
+- Read-only **Assessment history** per version ("Earlier assessments" on the Current version).
+
+### Changed
+
+- Register **Last Review** = latest concluded assessment of the latest version (an open one no longer
+  replaces it); one batched query. Document Detail loads reviews with reviewer names in its single
+  embedded query.
+- Roadmap: 5D Review → Finding / Verification (next), 5E Required Document Excel Import, 5F Gap
+  Assessment Export, 5G Phase 5 final acceptance. Business rules BR-122 – BR-126.
+
 ## Phase 5B — Document Versions (2026-09-28)
 
 **Result: 103/103 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.

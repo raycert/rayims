@@ -1101,7 +1101,50 @@ check: signing now lives in the shared `lib/files/server` helper), Phase 4F 78/7
 `npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All fixtures
 and Storage objects removed; documents / versions / reviews / files / objects all 0.
 
-### Phase 5 — Documents / Versions / Reviews (5C–5E)
+### Phase 5C — Document Gap Assessment (executed 2026-09-29)
+
+Result: **PASS — 74/74 checks, 0 failures** on the final code (hosted Supabase, production build,
+Playwright/Edge, 1280×800, 390px, 412px). Fixtures used `P5C-ACCEPT-` clients (two projects); the
+genuine data was snapshotted fresh at pre-flight (documents / versions / reviews / files / objects 0,
+Findings and Verification hashed) and is identical afterwards.
+
+Covered: register statuses and tones for all six derived statuses (Not Received / Not Applicable
+neutral, Received / Under Review blue, Revision Required amber, Accepted green); Last Review = the
+latest concluded assessment even when an open one is newer, "—" when none is concluded; no Review
+Comments in the register. A document without a version offers no assessment. Start Gap Assessment on
+the Current version: one row `under_review`, reviewer = starter, `reviewed_at` / notes NULL, status
+Under Review, mapped requirements shown as "Assessed against …", Edit + Complete instead of Start.
+A forced second open assessment is refused; an Under Review assessment blocks version delete. Edit
+keeps the same row (comments trimmed). Complete requires a result (no default); Revision Required sets
+`reviewed_at` and reviewer = concluding user, status Revision Required, amber badge with the "Upload a
+new Version…" hint, no Edit / Complete, Start New Assessment offered. Forced edit / re-completion of a
+concluded assessment refused (row byte-identical). New Version → Received; V2 starts "Not started" (no
+carry-over); V1 keeps its final result read-only with its Assessment history (status, comments,
+reviewer, started / reviewed). Forced start on the older version refused. Accepted (green, "Accepted
+for this assessment.", never "Approved"). Same version Accepted → Revision Required: both kept, status
+follows the latest, "Earlier assessments" lists the previous one; concluded assessments still block
+version delete; version files never changed. N/A: history visible, no Start, forced start refused.
+Project isolation: start / edit / complete against Project B refused, nothing leaked. Consultant
+completes an admin-started assessment (reviewer becomes the consultant) and starts a new one. Mobile
+390 / 412: status and comments readable, Complete sheet usable (40 px result buttons, not covered), no
+overflow. Signed out: redirected; reviews not readable. No Finding or Verification item was ever
+created by an assessment.
+
+Notes on the runs: the first run scored 73/74 — the 412 px step expected the comment written at
+390 px, but the 390 px step had completed without comments (test design); each mobile step now writes
+its own comment. The screenshot also showed "No comments yet." on a completed assessment; it now reads
+"No comments." once concluded.
+
+Regression on the final code: 5B 103/103 (after one expectation update: the Current version row now
+contains its Gap Assessment panel, so the compact-row check measures a non-current row), 5A 104/104,
+4F 78/78, 4E Evidence 122/122. One 4E run scored 120/122 — a Storage object removal failed
+transiently during "Remove Evidence" (the app reports manual cleanup by design), which also raised the
+orphan count of the next check; the immediate rerun passed 122/122 with no code change.
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All fixtures
+and Storage objects removed.
+
+### Phase 5 — Documents / Versions / Reviews (5D–5G)
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to
 Received; multiple reviews of one version; derived status rules; framework
