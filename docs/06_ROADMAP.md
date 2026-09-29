@@ -26,8 +26,8 @@
 | — 4F  | Controlled delete, overdue-actions overview, Phase 4 final acceptance | **COMPLETED** |
 | 5     | Documents / Versions / Reviews              | **IN PROGRESS** |
 | — 5A  | Document Register foundation                | **COMPLETED** |
-| — 5B  | Document Versions                           | Planned — NEXT |
-| — 5C  | Document Reviews                            | Planned |
+| — 5B  | Document Versions                           | **COMPLETED** |
+| — 5C  | Document Reviews                            | Planned — NEXT |
 | — 5D  | Review → Finding / Verification Item        | Planned |
 | — 5E  | Phase 5 final acceptance                    | Planned |
 | 6     | Visit Summary / Reporting                   | Planned       |
@@ -559,12 +559,17 @@ Requirements multi-select) in one save; Document Detail (information, requiremen
 Versions area — "No versions received yet."); status from `document_register`; controlled
 Document delete (no versions). See `08_TESTING.md`.
 
-### Phase 5B — Document Versions [NEXT]
+### Phase 5B — Document Versions [COMPLETED]
 
-Upload a version (private Storage, shared file infrastructure), V{n} + client revision label,
-version timeline, View / Download, controlled delete of an unreviewed latest version.
+Upload New Version (same flow for V1 and later; browser → private bucket → server registers `files`
++ `document_versions`), server-assigned V{n} + optional client Revision, Received on, Notes;
+immutable versions; newest-first list with Current badge and "Show earlier versions"; View (PDF) /
+Download via 60-second signed URLs on click; controlled delete of the latest unreviewed version of an
+Applicable document; uploads refused while Not Applicable. Shared file infrastructure extracted from
+Evidence (`lib/files/policy`, `lib/files/server`) with Evidence behaviour unchanged. No schema, RLS,
+grant or Storage change. See `08_TESTING.md`.
 
-### Phase 5C — Document Reviews
+### Phase 5C — Document Reviews [NEXT]
 
 Record / complete a review of the latest version, one open review per version, concluded
 reviews immutable, full derived status.

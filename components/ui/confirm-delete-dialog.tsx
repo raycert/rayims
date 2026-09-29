@@ -11,7 +11,7 @@ import type { ActionResult } from "@/lib/mutations/types";
  * with a destructive Delete. The delete mutation re-checks on the server, so a stale view can
  * never delete a record that has since gained history.
  */
-export function ConfirmDeleteDialog({
+export function ConfirmDeleteDialog<T extends DeleteEvaluation = DeleteEvaluation>({
   title,
   message,
   blockedTitle,
@@ -24,9 +24,10 @@ export function ConfirmDeleteDialog({
   message: string;
   blockedTitle: string;
   loadState: () => Promise<ActionResult<DeleteEvaluation>>;
-  onDelete: () => Promise<ActionResult<DeleteEvaluation>>;
+  onDelete: () => Promise<ActionResult<T>>;
   onClose: () => void;
-  onDeleted: () => void;
+  /** Receives the delete mutation's result (e.g. whether a stored file was also removed). */
+  onDeleted: (result: T) => void;
 }) {
   const titleId = useId();
   const [state, setState] = useState<DeleteEvaluation | null>(null);
@@ -72,7 +73,7 @@ export function ConfirmDeleteDialog({
         }
         return;
       }
-      onDeleted();
+      onDeleted(r.data);
     });
   }
 

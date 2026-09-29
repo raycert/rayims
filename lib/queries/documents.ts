@@ -40,15 +40,21 @@ export type DocumentVersionSummary = {
   versionNo: number;
   revision: string | null;
   receivedOn: string | null;
+  notes: string | null;
   fileName: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  uploadedByName: string | null;
   createdAt: string;
   reviewCount: number;
+  /** Status of the latest review record of this version (created_at, id), read-only; null = none. */
+  latestReviewStatus: string | null;
 };
 
 export type DocumentDetail = DocumentRow & {
   projectId: string;
   createdAt: string;
-  /** Read-only summary; Versions are Phase 5B. Empty in 5A unless data already exists. */
+  /** Newest first (highest version_no = Current). One embedded query: file metadata, uploader, reviews. */
   versions: DocumentVersionSummary[];
 };
 
@@ -171,7 +177,7 @@ export async function getDocument(projectId: string, documentId: string): Promis
     supabase
       .from("documents")
       .select(
-        `id, project_id, site_id, doc_code, title, document_type, owner_name, is_applicable, created_at, document_framework_items(${ITEM_EMBED}), document_versions(id, version_no, revision, received_on, created_at, files(original_name), document_reviews(count))`,
+        `id, project_id, site_id, doc_code, title, document_type, owner_name, is_applicable, created_at, document_framework_items(${ITEM_EMBED}), document_versions(id, version_no, revision, received_on, notes, created_at, files(original_name, mime_type, size_bytes), uploader:profiles!document_versions_uploaded_by_fkey(display_name, email), document_reviews(id, status, created_at))`,
       )
       .eq("id", documentId)
       .eq("project_id", projectId)
@@ -217,15 +223,25 @@ export async function getDocument(projectId: string, documentId: string): Promis
       .map((i) => mapItem(i as RawItem, assigned))
       .sort(compareFrameworkItems),
     versions: (d.document_versions ?? [])
-      .map((v) => ({
-        id: v.id,
-        versionNo: v.version_no,
-        revision: v.revision,
-        receivedOn: v.received_on,
-        fileName: v.files?.original_name ?? null,
-        createdAt: v.created_at,
-        reviewCount: v.document_reviews?.[0]?.count ?? 0,
-      }))
+      .map((v) => {
+        const reviews = [...(v.document_reviews ?? [])].sort((a, b) =>
+          a.created_at !== b.created_at ? (a.created_at < b.created_at ? 1 : -1) : a.id < b.id ? 1 : -1,
+        );
+        return {
+          id: v.id,
+          versionNo: v.version_no,
+          revision: v.revision,
+          receivedOn: v.received_on,
+          notes: v.notes,
+          fileName: v.files?.original_name ?? null,
+          mimeType: v.files?.mime_type ?? null,
+          sizeBytes: v.files?.size_bytes ?? null,
+          uploadedByName: v.uploader?.display_name ?? v.uploader?.email ?? null,
+          createdAt: v.created_at,
+          reviewCount: reviews.length,
+          latestReviewStatus: reviews[0]?.status ?? null,
+        };
+      })
       .sort((a, b) => b.versionNo - a.versionNo),
   };
 }

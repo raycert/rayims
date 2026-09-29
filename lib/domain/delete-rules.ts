@@ -42,6 +42,18 @@ export function evaluateDocumentDelete(d: { versionCount: number }): DeleteEvalu
   return done(blockers);
 }
 
+/**
+ * Phase 5B: a Document Version may be deleted only when it is the latest version, has no review
+ * history and its Document is Applicable (mistaken uploads only; history is never renumbered).
+ */
+export function evaluateVersionDelete(v: { isLatest: boolean; reviewCount: number; documentApplicable: boolean }): DeleteEvaluation {
+  const blockers: string[] = [];
+  if (!v.documentApplicable) blockers.push("This document is Not Applicable. Make it Applicable before changing version history.");
+  if (!v.isLatest) blockers.push("Only the latest unreviewed version can be deleted.");
+  if (v.reviewCount > 0) blockers.push("This version has review history and cannot be deleted.");
+  return done(blockers);
+}
+
 export function evaluateActionDelete(a: { status: string; findingStatus: string | null; evidenceCount: number }): DeleteEvaluation {
   const blockers: string[] = [];
   if (a.findingStatus === "closed") blockers.push("This Action belongs to a closed Finding. Reopen the Finding first.");

@@ -123,6 +123,10 @@ and prototype/demo data is not a requirement.
   reason is listed and only **Close** is offered; otherwise a short message with Cancel and a red
   **Delete**. Entry points: Verification workspace row / card "…" menu, Finding Detail "…" menu
   ("Delete Finding"), the Action edit drawer footer (a quiet red "Delete" on the left).
+- *(Phase 5B)* Document Versions are a compact list, newest first ("V2 · Rev.01" + **Current** badge,
+  file, received / uploaded, notes, View (PDF) · Download), collapsed to the newest two with "Show
+  earlier versions (n)". Delete sits in the "…" menu of the Current version only. Versions are never
+  edited — the upload drawer is the only form (File, Revision, Received on, Notes).
 - **Primary navigation** is the row or name (client, project, framework, site row with a
   chevron); secondary actions live in the overflow.
 - **No fabricated future-domain data.** Do not show placeholder or zero values for

@@ -9,9 +9,9 @@ import { OverflowMenu } from "@/components/ui/overflow-menu";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { Toast, useToast } from "@/components/ui/toast";
 import { documentStatusLabel, documentStatusTone } from "@/lib/ui/status-tones";
-import { formatDate } from "@/lib/ui/format";
 import { deleteDocument, getDocumentDeleteState } from "@/lib/mutations/documents";
 import { DocumentFormDrawer } from "./document-form-drawer";
+import { DocumentVersionsSection } from "./document-versions-section";
 import type { DocumentDetail, DocumentFormCatalog } from "@/lib/queries/documents";
 
 function InfoRow({ label, value }: { label: string; value: string | null }) {
@@ -25,7 +25,7 @@ function InfoRow({ label, value }: { label: string; value: string | null }) {
 
 /**
  * Document Detail (Phase 5A foundation): identity, derived status, Framework Requirements and a
- * read-only Versions area. Uploading and reviewing versions arrive in Phases 5B / 5C.
+ * Versions (upload / view / download / controlled delete, Phase 5B). Reviews arrive in Phase 5C.
  */
 export function DocumentDetailView({
   projectName,
@@ -113,31 +113,16 @@ export function DocumentDetailView({
           )}
         </section>
 
-        <section data-testid="document-versions" className="rounded-lg border border-border bg-surface">
-          <div className="border-b border-border px-4 py-3">
-            <h2 className="text-sm font-semibold">Versions</h2>
-          </div>
-          {document.versions.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-muted">No versions received yet.</p>
-          ) : (
-            <ul>
-              {document.versions.map((v) => (
-                <li key={v.id} className="border-t border-border px-4 py-2.5 text-sm first:border-t-0">
-                  <div className="font-semibold">
-                    V{v.versionNo}
-                    {v.revision ? ` · ${v.revision}` : ""}
-                    {v.versionNo === document.latestVersionNo ? <span className="ml-2 text-xs font-medium text-muted">Latest</span> : null}
-                  </div>
-                  <div className="text-xs text-muted">
-                    {[v.fileName, v.receivedOn ? `Received ${formatDate(v.receivedOn)}` : null, `${v.reviewCount} ${v.reviewCount === 1 ? "review" : "reviews"}`]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <DocumentVersionsSection
+          projectId={document.projectId}
+          documentId={document.id}
+          isApplicable={document.isApplicable}
+          versions={document.versions}
+          onChanged={(msg) => {
+            router.refresh();
+            show(msg);
+          }}
+        />
       </div>
 
       {editing ? (

@@ -128,5 +128,7 @@ After any user or settings change:
   `select o.name from storage.objects o where o.bucket_id = 'rayims-files' and not exists
   (select 1 from public.files f where f.storage_key = o.name);`
   Remove confirmed orphans through the Storage API / dashboard (not by SQL on `storage.objects`).
+  The same query finds a Document Version file whose Storage removal failed during a version delete
+  (the app then says "will need manual cleanup").
 - A `files` row whose object is missing shows "File is unavailable." in the app; the metadata is
   kept on purpose — investigate before deleting it.

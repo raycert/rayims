@@ -5,6 +5,16 @@ import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { buildStorageKey, getStorage } from "@/lib/storage";
 import { checkEvidenceFile, MAX_EVIDENCE_BYTES, FILE_TOO_LARGE } from "@/lib/validation/evidence";
+import {
+  createFileSignedUrl,
+  discardUnregisteredObject,
+  FILE_UNAVAILABLE,
+  insertFileRow,
+  isKeyRegistered,
+  isProjectStorageKey,
+  removeStoredObject,
+  storedObjectSize,
+} from "@/lib/files/server";
 import type { SupabaseServerClient } from "./scope-validation";
 import type { ActionResult } from "./types";
 
@@ -18,8 +28,7 @@ const PARENT_COLUMN = {
   action: "action_id",
 } as const;
 
-const SIGNED_URL_SECONDS = 60;
-const UNAVAILABLE = "File is unavailable.";
+const UNAVAILABLE = FILE_UNAVAILABLE;
 
 type ParentCheck = { ok: true; editable: boolean; lockedReason: string | null; activityId: string | null } | { ok: false; error: string };
 
@@ -121,23 +130,14 @@ export async function registerEvidence(
   const supabase = await createSupabaseClient();
   const storage = getStorage(supabase);
   const key = String(input?.storageKey ?? "");
-  const keyValid = key.startsWith(`${projectId}/`) && /^[0-9a-f-]{36}\/[0-9a-f-]{36}-[A-Za-z0-9._-]+$/i.test(key);
-  if (!keyValid) return { ok: false, error: "The upload could not be registered. Try again." };
+  if (!isProjectStorageKey(projectId, key)) return { ok: false, error: "The upload could not be registered. Try again." };
 
   // Removes the just-uploaded object — but NEVER an object already registered in `files` (a
   // re-sent or foreign key must not delete someone else's evidence).
-  const discard = async () => {
-    try {
-      const { data: registered } = await supabase.from("files").select("id").eq("storage_key", key).maybeSingle();
-      if (registered) return;
-      await storage.remove([key]);
-    } catch {
-      // Best effort: an unreferenced object is found later by its project prefix (manual cleanup).
-    }
-  };
+  const discard = () => discardUnregisteredObject(supabase, storage, key);
 
-  const { data: existing, error: existingError } = await supabase.from("files").select("id").eq("storage_key", key).maybeSingle();
-  if (existingError) return { ok: false, error: "The upload could not be registered. Try again." };
+  const existing = await isKeyRegistered(supabase, key);
+  if (existing === null) return { ok: false, error: "The upload could not be registered. Try again." };
   if (existing) return { ok: false, error: "This upload was already registered." };
 
   if (!isParent(parent)) {
@@ -155,9 +155,8 @@ export async function registerEvidence(
     return { ok: false, error: check.ok ? (check.lockedReason ?? "Evidence can't be changed here.") : check.error };
   }
 
-  const stat = await storage.stat(key);
-  if (!stat) return { ok: false, error: "The upload did not complete. Try again." };
-  const size = stat.size ?? Number(input.size);
+  const size = await storedObjectSize(storage, key, Number(input.size));
+  if (size === null) return { ok: false, error: "The upload did not complete. Try again." };
   if (size > MAX_EVIDENCE_BYTES) {
     await discard();
     return { ok: false, error: FILE_TOO_LARGE };
@@ -165,20 +164,16 @@ export async function registerEvidence(
 
   const caption = typeof input.caption === "string" && input.caption.trim() ? input.caption.trim() : null;
 
-  const { data: file, error: fileError } = await supabase
-    .from("files")
-    .insert({
-      project_id: projectId,
-      storage_provider: storage.name,
-      storage_key: key,
-      original_name: input.name.slice(0, 255),
-      mime_type: policy.mimeType,
-      size_bytes: size,
-      uploaded_by: user.id,
-    })
-    .select("id")
-    .single();
-  if (fileError || !file) {
+  const file = await insertFileRow(supabase, {
+    projectId,
+    provider: storage.name,
+    key,
+    originalName: input.name,
+    mimeType: policy.mimeType,
+    size,
+    uploadedBy: user.id,
+  });
+  if (!file) {
     await discard();
     return { ok: false, error: "The file could not be saved. Try again." };
   }
@@ -250,19 +245,9 @@ export async function getEvidenceUrl(
   if (!a || !parent) return { ok: false, error: UNAVAILABLE };
   const check = await checkParent(supabase, projectId, parent);
   if (!check.ok) return { ok: false, error: UNAVAILABLE };
-  const storage = getStorage(supabase);
-  // A missing object must not produce a working-looking link: check it first.
-  if (!(await storage.stat(a.files!.storage_key))) return { ok: false, error: UNAVAILABLE };
-  try {
-    const url = await storage.createSignedUrl(
-      a.files!.storage_key,
-      SIGNED_URL_SECONDS,
-      mode === "download" ? { downloadName: a.files!.original_name } : undefined,
-    );
-    return { ok: true, data: { url } };
-  } catch {
-    return { ok: false, error: UNAVAILABLE };
-  }
+  // A missing object must not produce a working-looking link (checked inside the helper).
+  const url = await createFileSignedUrl(getStorage(supabase), a.files!.storage_key, a.files!.original_name, mode);
+  return url ? { ok: true, data: { url } } : { ok: false, error: UNAVAILABLE };
 }
 
 /**
@@ -293,14 +278,7 @@ export async function removeEvidence(
   let storedFileRemoved = false;
   if (!otherAttachments.error && !versions.error && (otherAttachments.count ?? 0) === 0 && (versions.count ?? 0) === 0) {
     const { error: fileError } = await supabase.from("files").delete().eq("id", a.file_id);
-    if (!fileError) {
-      try {
-        await getStorage(supabase).remove([a.files!.storage_key]);
-        storedFileRemoved = true;
-      } catch {
-        storedFileRemoved = false;
-      }
-    }
+    if (!fileError) storedFileRemoved = await removeStoredObject(getStorage(supabase), a.files!.storage_key);
   }
 
   revalidateParent(projectId, parent, check.activityId);

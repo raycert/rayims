@@ -163,6 +163,26 @@ Product behavior that the schema and UI must respect. Database details are in
 - **BR-117** *(Phase 5A)* **Document status is derived only** — from the `document_register` view
   (BR-20). UI labels: Not Applicable, Not Received, Received, Under Review, Revision Required,
   Accepted. A registered document with no version is **Not Received**.
+- **BR-119** *(Phase 5B)* A **Version** is one received / uploaded revision of a Document with exactly
+  one file. It is **immutable**: file, revision label, received-on date, notes, uploader and time are
+  never edited or replaced. A wrong upload is deleted (while eligible, BR-121) and uploaded again; a
+  changed file is always a **new** Version.
+- **BR-120** *(Phase 5B)* `version_no` is the internal sequence, **assigned by the server** as
+  max + 1 and shown as **V1, V2, …**; the optional **Revision** is the client's own label
+  (e.g. "Rev.01", "Draft B"), shown as "V2 · Rev.01" and never used for ordering. The **Current**
+  version is the highest `version_no` (BR-17). If two uploads race, the server retries once; if it
+  still conflicts: "Another version was uploaded at the same time. Please try again." **Received on**
+  (optional) is when the client provided it — never copied from the upload time. Version files: PDF,
+  DOC/DOCX, XLS/XLSX, PPT/PPTX only (no images, no text), ≤ 10 MB (browser, server on the real stored
+  size, and bucket). Uploading a Version makes the derived status **Received** (BR-20).
+- **BR-121** *(Phase 5B)* **Controlled Version delete** — only when the Version is the **latest**, has
+  **no review** and the Document is **Applicable**. Blockers: "Only the latest unreviewed version can
+  be deleted." / "This version has review history and cannot be deleted." / "This document is Not
+  Applicable. Make it Applicable before changing version history." Deleting removes the version row,
+  its `files` row and the stored object; older versions are never renumbered, so the next upload may
+  reuse the deleted (never-reviewed) number. While **Not Applicable**, uploads are refused
+  ("Versions cannot be uploaded while this document is Not Applicable.") and existing versions stay
+  visible (BR-115).
 - **BR-118** *(Phase 5A)* **Controlled Document delete:** only a Document with **no Versions**.
   Its Framework mappings are removed with it (setup data); versions, files and reviews are never
   cascade-deleted by the application — "This document has versions and cannot be deleted."

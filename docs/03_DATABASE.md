@@ -236,6 +236,12 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
   `revision` text.
 - **Delete:** `document_id` CASCADE; `file_id` NO ACTION (a file referenced by a
   version cannot be deleted).
+- **Used by Phase 5B:** no schema change. The row is never updated (no `updated_at`, BR-119).
+  `version_no` = max + 1 by the server (UNIQUE catches a race; retried once). The version's file uses
+  the shared `files` registry and the same key format `{project_id}/{uuid}-{name}`. Project isolation
+  goes through the parent document (no `project_id` column) **and** `files.project_id` is checked on
+  every View / Download / Delete. Controlled delete order: version row → its `files` row → stored
+  object (a Storage failure is reported and leaves a findable orphan object; rows are never recreated).
 
 ### document_framework_items
 - **Purpose:** which framework items a document supports (document level, not

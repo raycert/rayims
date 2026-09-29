@@ -1051,7 +1051,57 @@ Overview and Framework Library smoke checks inside the 5A suite.
 `npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All
 fixtures removed; documents / versions / reviews / mappings / files all 0.
 
-### Phase 5 — Documents / Versions / Reviews (5B–5E)
+### Phase 5B — Document Versions (executed 2026-09-28 / 29)
+
+Result: **PASS — 103/103 checks, 0 failures** on the final code (hosted Supabase, production
+build, Playwright/Edge, 1280×800, 390px, 412px). Fixtures used `P5B-ACCEPT-` clients; every
+uploaded object was under the fixture project's key prefix. The genuine data was snapshotted fresh
+at pre-flight (documents, versions, reviews, files and Storage objects all 0) and is identical
+afterwards.
+
+Covered: upload drawer has exactly File / Revision / Received on / Notes, states the next version,
+accepts only PDF / Office, shows the chosen file and size. V1 (PDF, Rev.00, received today, "Initial
+issue"): row + one `files` row + one Storage object under `{projectId}/{uuid}-name`, uploaded_by =
+session user, status Not Received → Received, Current badge, file / received / uploaded by / notes.
+V2 (DOCX, Rev.01) Current and V1 not; V3 "Draft B" still ordered by version_no; newest two shown,
+"Show earlier versions (1)"; Delete only on the Current version; compact desktop row (~120 px);
+mappings and Document identity byte-identical. Download keeps the original filename; Office files
+download only; PDF View opens a signed URL whose token lifetime is 60 s; no URL in the page.
+Delete latest unreviewed V2: confirmation "Delete version? / This permanently removes V2 and its
+uploaded file.", destructive Delete, toast "Version deleted.", version row, `files` row and object
+removed, V1 Current again, status Received, mappings unchanged, register falls back; re-upload becomes
+V2 again. Blocked (all refused by the server, data unchanged): V1 while V2 exists (tampered id),
+a version with a (fixture) review — review and a Finding's review lineage kept — and a version of a Not
+Applicable document. Document with one version: Document delete blocked → delete the version → Not
+Received → Document delete allowed. Missing object: "File is unavailable.", metadata kept, delete
+rules unchanged. Not Applicable: no Upload button, explanation shown, forced upload refused with no
+residue. Same filename twice: two keys, both readable with their own content. Accepted PDF, DOCX,
+XLSX, PPTX, DOC, XLS, PPT; rejected JPG, PNG, TXT, EXE in the browser and a forced .exe by the
+server; 9 MB accepted (real stored size recorded), 11 MB rejected in the browser and a declared
+11 MB by the server. Project isolation: Project B document URL not found; prepare, register (object
+discarded), View, Download and Delete for Project B refused with nothing leaked. Mobile 390 / 412:
+no overflow, long filename wraps, Upload reachable, View / Download ≥ 36 px, Delete in the "…" menu,
+upload sheet usable and not covered. Consultant uploads, views, downloads and deletes. Signed out:
+redirected; no public URL, no direct object read, no signed URL, no version rows.
+
+Not executed: a real concurrent-upload race (two browsers at the same instant). The server retries
+once on the UNIQUE (document_id, version_no) conflict and otherwise returns "Another version was
+uploaded at the same time. Please try again." — covered by code review, not by a live test.
+
+Notes on the runs: run 1 stopped at the 9 MB step — a probe showed Storage accepts 5.9 / 6.1 / 9 MB
+standard uploads (HTTP 200) and the upload simply takes minutes on this machine's uplink; the test
+now allows it 10 minutes. Runs 2 and 3 each failed one check that read the page before the refresh
+(or the re-rendered delete dialog) appeared; those checks now wait for the content. One further run
+lost its browser mid-run (Edge closed; no Windows crash record) and was repeated.
+
+Regression on the final code: Phase 4E Evidence 122/122 (after updating one source-inspection
+check: signing now lives in the shared `lib/files/server` helper), Phase 4F 78/78, Phase 5A 104/104
+(after one selector update: Document Detail now has a second "…" menu on the Current version).
+
+`npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All fixtures
+and Storage objects removed; documents / versions / reviews / files / objects all 0.
+
+### Phase 5 — Documents / Versions / Reviews (5C–5E)
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to
 Received; multiple reviews of one version; derived status rules; framework

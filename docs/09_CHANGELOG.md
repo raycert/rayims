@@ -3,6 +3,29 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 5B — Document Versions (2026-09-28)
+
+**Result: 103/103 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.
+
+### Added
+
+- **Upload New Version** on Document Detail (drawer / sheet: File, Revision, Received on, Notes);
+  direct browser upload to the private bucket, server registration of `files` + `document_versions`
+  with server-assigned `version_no` (race retried once) and cleanup of the object on any failure.
+- Versions list: V{n} · Revision, **Current** badge, file, received / uploaded, notes, read-only
+  review summary; newest two with "Show earlier versions"; View (PDF) / Download via 60-second signed
+  URLs generated on click; "File is unavailable." for a missing object.
+- Controlled **Version delete** (latest, unreviewed, Applicable document) removing the row, the
+  `files` row and the stored object; uploads refused while Not Applicable.
+- Shared file infrastructure: `lib/files/policy.ts` (per-purpose type / size policy) and
+  `lib/files/server.ts` (key check, discard-if-unregistered, real stored size, files row, signed
+  URL, object removal). Evidence now uses it with identical behaviour.
+
+### Changed
+
+- The shared delete dialog passes the delete result to its caller (to report a Storage cleanup
+  failure). Business rules BR-119 – BR-121.
+
 ## Phase 5A — Document Register foundation (2026-09-28)
 
 **Result: 104/104 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.
