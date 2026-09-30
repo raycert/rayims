@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -38,10 +38,13 @@ export function DocumentsWorkspaceView({
   projectId,
   documents,
   catalog,
+  importResult,
 }: {
   projectId: string;
   documents: DocumentRow[];
   catalog: DocumentFormCatalog;
+  /** Set (via ?imported=&skipped=&warnings=) right after an Excel import: shown once. */
+  importResult?: { imported: number; skipped: number; warnings: number } | null;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -50,6 +53,15 @@ export function DocumentsWorkspaceView({
   const [frameworkFilter, setFrameworkFilter] = useState("all");
   const [creating, setCreating] = useState(false);
   const { message, show } = useToast();
+
+  useEffect(() => {
+    if (!importResult) return;
+    show(
+      `Imported: ${importResult.imported} ${importResult.imported === 1 ? "Document" : "Documents"} · Skipped existing: ${importResult.skipped} · Warnings: ${importResult.warnings}`,
+    );
+    // Drop the query so a refresh or back-navigation doesn't repeat the message.
+    window.history.replaceState(null, "", `/projects/${projectId}/documents`);
+  }, [importResult, projectId, show]);
 
   const siteOptions = useMemo(() => Array.from(new Set(documents.map((d) => d.siteName ?? PROJECT_WIDE))).sort(), [documents]);
   const frameworkOptions = useMemo(
@@ -106,9 +118,14 @@ export function DocumentsWorkspaceView({
             {documents.length} {documents.length === 1 ? "document" : "documents"}
           </p>
         </div>
-        <Button type="button" onClick={() => setCreating(true)}>
-          + New Document
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" onClick={() => setCreating(true)}>
+            + New Document
+          </Button>
+          <Link href={`/projects/${projectId}/documents/import`} className={buttonClasses("secondary")}>
+            Import Excel
+          </Link>
+        </div>
       </div>
 
       {documents.length > 0 ? (

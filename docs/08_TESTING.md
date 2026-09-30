@@ -1187,7 +1187,53 @@ a version delete; the check now waits for the row and the rerun passed), 5A 104/
 
 `npm run lint`, `npm run typecheck`, `npm run build` pass; `git diff --check` clean. All fixtures removed.
 
-### Phase 5 — Documents / Versions / Reviews (5E–5G)
+### Phase 5E — Required Document Excel Import (executed 2026-09-29 / 2026-09-30)
+
+Production build (`next start`), hosted Supabase, Edge via Playwright; fixtures prefixed `P5E-ACCEPT-`
+only (Project A: ISO 9001 / 14001 / 45001, sites Viet Long + Long An, one existing document; Project B:
+ISO 9001 / 50001, B Site). Pre-flight snapshot of genuine data taken before the run and compared after
+all suites. **Result: 80/80 PASS.**
+
+| Area | Checks (all PASS) |
+| --- | --- |
+| Entry point + template | "Import Excel" (secondary) next to "+ New Document"; import page explanation; template first sheet "Required Documents" with the 8 canonical headers, empty data sheet, Instructions sheet with this project's frameworks, sites and marked examples; no version / status / review / finding columns |
+| Preview | 8-row file: preview 3.1 s, writes nothing; 4 Ready · 4 Warnings · 0 Errors; same title + site on another framework merges (warning); repeated Document Code warns on both rows; existing document → skip warning; several requirements, Applicable default / No shown; "6 to create, 1 existing skipped"; Import disabled until warnings are confirmed |
+| Import | redirect to the register with "Imported 6 · Skipped existing 1 · Warnings 4", shown once; merged document exists once with both framework mappings; row values stored (code, type, owner, site / project-wide, applicable, created_by); several codes of one framework → several mappings; no framework → zero mappings; Applicable = No → Not Applicable, all others Not Received; no versions, reviews or files; existing document byte-identical |
+| Register | statuses + mappings visible; Status / Site / Framework filters and search (code, owner, title) on imported documents |
+| Row errors | framework not assigned; requirement 7.5.2 not in library (nothing guessed); unknown site; site of another client/project; framework without requirement and vice versa; Applicable "Maybe"; framework without edition ("ISO 9001"); missing Required Document — mixed file (9 invalid + 1 valid) blocked with zero writes; fixed file imports all 10 |
+| File errors | CSV / XLS / TXT refused; CSV renamed .xlsx refused by the server; missing Required Document header; duplicate recognized headers (Clause + Framework Requirement); no data rows; 500 rows accepted; 501 rows refused |
+| Parsing | aliases Clause / Required Documents / PIC on a non-template sheet; numeric clause 7.5 read as "7.5"; extra columns ignored; formula without stored value → row error (never evaluated); blank rows ignored |
+| Stale preview | framework unassigned after preview → import re-validates, shows the error, writes nothing; document created after preview → import stops with the new warning, writes nothing; after re-confirming: new created, existing skipped, no duplicate |
+| Performance | 250 rows: preview 1988 ms, import 82 ms (250 documents + 125 mappings); register with 269 documents 1976 ms |
+| Lifecycle | imported document: Not Received → V1 upload → Received → Gap Assessment → Revision Required → Create Finding and Add to Verification (normal 5B–5D behaviour) |
+| Mobile | 390 px and 412 px: register header with Import Excel, preview as cards, no horizontal overflow |
+| Access / isolation | consultant can import (created_by = consultant); anon template download → 307, import page → login; Project B untouched |
+| Cleanup | fixtures + 1 Storage object removed; genuine data identical to pre-flight |
+
+**Regressions on the 5E build.** The first pass ran during a period of unstable connectivity from the test
+machine to hosted Supabase (15 identical REST probes: stalls of 10.3 s and 17.0 s and one connection
+failure; the next morning all 15 took 0.2–1.0 s). Every first-pass failure was a timeout or network error
+(`page.goto` 30 s timeout, 9 MB / 9.5 MB upload not finished, `fetch failed`), or — for 4D-2 — the 4D-1
+fixtures still present because the 4D-1 cleanup step had been left out of the runner. No failure was an
+assertion on changed behaviour; 5E changes only the Documents register header/page and adds new import
+files. The affected suites were rerun unchanged:
+
+| Suite | First pass | Rerun(s) |
+| --- | --- | --- |
+| 5D | 78/78 | — |
+| 5C | 74/74 | — |
+| 5B | 68/71 (9 MB upload timeout, suite aborted) | 103/103 |
+| 5A | 58/59 (`page.goto` timeout, suite aborted) | 104/104 |
+| 4F | 14/15 (`page.goto` timeout, suite aborted) | 78/78 |
+| 4E | 35/37 (9.5 MB upload, `fetch failed`) | interrupted by session end (killed, cleaned up), then 122/122 |
+| 4E-6 | 62/65 (status control read 600 ms after save during slow refresh) | 64/65, then 65/65 on the stable connection |
+| 4D-1 | 145/145 | — |
+| 4D-2 | 40/42 (4D-1 fixtures present; timeout) | 122/122 |
+
+After all runs: fixture residue 0 (only Chinh Long and Test 1 remain; 0 issues, actions, attachments,
+files, Storage objects) and **genuine data identical to pre-flight**.
+
+### Phase 5 — Documents / Versions / Reviews (5F–5G)
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to
 Received; multiple reviews of one version; derived status rules; framework

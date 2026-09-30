@@ -241,6 +241,34 @@ Product behavior that the schema and UI must respect. Database details are in
   exactly one mapped item → prefilled; several → none preselected, the Document's mapped items listed
   first, then the project's assigned items; none → the project's assigned items. The server accepts any
   assigned item or any of the Document's mapped items (historical mappings stay valid).
+- **BR-131** *(Phase 5E)* **Required Document Excel Import** creates the project's **required document
+  register** only: one logical Document per document identity, starting **Not Received** (or **Not
+  Applicable**). It never imports files, versions, Gap Assessment results, Findings, Verification items
+  or evidence — those follow the normal lifecycle afterwards. .xlsx only, ≤ 2 MB, ≤ 500 data rows (over
+  the limit = file-level error, never truncated); parsed on the server (formulas are read for their
+  stored value only, never evaluated).
+- **BR-132** *(Phase 5E)* Columns (canonical template headers): **Framework**, **Framework Requirement**,
+  **Required Document** (required), **Document Code**, **Document Type**, **Owner**, **Site**, **Applicable**.
+  Accepted aliases: Clause / Clause / Requirement / Requirement (= Framework Requirement), Document
+  Required / Required Documents (= Required Document), PIC (= Owner). Unknown columns are ignored; a
+  missing Required Document column or two columns read as the same field are file-level errors. The
+  "Required Documents" sheet is read, otherwise the first sheet. Site: blank = Project-wide, otherwise an
+  exact (case-insensitive) name of a site in the project's scope. Applicable: Yes / No / Y / N / True /
+  False, blank = Yes. Framework + Framework Requirement: both or neither; the Framework is its identity
+  (e.g. ISO 14001:2015) and must be assigned to the project; requirement codes must exist exactly in the
+  Framework Library (nothing guessed — e.g. 7.5.2 is refused when the library stops at 7.5). Several codes
+  of ONE framework: separated by ";" (6.1; 8.1).
+- **BR-133** *(Phase 5E)* **Identity = normalized title + site.** Rows with the same identity become ONE
+  Document: their requirements are merged (this is how one document maps to several frameworks — repeat
+  the row per framework); blank cells inherit, different non-blank values are an error. A Document that
+  already exists in the project with that identity is **skipped, never updated** (import is create-only).
+  Repeated Document Codes are a warning (codes are not unique). Merges, skips and repeated codes are
+  **warnings that must be confirmed**; any **error blocks the whole import** (nothing is written).
+- **BR-134** *(Phase 5E)* Import re-parses and re-validates the file against the project's current state
+  (sites, assigned frameworks, items, existing documents); if errors appear, or the warnings differ from
+  the ones confirmed, nothing is written and the new preview is shown. Writes: one bulk insert of
+  Documents, then one bulk insert of their Framework mappings; if the mappings fail the new Documents are
+  deleted again. Result: "Imported: X Documents · Skipped existing: Y · Warnings: Z".
 - **BR-118** *(Phase 5A)* **Controlled Document delete:** only a Document with **no Versions**.
   Its Framework mappings are removed with it (setup data); versions, files and reviews are never
   cascade-deleted by the application — "This document has versions and cannot be deleted."

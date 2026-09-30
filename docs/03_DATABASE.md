@@ -274,6 +274,11 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Related framework items:** none stored on the review; gaps become issues or
   verification items with their own `framework_item_id`.
 - **Index:** `(document_version_id, created_at DESC)`.
+- **Used by Phase 5E (Excel import):** no schema change. Import writes `documents` (one bulk insert —
+  a single statement) then `document_framework_items` (one bulk insert); a failed mapping insert deletes
+  the just-created documents (compensation — there is no multi-table transaction through the Data API and
+  no RPC was added). Validation loads one catalog (sites, assigned frameworks with items, known
+  frameworks, existing documents) in four batched queries; no per-row access.
 - **Used by Phase 5D (follow-up):** no schema change. `issues.document_review_id` and
   `verification_items.document_review_id` (both existing, SET NULL on review delete — reviews are never
   deleted in V1) record Review → Finding and Review → Verification. Document Detail embeds each review's

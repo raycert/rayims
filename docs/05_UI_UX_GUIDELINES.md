@@ -141,6 +141,12 @@ and prototype/demo data is not a requirement.
   existing ones with an origin box; a site-specific Document shows its site locked. Review-origin
   Findings show a "Source: Document Gap Assessment · <document> · <version>" line under the header;
   review-origin checks show "From Gap Assessment · <document> · V<n>" in the Verification workspace.
+- *(Phase 5E)* Documents header: "+ New Document" (primary) and "Import Excel" (secondary). The import
+  page follows the Verification import: explanation ("Import the list of documents required for this
+  project. Files and assessment results are added later."), Download Template, choose .xlsx, server
+  preview (Row / Required Document / Code / Site / Framework Requirement(s) / Applicable / Result; cards on
+  phones) with Ready / Warning / Error, a confirmation checkbox for warnings, and "Import N Documents".
+  After import the register shows one message with the counts.
 - **Primary navigation** is the row or name (client, project, framework, site row with a
   chevron); secondary actions live in the overflow.
 - **No fabricated future-domain data.** Do not show placeholder or zero values for

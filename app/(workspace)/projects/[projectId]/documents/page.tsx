@@ -15,21 +15,30 @@ export async function generateMetadata({
   return { title: project ? `Documents · ${project.name}` : "Documents" };
 }
 
+const count = (v: string | undefined) => {
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 0 ? n : 0;
+};
+
 export default async function ProjectDocumentsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ imported?: string; skipped?: string; warnings?: string }>;
 }) {
   const { projectId } = await params;
+  const { imported, skipped, warnings } = await searchParams;
   const project = await getProjectWorkspace(projectId);
   if (!project) notFound();
 
   const [documents, catalog] = await Promise.all([listDocuments(projectId), getDocumentFormCatalog(projectId)]);
+  const importResult = imported !== undefined ? { imported: count(imported), skipped: count(skipped), warnings: count(warnings) } : null;
 
   return (
     <PageContainer>
       <ProjectWorkspaceHeader project={project} activeTab="documents" />
-      <DocumentsWorkspaceView projectId={projectId} documents={documents} catalog={catalog} />
+      <DocumentsWorkspaceView projectId={projectId} documents={documents} catalog={catalog} importResult={importResult} />
     </PageContainer>
   );
 }

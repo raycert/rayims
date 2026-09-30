@@ -29,8 +29,8 @@
 | — 5B  | Document Versions                           | **COMPLETED** |
 | — 5C  | Document Gap Assessment (reviews)           | **COMPLETED** |
 | — 5D  | Review → Finding / Verification Item        | **COMPLETED** |
-| — 5E  | Required Document Excel Import              | Planned — NEXT |
-| — 5F  | Gap Assessment Export                       | Planned |
+| — 5E  | Required Document Excel Import              | **COMPLETED** |
+| — 5F  | Gap Assessment Export                       | Planned — NEXT |
 | — 5G  | Phase 5 final acceptance                    | Planned |
 | 6     | Visit Summary / Reporting                   | Planned       |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
@@ -590,12 +590,16 @@ current Version (existing forms with an origin box; site / framework prefill rul
 workspace show the review origin; lineage Document → Version → Assessment → Finding, and → Verification
 → Finding. No schema, RLS, grant or Storage change. See `08_TESTING.md`.
 
-### Phase 5E — Required Document Excel Import [NEXT]
+### Phase 5E — Required Document Excel Import [COMPLETED]
 
-Bulk-register the expected documents of a project from Excel (title, code, type, owner, site,
-framework requirements), following the Verification import pattern.
+Import the project's required document register from Excel (template with this project's frameworks and
+sites; header aliases Clause / PIC / Required Documents): server-side parse and validation, preview with
+errors and confirmable warnings (merge by title + site, skip existing, repeated codes), create-only
+all-or-nothing import, imported documents start Not Received / Not Applicable and follow the normal
+Version → Gap Assessment → follow-up lifecycle. No schema, RLS, grant or Storage change. See
+`08_TESTING.md`.
 
-### Phase 5F — Gap Assessment Export
+### Phase 5F — Gap Assessment Export [NEXT]
 
 Export the Document register with current Version, Gap Assessment result and Review Comments.
 

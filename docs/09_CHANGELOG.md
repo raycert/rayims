@@ -3,6 +3,25 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 5E — Required Document Excel Import (2026-09-29)
+
+**Result: 80/80 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.
+
+### Added
+
+- **Import Excel** on the Documents register → `/projects/[projectId]/documents/import`: Download Template
+  (`/documents/template`, with this project's frameworks and sites), choose a .xlsx, server preview
+  (errors / warnings), confirm, import. Up to 500 rows, 2 MB.
+- Parser `lib/import/document-register-workbook.ts` (canonical headers + aliases Clause / PIC / Required
+  Documents, first-sheet fallback, stored formula values only), validation `lib/validation/document-import.ts`
+  (site / applicable / framework + requirement codes, identity merge, existing skip, repeated codes),
+  catalog `lib/queries/document-import.ts`, actions `previewDocumentImport` / `importDocuments`.
+- Result message on the register: "Imported: X Documents · Skipped existing: Y · Warnings: Z".
+
+### Changed
+
+- Business rules BR-131 – BR-134.
+
 ## Phase 5D — Gap Assessment follow-up (2026-09-29)
 
 **Result: 78/78 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.
