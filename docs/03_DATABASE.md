@@ -274,6 +274,13 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Related framework items:** none stored on the review; gaps become issues or
   verification items with their own `framework_item_id`.
 - **Index:** `(document_version_id, created_at DESC)`.
+- **Used by Phase 5F (Excel export):** no schema change; read-only. The export reuses the register read
+  (`document_register` view incl. `latest_version_id` / `latest_review_id`, mappings, concluded reviews,
+  site names) plus two project-joined queries: the project's versions (file name, received_on) and its
+  reviews with reviewer and embedded `issues(status)` / `verification_items(result)`. These reads — and
+  the register's own — are fetched in ordered pages of 1000 (`lib/queries/paging.ts`) so a project is never
+  cut at the PostgREST `max_rows` cap, and the register's Last Review lookup uses a project join instead of
+  a long id list.
 - **Used by Phase 5E (Excel import):** no schema change. Import writes `documents` (one bulk insert —
   a single statement) then `document_framework_items` (one bulk insert); a failed mapping insert deletes
   the just-created documents (compensation — there is no multi-table transaction through the Data API and

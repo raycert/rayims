@@ -3,6 +3,27 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 5F — Gap Assessment Excel Export (2026-09-30)
+
+**Result: 62/62 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.
+
+### Added
+
+- **Export Excel** on the Documents register → `/projects/[projectId]/documents/export` (requireUser):
+  `RayIMS-Gap-Assessment-{Project}-{YYYYMMDD}.xlsx` with the "Gap Assessment" sheet (one row per Document ×
+  Framework Requirement, 19 human-readable columns) and a "Summary" sheet.
+- `lib/queries/document-export.ts` (current file, latest assessment comments / reviewer, direct follow-up
+  counts; batched, no per-document query) and `lib/export/gap-assessment-workbook.ts` (rows, order,
+  formatting, filename).
+- `lib/queries/paging.ts`: ordered paging past the 1000-row response cap.
+
+### Changed
+
+- Document Register read (`listDocuments`): register, mappings and concluded-review reads are paged, the
+  Last Review lookup is a project join (no long id list); rows also carry `latestVersionId` /
+  `latestReviewId`. Same results, same rules.
+- Business rules BR-135 – BR-138.
+
 ## Phase 5E — Required Document Excel Import (2026-09-29)
 
 **Result: 80/80 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.

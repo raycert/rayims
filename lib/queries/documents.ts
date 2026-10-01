@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatFrameworkIdentity } from "@/lib/ui/format";
 import { siteNameMap } from "./activities";
+import { fetchAllPages } from "./paging";
 
 /** A mapped (or selectable) Framework Requirement, human-readable. */
 export type DocumentFrameworkItem = {
@@ -28,9 +29,12 @@ export type DocumentRow = {
   siteName: string | null;
   isApplicable: boolean;
   status: string;
+  latestVersionId: string | null;
   latestVersionNo: number | null;
   latestRevision: string | null;
-  /** reviewed_at (or created_at while open) of the latest review of the latest version. */
+  /** The review that decided `status` (the view's latest review of the latest version); null = none. */
+  latestReviewId: string | null;
+  /** reviewed_at of the most recent CONCLUDED review of the latest version (open reviews never count). */
   lastReviewAt: string | null;
   frameworkItems: DocumentFrameworkItem[];
 };
@@ -140,20 +144,42 @@ async function assignedFrameworkIds(supabase: Awaited<ReturnType<typeof createCl
  *   1. `document_register` view (identity + derived status + latest version) for the project
  *   2. all framework mappings of the project's documents (inner join on documents.project_id)
  *   3. site names + assigned frameworks (small lookups)
- *   4. only if any document has a version: the CONCLUDED reviews of those latest versions, in one
- *      batched query, for "Last Review" (see lastConcludedReviewAt)
+ *   4. the CONCLUDED reviews of the project's documents (project join, not an id list), for
+ *      "Last Review" of the latest version
+ * 1, 2 and 4 are read in ordered pages (fetchAllPages), so a large project is never cut at the
+ * 1000-row response cap.
  */
 export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
   const supabase = await createClient();
-  const [registerRes, mappingsRes, siteMap, assigned] = await Promise.all([
-    supabase
-      .from("document_register")
-      .select("document_id, title, doc_code, document_type, owner_name, site_id, is_applicable, status, latest_version_id, latest_version_no, latest_revision")
-      .eq("project_id", projectId),
-    supabase
-      .from("document_framework_items")
-      .select(`document_id, documents!inner(project_id), ${ITEM_EMBED}`)
-      .eq("documents.project_id", projectId),
+  const [registerRes, mappingsRes, concludedRes, siteMap, assigned] = await Promise.all([
+    fetchAllPages((from, to) =>
+      supabase
+        .from("document_register")
+        .select(
+          "document_id, title, doc_code, document_type, owner_name, site_id, is_applicable, status, latest_version_id, latest_version_no, latest_revision, latest_review_id",
+        )
+        .eq("project_id", projectId)
+        .order("document_id")
+        .range(from, to),
+    ),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("document_framework_items")
+        .select(`document_id, framework_item_id, documents!inner(project_id), ${ITEM_EMBED}`)
+        .eq("documents.project_id", projectId)
+        .order("document_id")
+        .order("framework_item_id")
+        .range(from, to),
+    ),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("document_reviews")
+        .select("id, document_version_id, reviewed_at, document_versions!inner(documents!inner(project_id))")
+        .eq("document_versions.documents.project_id", projectId)
+        .not("reviewed_at", "is", null)
+        .order("id")
+        .range(from, to),
+    ),
     siteNameMap(supabase, projectId),
     assignedFrameworkIds(supabase, projectId),
   ]);
@@ -161,7 +187,7 @@ export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
   if (mappingsRes.error) throw new Error("Could not load document framework requirements.");
 
   const itemsByDoc = new Map<string, DocumentFrameworkItem[]>();
-  for (const m of mappingsRes.data ?? []) {
+  for (const m of mappingsRes.data) {
     if (!m.framework_items) continue;
     const list = itemsByDoc.get(m.document_id) ?? [];
     list.push(mapItem(m.framework_items as RawItem, assigned));
@@ -170,22 +196,14 @@ export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
 
   // Last Review = the most recent CONCLUDED assessment (reviewed_at) of the latest version. An open
   // (Under Review) assessment has no reviewed_at, so it never hides the previous conclusion date.
-  const latestVersionIds = (registerRes.data ?? []).map((r) => r.latest_version_id).filter((id): id is string => !!id);
+  if (concludedRes.error) throw new Error("Could not load document reviews.");
   const reviewDates = new Map<string, string>();
-  if (latestVersionIds.length > 0) {
-    const { data, error } = await supabase
-      .from("document_reviews")
-      .select("document_version_id, reviewed_at")
-      .in("document_version_id", latestVersionIds)
-      .not("reviewed_at", "is", null);
-    if (error) throw new Error("Could not load document reviews.");
-    for (const r of data ?? []) {
-      const prev = reviewDates.get(r.document_version_id);
-      if (r.reviewed_at && (!prev || r.reviewed_at > prev)) reviewDates.set(r.document_version_id, r.reviewed_at);
-    }
+  for (const r of concludedRes.data) {
+    const prev = reviewDates.get(r.document_version_id);
+    if (r.reviewed_at && (!prev || r.reviewed_at > prev)) reviewDates.set(r.document_version_id, r.reviewed_at);
   }
 
-  return (registerRes.data ?? [])
+  return registerRes.data
     .filter((r): r is typeof r & { document_id: string; title: string } => !!r.document_id && r.title !== null)
     .map((r) => ({
       id: r.document_id,
@@ -197,8 +215,10 @@ export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
       siteName: r.site_id ? (siteMap.get(r.site_id) ?? null) : null,
       isApplicable: r.is_applicable ?? true,
       status: r.status ?? "not_received",
+      latestVersionId: r.latest_version_id,
       latestVersionNo: r.latest_version_no,
       latestRevision: r.latest_revision,
+      latestReviewId: r.latest_review_id,
       lastReviewAt: r.latest_version_id ? (reviewDates.get(r.latest_version_id) ?? null) : null,
       frameworkItems: (itemsByDoc.get(r.document_id) ?? []).sort(compareFrameworkItems),
     }))
@@ -219,7 +239,7 @@ export async function getDocument(projectId: string, documentId: string): Promis
       .maybeSingle(),
     supabase
       .from("document_register")
-      .select("status, latest_version_no, latest_revision")
+      .select("status, latest_version_id, latest_version_no, latest_revision, latest_review_id")
       .eq("document_id", documentId)
       .eq("project_id", projectId)
       .maybeSingle(),
@@ -281,8 +301,10 @@ export async function getDocument(projectId: string, documentId: string): Promis
     siteName: d.site_id ? (siteMap.get(d.site_id) ?? null) : null,
     isApplicable: d.is_applicable,
     status: reg.status ?? "not_received",
+    latestVersionId: reg.latest_version_id,
     latestVersionNo: reg.latest_version_no,
     latestRevision: reg.latest_revision,
+    latestReviewId: reg.latest_review_id,
     lastReviewAt,
     createdAt: d.created_at,
     frameworkItems: (d.document_framework_items ?? [])

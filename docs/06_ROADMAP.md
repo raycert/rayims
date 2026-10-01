@@ -30,8 +30,8 @@
 | — 5C  | Document Gap Assessment (reviews)           | **COMPLETED** |
 | — 5D  | Review → Finding / Verification Item        | **COMPLETED** |
 | — 5E  | Required Document Excel Import              | **COMPLETED** |
-| — 5F  | Gap Assessment Export                       | Planned — NEXT |
-| — 5G  | Phase 5 final acceptance                    | Planned |
+| — 5F  | Gap Assessment Export                       | **COMPLETED** |
+| — 5G  | Phase 5 final acceptance                    | Planned — NEXT |
 | 6     | Visit Summary / Reporting                   | Planned       |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
 
@@ -599,11 +599,15 @@ all-or-nothing import, imported documents start Not Received / Not Applicable an
 Version → Gap Assessment → follow-up lifecycle. No schema, RLS, grant or Storage change. See
 `08_TESTING.md`.
 
-### Phase 5F — Gap Assessment Export [NEXT]
+### Phase 5F — Gap Assessment Export [COMPLETED]
 
-Export the Document register with current Version, Gap Assessment result and Review Comments.
+"Export Excel" on the Documents register: the whole project as a consultant / client-facing Gap
+Assessment Register (.xlsx) — one row per Document × Framework Requirement, current version / file /
+derived status / latest assessment comments and reviewer, Last Review, direct Finding and Verification
+counts with a short follow-up summary, plus a Summary sheet. Read-only; no schema, RLS, grant or Storage
+change. See `08_TESTING.md`.
 
-### Phase 5G — Phase 5 final acceptance
+### Phase 5G — Phase 5 final acceptance [NEXT]
 
 
 ## Phase 6 — Visit Summary / Reporting

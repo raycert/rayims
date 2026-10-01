@@ -147,6 +147,11 @@ and prototype/demo data is not a requirement.
   preview (Row / Required Document / Code / Site / Framework Requirement(s) / Applicable / Result; cards on
   phones) with Ready / Warning / Error, a confirmation checkbox for warnings, and "Import N Documents".
   After import the register shows one message with the counts.
+- *(Phase 5F)* Documents header: "+ New Document" (primary), "Import Excel" and "Export Excel" (secondary,
+  same weight). Export downloads directly (no wizard, no preview; "Exporting…" while it runs, a toast if it
+  fails). The workbook: "Gap Assessment" sheet with a bold, frozen, filterable header row, wrapped long text
+  (tall comments are capped at ~8 lines — the full value stays in the cell), subtle status fills that match
+  the app tones (neutral / blue / amber / green) next to the status text; plus a simple "Summary" sheet.
 - **Primary navigation** is the row or name (client, project, framework, site row with a
   chevron); secondary actions live in the overflow.
 - **No fabricated future-domain data.** Do not show placeholder or zero values for

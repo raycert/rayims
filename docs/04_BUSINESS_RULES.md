@@ -269,6 +269,33 @@ Product behavior that the schema and UI must respect. Database details are in
   the ones confirmed, nothing is written and the new preview is shown. Writes: one bulk insert of
   Documents, then one bulk insert of their Framework mappings; if the mappings fail the new Documents are
   deleted again. Result: "Imported: X Documents · Skipped existing: Y · Warnings: Z".
+- **BR-135** *(Phase 5F)* **Gap Assessment Excel export** is a read-only, consultant / client-facing register
+  of the **whole** project (not the filtered screen): "Export Excel" on the Documents register downloads
+  `RayIMS-Gap-Assessment-{Project}-{YYYYMMDD}.xlsx` (project name without accents / invalid characters,
+  server date). Admin and Consultant alike; signed-out requests are redirected, unknown projects are 404.
+  The server loads current data itself — nothing is taken from the browser — and writes nothing.
+- **BR-136** *(Phase 5F)* **Row grain:** one row per **Document × Framework Requirement**; a Document with
+  several mappings repeats its current state and follow-up counts on every row (counts are never divided); a
+  Document without mappings is one row with blank Framework / Requirement. Order: Framework (natural) →
+  requirement code (natural: 9.1 before 10.2) → Site (Project-wide first) → Required Document; unmapped
+  Documents last. Columns: Framework, Framework Requirement ("7.5 — Documented information"), Required
+  Document, Document Code, Document Type, Site ("Project-wide" or the site name), Owner, Applicable (Yes /
+  No), Current Version (V2), Current Revision, Current File (original name), Received On, Gap Assessment
+  Status, Review Comments, Reviewed By, Last Review, Findings, Verification Items, Follow-up Summary. Human
+  labels only: no ids, storage keys, URLs or enum values. Dates are Excel dates (dd/mm/yyyy).
+- **BR-137** *(Phase 5F)* **Current-state semantics:** Status is the `document_register` view's derived
+  status; Review Comments and Reviewed By come from **the same review that decides the status** (latest
+  review of the LATEST version, created_at DESC) — a new version without an assessment shows Received with
+  blank comments, never the previous version's comments. Reviewer = display name → email → "Unknown user".
+  Last Review keeps the register rule (latest **concluded** review of the latest version), so Under Review
+  may show an earlier Last Review date. A Not Applicable Document keeps its latest file / review metadata.
+- **BR-138** *(Phase 5F)* **Follow-up counts** are the Document's **history**: Findings and Verification
+  items created **directly** from any assessment of any version (`issues.document_review_id`,
+  `verification_items.document_review_id`). A Finding raised later from a review-origin Verification item
+  links to that item (BR-129) and is **not** counted as a direct Finding. Summary text: "2 Findings (1 Open) ·
+  3 Verification Items (2 Pending)" (Pending = no result yet); blank when there is no follow-up. A second
+  "Summary" sheet shows project, client, export time and document counts by status, open Findings and
+  pending Verification items.
 - **BR-118** *(Phase 5A)* **Controlled Document delete:** only a Document with **no Versions**.
   Its Framework mappings are removed with it (setup data); versions, files and reviews are never
   cascade-deleted by the application — "This document has versions and cannot be deleted."

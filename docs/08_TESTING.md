@@ -1233,7 +1233,55 @@ files. The affected suites were rerun unchanged:
 After all runs: fixture residue 0 (only Chinh Long and Test 1 remain; 0 issues, actions, attachments,
 files, Storage objects) and **genuine data identical to pre-flight**.
 
-### Phase 5 — Documents / Versions / Reviews (5F–5G)
+### Phase 5F — Gap Assessment Excel Export (executed 2026-09-30 / 2026-10-01)
+
+Production build (`next start`), hosted Supabase, Edge via Playwright; the downloaded workbooks were
+re-opened and checked cell by cell with ExcelJS. Fixtures prefixed `P5F-ACCEPT-` only (Project A: 12
+documents covering every status and edge case; Project B with a unique `BMARKER` in title, code, owner, file
+name, review comment and finding; an empty project; an import project; a large project). Pre-flight
+snapshot of genuine data taken before the run and compared after all suites. **Result: 62/62 PASS** (run 2;
+run 1 did not start — the test tooling `playwright-core` had been removed from the scratch folder, nothing
+was executed or written).
+
+| Area | Checks (all PASS) |
+| --- | --- |
+| Entry point | "+ New Document" (primary) · "Import Excel" · "Export Excel" (both secondary, same style) on one line at 1280 px; 390 / 412 px: button reachable, no horizontal overflow, export downloads at 390 px; export failure → friendly toast |
+| File | browser download, `RayIMS-Gap-Assessment-P5F-ACCEPT-ISO-Implementation-20260930.xlsx`, valid .xlsx; sheets "Gap Assessment" + "Summary", none hidden |
+| Structure | 19 columns in the approved order; top row frozen; AutoFilter A1:S1; bold header; 13 rows = one per Document × Framework Requirement |
+| Statuses | Not Received (no version / file / comments, counts 0); Received (V1, Rev.00, original file name); Revision Required (comments exactly "Retention period is missing.", reviewer); Accepted (V2 / Rev.01, V2 comments); Not Applicable (Applicable = No); every row's status = `document_register` view |
+| Current-state rules | new version without assessment → Received, V2, blank comments / reviewer / Last Review, the V1 comment appears nowhere in the workbook; Under Review → current comments, current reviewer (no display name → email), Last Review = earlier concluded assessment; two reviews on one version → the latest by created_at decides (not reviewed_at) |
+| Grain + order | multi-framework document → 2 rows (ISO 14001:2015 · 8.2, ISO 45001:2018 · 8.2) with identical document / status / site / comments / counts; unmapped document → 1 row, blank framework / requirement, site name, listed last; frameworks ISO 9001 → 14001 → 45001; clauses 4.1, 6.1, 7.5, 9.1, 10.2 |
+| Follow-up | "2 Findings (1 Open) · 3 Verification Items (2 Pending)"; Review → Verification → Finding counts 1 Verification Item, 0 direct Findings; historical V1 Finding still counted while V2 is Accepted; N/A document keeps historical file, date, comments, Finding |
+| Formatting | Received On / Last Review are Excel dates, dd/mm/yyyy; 1243-character multi-line comment kept in full, wrapped, row height capped at 120 pt; Vietnamese, &, /, -, parentheses, § intact; status fills neutral / blue / amber / green with the text; no UUIDs, storage keys, signed URLs or enum values anywhere |
+| Summary sheet | project, client, export time; document counts by status = register; open Findings / pending Verification items (direct); generated time in workbook metadata, not a data column |
+| Isolation / access | Project A export contains no Project B value; Project B export contains only its own document; unknown / malformed project id → 404, no workbook; consultant export identical to admin's; signed out → 307 to login, no workbook bytes |
+| Empty project | valid workbook, headers, 0 rows |
+| Read-only | after all exports: 0 new documents, versions, reviews, findings, verification items, actions, files, Storage objects, mappings |
+| Large project | 260 documents × 4 mappings = **1040 rows** (beyond the 1000-row response cap — proves paging), all statuses in the register's proportions, every document present: export 2.9 s, 82 KB; register shows all 260. A separate 4-run timing probe: register 1.2–3.2 s, export 2.1–5.4 s, ~84 KB (the acceptance run's single 18.8 s register load was not reproduced) |
+| Import → Export | 5E template import (incl. a document repeated on two frameworks and an N/A row) → export: framework, requirement, code, type, owner, site, applicable represented; merged document = 2 rows; Not Received / Not Applicable as imported |
+| Full workflow | import → upload V1 → Revision Required with comments → Create Finding → Add to Verification → export shows V1, file name, Revision Required, the comments, Findings 1, Verification Items 1, "1 Finding (Open) · 1 Verification Item (Pending)" |
+| Cleanup | fixtures + 1 Storage object removed; documents / versions / reviews / findings / files / objects all 0 |
+
+**Regressions on the 5F build** (the register read `listDocuments` changed — paging + project join — so every
+Documents suite exercises it):
+
+| Suite | Result |
+| --- | --- |
+| 5E | 80/80 |
+| 5D | 78/78 |
+| 5C | 74/74 (first attempt interrupted when the session ended — fixtures removed, rerun) |
+| 5B | 24/26 — "PDF View opens a signed URL in a new tab" timed out (popup never reached the signed Storage URL; suite aborted). Rerun: one attempt stopped by the 10-minute limit of the background runner (its fixtures were removed by the next run), then **103/103** including the View / signed-URL check |
+| 5A | 104/104 |
+| 4F | 78/78 |
+| 4E | 122/122 |
+| 4E-6 | 65/65 |
+| 4D-1 | 145/145 |
+| 4D-2 | 122/122 |
+
+After all runs: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
+pre-flight**.
+
+### Phase 5 — Documents / Versions / Reviews (5G)
 Test cases: *not yet defined.*
 Candidate areas: document with no version = Not Received; new version resets to
 Received; multiple reviews of one version; derived status rules; framework

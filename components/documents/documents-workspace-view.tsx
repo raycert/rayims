@@ -52,6 +52,7 @@ export function DocumentsWorkspaceView({
   const [siteFilter, setSiteFilter] = useState("all");
   const [frameworkFilter, setFrameworkFilter] = useState("all");
   const [creating, setCreating] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const { message, show } = useToast();
 
   useEffect(() => {
@@ -103,6 +104,29 @@ export function DocumentsWorkspaceView({
     router.push(`/projects/${projectId}/documents/${d.id}`);
   }
 
+  /** Whole register (not the filtered view), built on the server from current data (Phase 5F). */
+  async function exportRegister() {
+    setExporting(true);
+    try {
+      const res = await fetch(`/projects/${projectId}/documents/export`, { cache: "no-store" });
+      const type = res.headers.get("Content-Type") ?? "";
+      if (!res.ok || !type.includes("spreadsheetml")) throw new Error("export failed");
+      const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "RayIMS-Gap-Assessment.xlsx";
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch {
+      show("Could not export the register. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function handleSaved(msg: string) {
     setCreating(false);
     router.refresh();
@@ -125,6 +149,9 @@ export function DocumentsWorkspaceView({
           <Link href={`/projects/${projectId}/documents/import`} className={buttonClasses("secondary")}>
             Import Excel
           </Link>
+          <Button type="button" variant="secondary" onClick={exportRegister} disabled={exporting}>
+            {exporting ? "Exporting…" : "Export Excel"}
+          </Button>
         </div>
       </div>
 
