@@ -13,6 +13,7 @@ import { activityModeLabel, formatActivityDateTime, isActivityOverdue } from "@/
 import { ACTIVITY_STATUSES } from "@/lib/validation/activities";
 import { deleteActivity, setActivityStatus } from "@/lib/mutations/activities";
 import { ActivityFormDrawer } from "./activity-form-drawer";
+import { ActivitySummaryDrawer, SUMMARY_FIELDS } from "./activity-summary-drawer";
 import { ActivityVerificationSection } from "@/components/verification/activity-verification-section";
 import { EvidenceSection } from "@/components/evidence/evidence-panel";
 import type { ActivityDetail, ActivityFormCatalog } from "@/lib/queries/activities";
@@ -51,6 +52,7 @@ export function ActivityDetailView({
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [editingSummary, setEditingSummary] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -60,6 +62,7 @@ export function ActivityDetailView({
 
   function handleSaved(msg: string) {
     setEditing(false);
+    setEditingSummary(false);
     router.refresh();
     show(msg);
   }
@@ -288,17 +291,12 @@ export function ActivityDetailView({
           }}
         />
 
-        <section className="rounded-lg border border-border bg-surface">
-          <div className="border-b border-border px-4 py-3">
-            <h2 className="text-sm font-semibold">Outcome / Visit Summary</h2>
-          </div>
-          <div className="divide-y divide-border">
-            <TextField label="Work Performed" value={activity.workPerformed} />
-            <TextField label="Next Steps" value={activity.nextSteps} />
-          </div>
-        </section>
+        <ActivitySummarySection activity={activity} onEdit={() => setEditingSummary(true)} />
       </div>
 
+      {editingSummary ? (
+        <ActivitySummaryDrawer activity={activity} onClose={() => setEditingSummary(false)} onSaved={handleSaved} />
+      ) : null}
       {editing ? (
         <ActivityFormDrawer
           mode="edit"
@@ -311,5 +309,42 @@ export function ActivityDetailView({
       ) : null}
       <Toast message={message} />
     </div>
+  );
+}
+
+/**
+ * Outcome / Activity Summary (Phase 6B): the consultant-authored narrative. Shows only the fields that
+ * have content (no "Not set." rows); an empty summary gets one clear empty state with Add.
+ */
+function ActivitySummarySection({ activity, onEdit }: { activity: ActivityDetail; onEdit: () => void }) {
+  const filled = SUMMARY_FIELDS.filter((f) => activity[f.key]?.trim());
+  return (
+    <section data-testid="activity-summary" className="rounded-lg border border-border bg-surface">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <h2 className="text-sm font-semibold">Outcome / Activity Summary</h2>
+        {filled.length > 0 ? (
+          <Button type="button" variant="secondary" className="min-h-9" onClick={onEdit}>
+            Edit Activity Summary
+          </Button>
+        ) : null}
+      </div>
+      {filled.length === 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
+          <p className="text-sm text-muted">No Activity Summary has been recorded yet.</p>
+          <Button type="button" variant="secondary" className="min-h-9" onClick={onEdit}>
+            Add Activity Summary
+          </Button>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {filled.map((f) => (
+            <div key={f.key} className="px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted">{f.label}</div>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm">{activity[f.key]}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

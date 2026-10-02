@@ -139,7 +139,11 @@ export type ActivityDetail = ActivityPlanRow & {
   objectives: string | null;
   plannedWork: string | null;
   workPerformed: string | null;
+  /** Consultant's overall conclusion (Phase 6B). */
+  summary: string | null;
   nextSteps: string | null;
+  /** Free text: client attendees / coordinators (Phase 6B). */
+  clientParticipants: string | null;
 };
 
 /**
@@ -152,7 +156,7 @@ export async function getActivity(projectId: string, activityId: string): Promis
   const { data, error } = await supabase
     .from("activities")
     .select(
-      `id, project_id, site_id, name, start_date, start_time, end_date, end_time, planned_days, mode, status, activity_type_id, consultant_id, objectives, planned_work, work_performed, next_steps, activity_types(label, is_active), profiles!activities_consultant_id_fkey(display_name), ${EVIDENCE_EMBED}`,
+      `id, project_id, site_id, name, start_date, start_time, end_date, end_time, planned_days, mode, status, activity_type_id, consultant_id, objectives, planned_work, work_performed, summary, next_steps, client_participants, activity_types(label, is_active), profiles!activities_consultant_id_fkey(display_name), ${EVIDENCE_EMBED}`,
     )
     .eq("id", activityId)
     .eq("project_id", projectId)
@@ -187,7 +191,9 @@ export async function getActivity(projectId: string, activityId: string): Promis
     objectives: data.objectives,
     plannedWork: data.planned_work,
     workPerformed: data.work_performed,
+    summary: data.summary,
     nextSteps: data.next_steps,
+    clientParticipants: data.client_participants,
     evidence: mapEvidence(data.attachments as RawEvidence[]),
   };
 }

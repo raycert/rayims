@@ -42,8 +42,21 @@ Product behavior that the schema and UI must respect. Database details are in
   enforced by a database FK to `activity_types` (ADR-017), not free text. Modes:
   on-site, online (CHECK). Statuses: Planned, In Progress, Completed, Cancelled
   (CHECK).
-- **BR-13** The visit summary (`work_performed`, `next_steps`) is recorded on the
-  activity and feeds the visit report.
+- **BR-13** The Activity Summary (`work_performed`, `summary`, `next_steps`,
+  `client_participants`) is recorded on the activity and feeds the Activity Report (Phase 6B).
+- **BR-148** *(Phase 6B)* **Activity Summary semantics** (consultant-authored; never generated):
+  **Work Performed** = what was actually carried out; **Consultant Summary** (`summary`) = the
+  consultant's overall conclusion for the Activity — not a Finding digest, approval comment, client
+  acceptance or sign-off; **Next Steps** = recommended / agreed next steps (not generated from Actions);
+  **Client Participants** = free text, names and roles of client attendees / coordinators (no contacts,
+  no participant records, no attendance). Each field is optional, trimmed, blank → NULL.
+- **BR-149** *(Phase 6B)* The Activity Summary is edited in its own **Edit Activity Summary** drawer
+  (only the four fields); **Edit Activity** edits identity, schedule and Plan only — neither surface
+  writes the other's fields. Allowed in every Activity status (Planned, In Progress, Completed,
+  Cancelled — no report-specific lock) by Admin and Consultant alike. Saving changes nothing else: no
+  status change, no Finding / Action / Verification / Evidence. There is no report status, version,
+  submission, review, approval or sign-off — RayIMS V1 is consultant-operated. The fields create no
+  reference, so Activity delete rules are unchanged.
 - **BR-61** The Master Plan is not a database table. It is the Project Workspace's
   Plan view over that project's `activities`, always scoped to one `project_id`; there
   is no global cross-project activities list in V1 (Phase 3B-1).
@@ -68,8 +81,8 @@ Product behavior that the schema and UI must respect. Database details are in
   been deactivated, clearly marked inactive — no other inactive type is ever offered.
   Enforced server-side independent of the picker (ADR-017).
 - **BR-66** Activity Detail visually separates **Plan** (`objectives`, `planned_work`
-  — the intended work) from **Outcome / Visit Summary** (`work_performed`,
-  `next_steps` — what actually happened). Outcome fields are editable at any time,
+  — the intended work) from **Outcome / Activity Summary** (`work_performed`, `summary`,
+  `next_steps`, `client_participants` — what actually happened; Phase 6B). Outcome fields are editable at any time,
   with no restriction tied to the activity's date or status — a consultant may draft
   outcome text before or after the planned date (Phase 3B-2).
 - **BR-67** Activities follow the same authorization model as Clients/Projects/Sites,
@@ -86,7 +99,7 @@ Product behavior that the schema and UI must respect. Database details are in
   explicitly labeled, confirmed action, not offered a second way (Phase 3B-3).
   *(Phase 4E.6)* An Activity has **one current status**: Activity Detail shows it once, as a
   single "Status:" select (not a badge plus three tab-like buttons). Changing it never changes
-  which sections are shown — Plan, Verification, Activity Evidence and Outcome / Visit Summary
+  which sections are shown — Plan, Verification, Activity Evidence and Outcome / Activity Summary
   always stay visible, in that order. *(Phase 4F)* The Activity-level evidence section is titled
   **General Activity Evidence** ("Files or photos for this activity that are not linked to a
   specific verification check."); evidence on a verification card or Action is unchanged.

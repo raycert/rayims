@@ -132,6 +132,7 @@ export type Database = {
       activities: {
         Row: {
           activity_type_id: string
+          client_participants: string | null
           consultant_id: string | null
           created_at: string
           created_by: string | null
@@ -149,11 +150,13 @@ export type Database = {
           start_date: string | null
           start_time: string | null
           status: string
+          summary: string | null
           updated_at: string
           work_performed: string | null
         }
         Insert: {
           activity_type_id: string
+          client_participants?: string | null
           consultant_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -171,11 +174,13 @@ export type Database = {
           start_date?: string | null
           start_time?: string | null
           status?: string
+          summary?: string | null
           updated_at?: string
           work_performed?: string | null
         }
         Update: {
           activity_type_id?: string
+          client_participants?: string | null
           consultant_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -193,6 +198,7 @@ export type Database = {
           start_date?: string | null
           start_time?: string | null
           status?: string
+          summary?: string | null
           updated_at?: string
           work_performed?: string | null
         }

@@ -170,6 +170,13 @@ and prototype/demo data is not a requirement.
   tabular figures; phone cards — before the badges; Verification card "View F-001"), "F-001 · Title"
   wherever a Finding is named in text (Finding Detail H1 with real spaces, breadcrumb, Action form
   context, Actions list / cards, Gap Assessment follow-up list). Never a raw integer, never a UUID.
+- *(Phase 6B)* **Outcome / Activity Summary** (last Activity Detail section, after General Activity
+  Evidence): empty → one line "No Activity Summary has been recorded yet." with **Add Activity
+  Summary**; otherwise only the fields that have content (Work Performed, Consultant Summary, Next
+  Steps, Client Participants — labels in that order, text with its line breaks, long words wrap) and
+  **Edit Activity Summary** in the section header. No "Not set." rows. The editor is a normal drawer
+  (bottom sheet on phones) with four text areas and one helper line each; no wizard. "Activity Summary"
+  is the UI term — not "Visit Summary" (Activities can be online, training, document review…).
 
 ## Out of scope for this document
 

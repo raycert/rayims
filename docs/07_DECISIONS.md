@@ -168,6 +168,8 @@ go on verification item notes; photos are captioned attachments on activities.
 scope.
 **Consequences:** A notes table can be added later without reshaping existing
 data.
+**Note (Phase 6B):** the activity summary on `activities` now also has `summary` (consultant
+conclusion) and `client_participants` (free text); still no notes / report table.
 **Status:** Approved
 
 ## ADR-014 — V1 access model

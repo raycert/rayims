@@ -39,8 +39,6 @@ export function ActivityFormDrawer({
   const [plannedDays, setPlannedDays] = useState(activity?.plannedDays != null ? String(activity.plannedDays) : "");
   const [objectives, setObjectives] = useState(activity?.objectives ?? "");
   const [plannedWork, setPlannedWork] = useState(activity?.plannedWork ?? "");
-  const [workPerformed, setWorkPerformed] = useState(activity?.workPerformed ?? "");
-  const [nextSteps, setNextSteps] = useState(activity?.nextSteps ?? "");
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -77,7 +75,8 @@ export function ActivityFormDrawer({
       // Status has its own dedicated control on Activity Detail (Phase 3B-3) — this
       // form never changes it, but the update schema still requires a value, so the
       // activity's current (unedited) status rides along unchanged.
-      ...(mode === "edit" ? { status: activity!.status, workPerformed, nextSteps } : {}),
+      // The Outcome / Activity Summary has its own editor since Phase 6B (never sent from here).
+      ...(mode === "edit" ? { status: activity!.status } : {}),
     };
 
     startTransition(async () => {
@@ -402,41 +401,6 @@ export function ActivityFormDrawer({
             />
           </div>
         </div>
-
-        {mode === "edit" ? (
-          <>
-            {/* Section: Outcome / Visit Summary */}
-            <div className="space-y-4 border-t border-border pt-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Outcome / Visit Summary</h3>
-
-              <div>
-                <label htmlFor="act-work-performed" className="mb-1.5 block text-sm font-medium">
-                  Work Performed
-                </label>
-                <Textarea
-                  id="act-work-performed"
-                  value={workPerformed}
-                  onChange={(e) => setWorkPerformed(e.target.value)}
-                  placeholder="What actually happened"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="act-next-steps" className="mb-1.5 block text-sm font-medium">
-                  Next Steps
-                </label>
-                <Textarea
-                  id="act-next-steps"
-                  value={nextSteps}
-                  onChange={(e) => setNextSteps(e.target.value)}
-                  placeholder="What follows"
-                  rows={3}
-                />
-              </div>
-            </div>
-          </>
-        ) : null}
 
         {formError ? (
           <p role="alert" className="text-sm text-danger">

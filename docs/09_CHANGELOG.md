@@ -3,6 +3,25 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 6B — Activity Report narrative (2026-10-03)
+
+**Result: 35/35 acceptance checks.** One migration; no ADR (ADR-013 note).
+
+### Added
+
+- Migration `20261003000100_activity_summary_fields.sql`: `activities.summary`,
+  `activities.client_participants` (nullable text). `types/database.ts` regenerated.
+- **Outcome / Activity Summary** on Activity Detail (empty state, only filled fields shown) and the
+  **Edit Activity Summary** drawer (`components/activities/activity-summary-drawer.tsx`) with
+  `updateActivitySummary` (only the four narrative columns, matched by id + project).
+- BR-148, BR-149.
+
+### Changed
+
+- **Edit Activity** no longer contains the Outcome fields; `updateActivity` no longer writes
+  `work_performed` / `next_steps`. Section title "Outcome / Visit Summary" → "Outcome / Activity
+  Summary". BR-13, BR-66 wording.
+
 ## Phase 6A — Finding numbering (2026-10-02)
 
 **Result: 42/42 acceptance checks.** One migration; ADR-019.

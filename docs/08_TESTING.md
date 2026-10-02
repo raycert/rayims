@@ -1406,7 +1406,59 @@ embedded query, no per-item query).
 After all suites: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
 pre-flight**.
 
-### Phase 6 — Visit Summary / Reporting (6B–6E)
+### Phase 6B — Activity Report narrative (executed 2026-10-02 / 2026-10-03)
+
+**Migration** `20261003000100_activity_summary_fields.sql` — validated locally first (PGlite with all
+project migrations: 4/4 — two nullable text columns without default; an existing Activity keeps its
+fields and `updated_at`; `authenticated` can write them under the existing policy; no report table),
+then `supabase db push` after a dry run listing only that file. Hosted: `activities` +`summary`,
++`client_participants` (text, nullable); RLS policy and grants unchanged; 20 tables (none added).
+`types/database.ts` regenerated — only the two columns.
+
+**Acceptance on hosted, production build: 35/35 PASS** (run 3). Run 1: 10/11 — the test's
+`getByRole("button", { name: "Edit Activity" })` also matched "Edit Activity Summary" (made exact);
+run 2: 34/35 — the partial-summary check read the section before the post-save refresh had rendered
+it (the test now waits for the saved text; run 3 logged the section as exactly "Outcome / Activity
+Summary · Edit Activity Summary · CONSULTANT SUMMARY · Only the conclusion so far.").
+
+| Area | Checks (all PASS) |
+| --- | --- |
+| Empty state | "No Activity Summary has been recorded yet." + Add Activity Summary, no "Not set." rows; sections Plan → Verification → General Activity Evidence → Outcome / Activity Summary; Plan still shows Objectives / Planned Work |
+| Edit surfaces | Edit Activity drawer: identity / schedule / Plan only; Edit Activity Summary drawer: the four fields with helper text, no Project / Site / Type / Dates / Consultant / Mode; saving Edit Activity leaves the summary byte-identical |
+| Full summary | the four example texts saved ("Activity Summary saved"), surrounding whitespace trimmed, line breaks kept; same Activity, status Planned unchanged, Plan untouched, no new record; Detail shows all four with line breaks and "Edit Activity Summary" |
+| Edit / blank | summary + participants updated, blank Next Steps stored as NULL and removed from the Detail, same record |
+| Partial | only "Consultant Summary" shown — no other labels, no placeholders |
+| Status independence | saved while Planned, In Progress, Completed and Cancelled — status unchanged each time (no report lock) |
+| Long text / Vietnamese | 875-character, three-paragraph text with Vietnamese, & / ( ) stored in full and rendered with paragraph breaks; Vietnamese participant names intact; no overflow |
+| Isolation / security | Project A context with Project B's Activity id → "This Activity could not be found.", both Activities unchanged; Project B Activity via a Project A URL → "Page not found", no narrative leaked; signed-out replay of the save action → 307, nothing changed; signed-out Detail → login |
+| Delete | an unreferenced Activity with all four fields filled is still deletable (no new blocker) |
+| Consultant | consultant edits and saves the summary (no admin role, no approval) |
+| Report readiness | objectives, planned_work, work_performed, summary, next_steps, client_participants readable from the Activity; no report / summary table |
+| Mobile 390 / 412 | long Vietnamese participant names wrap, no overflow; Edit Activity Summary reachable, not under the bottom nav; editor text areas full width (350 / 372 px), Save visible and tappable while typing; saved |
+| Cleanup | fixtures removed |
+
+**Regressions on the final code:**
+
+| Suite | Result | Earlier attempts |
+| --- | --- | --- |
+| 6A | 42/42 | — |
+| 5D | 78/78 | — |
+| 5F | 62/62 | — |
+| 4E-6 | 65/65 | 64/65 — Findings "Site" cell read by index 2, which since 6A's "No." column is index 3 (test fixed); 63/65 and 64/65 — the status-control value was read once 600 ms after a save while the refresh was still running (the test now polls up to 10 s; the database value was correct every time) |
+| 4F | 78/78 | — (section order with the new "Outcome / Activity Summary" title) |
+| 4D-1 | 145/145 | 53/54 — a 10 s wait for "3 of 3 Closed" timed out; passed unchanged on rerun |
+| 4D-2 | 122/122 | — |
+| 4B | not run | its harness reads fixture ids from `P4B_IDS`, provided by an external setup script that is no longer available; Activity Detail is covered by 4E-6, 4F and this suite |
+
+Superseded assertions updated (marked "6B" in the tests): section title "Outcome / Visit Summary" →
+"Outcome / Activity Summary" (4B, 4E-6, 4F).
+
+**Genuine data:** the snapshot's whole-row hash of `activities` differs only because the rows now
+include the two new (NULL) columns; the same hash over the original columns equals the pre-flight value,
+every other snapshot key is identical, and both genuine Activities have NULL `summary` /
+`client_participants`. Fixture residue 0 (only Chinh Long and Test 1 remain).
+
+### Phase 6 — Visit Summary / Reporting (6C–6E)
 Test cases: *not yet defined.*
 Candidate areas: report sections populated from data; printable output.
 

@@ -105,10 +105,9 @@ export const activityCreateSchema = z
   .superRefine(refineSchedule);
 
 /**
- * Outcome fields (work_performed/next_steps) are included here rather than in a
- * separate schema/form — one Edit Activity drawer, not multiple overlapping edit
- * surfaces. No date-based or status-based restriction on editing them (Phase 3B-2
- * review, §21): a consultant may draft outcome text before or after the planned date.
+ * Edit Activity: identity, schedule and Plan. Since Phase 6B the Outcome / Activity Summary fields
+ * have their own focused editor (activitySummarySchema) and are NOT part of this schema, so the two
+ * edit surfaces never overwrite each other's fields.
  */
 export const activityUpdateSchema = z
   .object({
@@ -120,11 +119,24 @@ export const activityUpdateSchema = z
     status: z.enum(ACTIVITY_STATUSES),
     objectives: optionalText,
     plannedWork: optionalText,
-    workPerformed: optionalText,
-    nextSteps: optionalText,
     ...scheduleShape,
   })
   .superRefine(refineSchedule);
 
+/**
+ * Outcome / Activity Summary (Phase 6B) — the consultant-authored narrative a future Activity Report
+ * uses: what was actually done, the overall conclusion, recommended / agreed next steps and the client
+ * participants (free text). Each field optional; trimmed; blank → NULL. No status- or date-based
+ * restriction (BR-66): it may be written before, during or after the Activity, and saving it never
+ * changes the Activity's status.
+ */
+export const activitySummarySchema = z.object({
+  workPerformed: optionalText,
+  summary: optionalText,
+  nextSteps: optionalText,
+  clientParticipants: optionalText,
+});
+
 export type ActivityCreateInput = z.infer<typeof activityCreateSchema>;
 export type ActivityUpdateInput = z.infer<typeof activityUpdateSchema>;
+export type ActivitySummaryInput = z.infer<typeof activitySummarySchema>;

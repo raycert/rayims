@@ -4,7 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
-import { ACTIVITY_STATUSES, activityCreateSchema, activityUpdateSchema } from "@/lib/validation/activities";
+import { ACTIVITY_STATUSES, activityCreateSchema, activitySummarySchema, activityUpdateSchema } from "@/lib/validation/activities";
 import { siteInProjectScope, type SupabaseServerClient } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
 
@@ -167,8 +167,7 @@ export async function updateActivity(
       status: d.status,
       objectives: d.objectives ?? null,
       planned_work: d.plannedWork ?? null,
-      work_performed: d.workPerformed ?? null,
-      next_steps: d.nextSteps ?? null,
+      // Outcome / Activity Summary fields are written only by updateActivitySummary (Phase 6B).
       start_date: d.startDate ?? null,
       start_time: d.startTime ?? null,
       end_date: d.endDate ?? null,
@@ -182,6 +181,40 @@ export async function updateActivity(
   if (!data || data.length === 0) return { ok: false, error: "This Activity could not be found." };
 
   revalidatePath(`/projects/${projectId}/plan`);
+  revalidatePath(`/projects/${projectId}/activities/${activityId}`);
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Saves the Outcome / Activity Summary (Phase 6B): work_performed, summary, next_steps and
+ * client_participants — and nothing else. The Activity is matched by id AND project (a tampered
+ * project / activity pair finds nothing); status, schedule, Plan and every other column stay as they
+ * are. Allowed in every status (no report lock, no approval step).
+ */
+export async function updateActivitySummary(projectId: string, activityId: string, input: unknown): Promise<ActionResult> {
+  await requireUser();
+
+  const parsed = activitySummarySchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Check the highlighted fields.", fieldErrors: fieldErrorsFrom(parsed.error) };
+  }
+  const d = parsed.data;
+
+  const supabase = await createSupabaseClient();
+  const { data, error } = await supabase
+    .from("activities")
+    .update({
+      work_performed: d.workPerformed ?? null,
+      summary: d.summary ?? null,
+      next_steps: d.nextSteps ?? null,
+      client_participants: d.clientParticipants ?? null,
+    })
+    .eq("id", activityId)
+    .eq("project_id", projectId)
+    .select("id");
+  if (error) return { ok: false, error: "Couldn't save the Activity Summary. Try again." };
+  if (!data || data.length === 0) return { ok: false, error: "This Activity could not be found." };
+
   revalidatePath(`/projects/${projectId}/activities/${activityId}`);
   return { ok: true, data: undefined };
 }

@@ -34,8 +34,8 @@
 | — 5G  | Phase 5 final acceptance                    | **COMPLETED** |
 | 6     | Visit Summary / Reporting                   | **IN PROGRESS** |
 | — 6A  | Finding numbering                           | **COMPLETED** |
-| — 6B  | Activity Report narrative                   | Planned — NEXT |
-| — 6C  | Activity Report data integration            | Planned |
+| — 6B  | Activity Report narrative                   | **COMPLETED** |
+| — 6C  | Activity Report data integration            | Planned — NEXT |
 | — 6D  | Activity Report export                      | Planned (format decision pending) |
 | — 6E  | Phase 6 final acceptance                    | Planned |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
@@ -655,7 +655,15 @@ trigger from an internal counter at INSERT (race-safe, every creation path), imm
 Verification links, Gap Assessment follow-up and the creation toast; searchable as "F-001" / "001" /
 "1". One migration (`20261002000100_finding_numbering.sql`). See `08_TESTING.md`.
 
-### Phase 6B — Activity Report narrative [NEXT]
+### Phase 6B — Activity Report narrative [COMPLETED]
+
+Consultant-authored Activity Summary on `activities` (ADR-013): new `summary` (Consultant Summary) and
+`client_participants` beside `work_performed` / `next_steps`; Outcome / Activity Summary section with
+empty / partial states and a focused **Edit Activity Summary** drawer (Edit Activity keeps identity,
+schedule and Plan). Any status, Admin = Consultant, no approval / report status. One migration
+(`20261003000100_activity_summary_fields.sql`). See `08_TESTING.md`.
+
+### Phase 6C — Activity Report data integration [NEXT]
 
 
 ## Phase 7 — Dashboard / Polish / Demo / Deployment

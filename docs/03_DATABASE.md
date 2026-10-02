@@ -193,7 +193,12 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
   - `mode` (CHECK `on_site | online`), `planned_days numeric(4,1)`
   - `consultant_id → profiles`, `objectives`, `planned_work`
   - `status` (CHECK `planned | in_progress | completed | cancelled`)
-  - `work_performed`, `next_steps` (visit summary fields, ADR-013)
+  - Outcome / Activity Summary (consultant narrative, ADR-013): `work_performed` (what was actually
+    done), **`summary`** (overall consultant conclusion), `next_steps` (recommended / agreed next steps),
+    **`client_participants`** (free text: client attendees / coordinators). All nullable text; the two
+    in bold were added in Phase 6B (migration `20261003000100_activity_summary_fields.sql`, no default,
+    no CHECK, no FK, no RLS / grant change). No report table — a future Activity Report reads these
+    columns plus derived Verification / Finding / Action / Evidence data.
   - `created_by`, timestamps
 - **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
 - **Nullable:** `site_id` (project-wide activity), `consultant_id`, `start_date`,
