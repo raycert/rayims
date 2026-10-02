@@ -24,15 +24,15 @@
 | — 4E  | Evidence / Attachments                     | **COMPLETED** |
 | — 4E.6 | UX polish                                 | **COMPLETED** |
 | — 4F  | Controlled delete, overdue-actions overview, Phase 4 final acceptance | **COMPLETED** |
-| 5     | Documents / Versions / Reviews              | **IN PROGRESS** |
+| 5     | Documents / Versions / Reviews              | **COMPLETED / CLOSED** |
 | — 5A  | Document Register foundation                | **COMPLETED** |
 | — 5B  | Document Versions                           | **COMPLETED** |
 | — 5C  | Document Gap Assessment (reviews)           | **COMPLETED** |
 | — 5D  | Review → Finding / Verification Item        | **COMPLETED** |
 | — 5E  | Required Document Excel Import              | **COMPLETED** |
 | — 5F  | Gap Assessment Export                       | **COMPLETED** |
-| — 5G  | Phase 5 final acceptance                    | Planned — NEXT |
-| 6     | Visit Summary / Reporting                   | Planned       |
+| — 5G  | Phase 5 final acceptance                    | **COMPLETED** |
+| 6     | Visit Summary / Reporting                   | Planned — NEXT |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
 
 > **The product workflow remains flexible.** The implementation order above does
@@ -542,7 +542,7 @@ against the hosted project. Backlog carried forward: "today" for overdue is the 
 (timezone handling), hide inert tabs on mobile, collapsible mobile filters, Finding origin in the
 header.
 
-## Phase 5 — Documents / Versions / Reviews [IN PROGRESS]
+## Phase 5 — Documents / Versions / Reviews [COMPLETE / CLOSED]
 
 Document register, versions and uploads, framework mapping, reviews, derived
 status view, review → issue / verification. The Phase 5 pre-implementation review confirmed the
@@ -607,10 +607,32 @@ derived status / latest assessment comments and reviewer, Last Review, direct Fi
 counts with a short follow-up summary, plus a Summary sheet. Read-only; no schema, RLS, grant or Storage
 change. See `08_TESTING.md`.
 
-### Phase 5G — Phase 5 final acceptance [NEXT]
+### Phase 5G — Phase 5 final acceptance [COMPLETED]
+
+The whole consultant workflow accepted end to end through the UI (import a client register → V1 →
+Gap Assessment → Finding / Verification → V2 → Accepted → export). Hardening: Upload New Version blocked
+while an assessment is open (BR-139); simultaneous assessment starts reconciled (BR-140); import header
+found in the first 10 rows (BR-141); review dates = viewer's local day in register, detail and export
+(BR-142); exact-count paging, paged import catalog, batched import compensation (BR-143). No schema,
+RLS, grant or Storage change. See `08_TESTING.md`.
+
+**Phase 5 backlog (classified in 5G):**
+
+- *Hardening backlog:* id tie-break in the `document_register` view (migration); database-level
+  one-open-assessment constraint (partial unique index) to replace the app reconciliation; Version and
+  Document delete races (check-then-delete, same class as BR-140); import as one database transaction
+  (RPC) instead of compensation.
+- *Accepted for V1:* Excel stores a numeric clause 8.10 as 8.1 (template columns are text — use them);
+  Framework must be written with its edition (no guessing); 10 MB per file; repeated Document Codes are a
+  warning only; not-found pages are streamed (HTTP 200 with "Page not found", nothing revealed).
+
+**Phase 7 backlog (from Phase 5):** Expected Records / Required Evidence as Document-level requirement
+context (not Review Comments); review-origin Verification items link to the Verification workspace, not
+the item; server-rendered dates use the server's time zone before hydration (set the deployment time
+zone or render dates client-side when deploying).
 
 
-## Phase 6 — Visit Summary / Reporting
+## Phase 6 — Visit Summary / Reporting [NEXT]
 
 Visit summary on activities and a printable visit report generated from
 structured data.

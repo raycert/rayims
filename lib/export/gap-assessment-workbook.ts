@@ -105,10 +105,39 @@ export function followUpSummary(doc: Pick<GapAssessmentDocument, "findings" | "v
 /** Characters XML 1.0 cannot hold would corrupt the workbook; everything else is kept as typed. */
 const clean = (v: string | null | undefined) => (v ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
 
-/** "2026-09-30" or an ISO timestamp → an Excel date (its calendar day, as the register shows it). */
-function excelDate(value: string | null): Date | null {
+/** A time zone Intl knows (the viewer's, sent by the browser); anything else → UTC. */
+export function safeTimeZone(timeZone: string | null | undefined): string {
+  if (!timeZone) return "UTC";
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone });
+    return timeZone;
+  } catch {
+    return "UTC";
+  }
+}
+
+function zonedParts(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return { y: get("year"), m: get("month"), d: get("day"), hh: get("hour"), mm: get("minute") };
+}
+
+/**
+ * → an Excel date. A plain date ("2026-09-30", e.g. received_on) is that day. A timestamp (reviewed_at)
+ * is its calendar day in the viewer's time zone — the same day the Document screens show (Phase 5G).
+ */
+function excelDate(value: string | null, timeZone: string): Date | null {
   if (!value) return null;
-  const [y, m, d] = value.slice(0, 10).split("-").map(Number);
+  const day = value.length > 10 ? (() => { const p = zonedParts(new Date(value), timeZone); return `${p.y}-${p.m}-${p.d}`; })() : value;
+  const [y, m, d] = day.split("-").map(Number);
   return y && m && d ? new Date(Date.UTC(y, m - 1, d)) : null;
 }
 
@@ -118,7 +147,7 @@ function estimatedLines(text: string, width: number): number {
 }
 
 /** "Chinh Long – IMS 2026" + date → "RayIMS-Gap-Assessment-Chinh-Long-IMS-2026-20260930.xlsx" */
-export function gapAssessmentFileName(projectName: string, now: Date): string {
+export function gapAssessmentFileName(projectName: string, now: Date, timeZone = "UTC"): string {
   const safe =
     projectName
       .normalize("NFD")
@@ -129,8 +158,8 @@ export function gapAssessmentFileName(projectName: string, now: Date): string {
       .replace(/^-+|-+$/g, "")
       .slice(0, 80)
       .replace(/-+$/, "") || "Project";
-  const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  return `RayIMS-Gap-Assessment-${safe}-${ymd}.xlsx`;
+  const p = zonedParts(now, timeZone);
+  return `RayIMS-Gap-Assessment-${safe}-${p.y}${p.m}${p.d}.xlsx`;
 }
 
 export async function buildGapAssessmentWorkbook(ctx: {
@@ -138,6 +167,8 @@ export async function buildGapAssessmentWorkbook(ctx: {
   clientName: string | null;
   documents: GapAssessmentDocument[];
   generatedAt: Date;
+  /** Viewer's time zone (safeTimeZone): Last Review day and export time. */
+  timeZone: string;
 }): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "RayIMS";
@@ -170,11 +201,11 @@ export async function buildGapAssessmentWorkbook(ctx: {
       d.latestVersionNo === null ? "" : `V${d.latestVersionNo}`,
       clean(d.latestRevision),
       clean(d.currentFileName),
-      excelDate(d.receivedOn),
+      excelDate(d.receivedOn, ctx.timeZone),
       documentStatusLabel(d.status),
       clean(d.reviewComments),
       clean(d.reviewedBy),
-      excelDate(d.lastReviewAt),
+      excelDate(d.lastReviewAt, ctx.timeZone),
       d.findings.total,
       d.verificationItems.total,
       followUpSummary(d),
@@ -204,14 +235,13 @@ export async function buildGapAssessmentWorkbook(ctx: {
 /** Document-level counts (not export rows) + direct Gap Assessment follow-up. */
 function addSummarySheet(
   workbook: ExcelJS.Workbook,
-  ctx: { projectName: string; clientName: string | null; documents: GapAssessmentDocument[]; generatedAt: Date },
+  ctx: { projectName: string; clientName: string | null; documents: GapAssessmentDocument[]; generatedAt: Date; timeZone: string },
 ) {
   const sheet = workbook.addWorksheet(SUMMARY_SHEET_NAME);
   sheet.columns = [{ width: 34 }, { width: 44 }];
   const count = (status: string) => ctx.documents.filter((d) => d.status === status).length;
-  const g = ctx.generatedAt;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const generated = `${pad(g.getDate())}/${pad(g.getMonth() + 1)}/${g.getFullYear()} ${pad(g.getHours())}:${pad(g.getMinutes())}`;
+  const g = zonedParts(ctx.generatedAt, ctx.timeZone);
+  const generated = `${g.d}/${g.m}/${g.y} ${g.hh}:${g.mm} (${ctx.timeZone})`;
 
   const title = sheet.addRow(["Gap Assessment Register"]);
   title.font = { bold: true, size: 14 };

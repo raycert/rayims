@@ -208,7 +208,11 @@ Product behavior that the schema and UI must respect. Database details are in
   ordered **created_at DESC, id DESC** everywhere (never by `reviewed_at`). The register's **Last
   Review** is the most recent **concluded** assessment (`reviewed_at`) of the latest Version — an open
   assessment does not hide it; "—" when none is concluded. Review Comments are shown on Document
-  Detail only (not in the register, not searched).
+  Detail only (not in the register, not searched). *(Phase 5G note)* The `document_register` view
+  orders by `created_at DESC` only (no id tie-break); the app adds `id DESC`. They can differ only for
+  two assessments of one Version with an identical `created_at` (microseconds), which the app cannot
+  produce (a new assessment needs the previous one concluded; simultaneous starts are reconciled,
+  BR-140). Adding the tie-break to the view is hardening backlog (needs a migration).
 - **BR-126** *(Phase 5C)* **Review result ≠ Finding and ≠ Verification item:** Revision Required creates
   neither; they are separate, explicit actions (Phase 5D). Any review (open or concluded) blocks
   deleting its Version (BR-121). **Backlog / design follow-up:** "Expected Records / Required Evidence"
@@ -296,6 +300,30 @@ Product behavior that the schema and UI must respect. Database details are in
   3 Verification Items (2 Pending)" (Pending = no result yet); blank when there is no follow-up. A second
   "Summary" sheet shows project, client, export time and document counts by status, open Findings and
   pending Verification items.
+- **BR-139** *(Phase 5G)* **No new Version while an assessment is open:** "Upload New Version" is refused
+  while the current Version has an open (Under Review) Gap Assessment — "Complete the current Gap
+  Assessment before uploading a new Version." (button disabled with that text; enforced on the server
+  when the upload is prepared and again when it is registered, which then removes the uploaded object).
+  Otherwise the open assessment would be left on an older Version where it can never be completed.
+- **BR-140** *(Phase 5G)* **One open assessment per Version — simultaneous starts:** the rule is
+  app-enforced (no database constraint) and two simultaneous "Start Gap Assessment" requests could both
+  pass the check (reproduced). After inserting, the server reconciles: if more than one assessment is
+  open on the Version, the earliest (created_at, id) is kept and the others — just started, without
+  comments, follow-up or evidence — are removed; the losing request reports "A Gap Assessment is
+  already open for this version." Concluded assessments are never touched.
+- **BR-141** *(Phase 5G)* **Import header row:** the header is searched in the **first 10 rows** of the
+  sheet (client workbooks often have a title / project banner above the table): the row with a Required
+  Document column (or alias) and the most recognized headers, the earliest on a tie. Rows above it are
+  ignored; preview row numbers are the sheet's own. No such row → 'No "Required Document" column was
+  found in the first 10 rows of the … sheet.'
+- **BR-142** *(Phase 5G)* **Review dates are the viewer's local calendar day** everywhere: Document
+  Register "Last Review", Document Detail and the Excel export (the export uses the time zone the
+  browser sends — formatting only; unknown → UTC — for Last Review, the Summary's export time, shown
+  with its zone, and the file-name date). Plain dates (Received On) are shown as entered.
+- **BR-143** *(Phase 5G)* **Large projects:** every register / export / import-catalog read is paged
+  with an exact row count, so no response cap (PostgREST `max_rows`, whatever its hosted value) can
+  silently cut a list; long id lists are never sent in one URL (import compensation deletes in batches
+  of 100).
 - **BR-118** *(Phase 5A)* **Controlled Document delete:** only a Document with **no Versions**.
   Its Framework mappings are removed with it (setup data); versions, files and reviews are never
   cascade-deleted by the application — "This document has versions and cannot be deleted."

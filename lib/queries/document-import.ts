@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatFrameworkIdentity } from "@/lib/ui/format";
 import { siteNameMap } from "./activities";
+import { fetchAllPages } from "./paging";
 
 export type DocumentImportCatalog = {
   sites: { id: string; name: string }[];
@@ -25,7 +26,16 @@ export async function getDocumentImportCatalog(projectId: string): Promise<Docum
       .select("framework_id, frameworks(id, code, edition, framework_items(id, code))")
       .eq("project_id", projectId),
     supabase.from("frameworks").select("code, edition"),
-    supabase.from("documents").select("title, site_id, doc_code").eq("project_id", projectId),
+    // Paged (Phase 5G): every existing Document must be seen, or a re-import past the 1000-row
+    // response cap would create duplicates instead of skipping them.
+    fetchAllPages((from, to) =>
+      supabase
+        .from("documents")
+        .select("id, title, site_id, doc_code", { count: "exact" })
+        .eq("project_id", projectId)
+        .order("id")
+        .range(from, to),
+    ),
   ]);
   if (assignedRes.error) throw new Error("Could not load the project's frameworks.");
   if (frameworksRes.error) throw new Error("Could not load frameworks.");
@@ -45,6 +55,6 @@ export async function getDocumentImportCatalog(projectId: string): Promise<Docum
         },
       ];
     }),
-    existingDocuments: (docsRes.data ?? []).map((d) => ({ title: d.title, siteId: d.site_id, docCode: d.doc_code })),
+    existingDocuments: docsRes.data.map((d) => ({ title: d.title, siteId: d.site_id, docCode: d.doc_code })),
   };
 }

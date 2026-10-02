@@ -132,3 +132,18 @@ After any user or settings change:
   (the app then says "will need manual cleanup").
 - A `files` row whose object is missing shows "File is unavailable." in the app; the metadata is
   kept on purpose — investigate before deleting it.
+
+## Documents (Phase 5)
+
+- Document Version files use the same private bucket, key scheme and orphan query as Evidence above.
+- **More than one open Gap Assessment on a Version** should not occur (simultaneous starts are
+  reconciled by the app). To check (SQL editor, read-only):
+  `select document_version_id, count(*) from public.document_reviews where status = 'under_review'
+  group by 1 having count(*) > 1;` — report any row; do not edit reviews by hand.
+- **Excel import** is all-or-nothing by compensation (no database transaction): if the framework
+  mappings fail, the Documents just created are deleted again. A crash in between could leave
+  Documents without their mappings; they are visible in the register (no requirements) and can be
+  completed or deleted in the app.
+- **Dates:** review dates are shown in the viewer's local time zone (the export uses the downloading
+  browser's zone and prints it next to the export time). Server-rendered pages format dates in the
+  server's time zone before the browser takes over — keep the deployment time zone in mind (Phase 7).

@@ -51,6 +51,8 @@ export function DocumentVersionsSection({
   const [pending, startTransition] = useTransition();
 
   const latestNo = versions[0]?.versionNo ?? 0;
+  // Phase 5G: an open assessment on the current Version must be completed before a new Version.
+  const assessmentOpen = (versions[0]?.reviews ?? []).some((r) => r.status === "under_review");
   const shown = showAll ? versions : versions.slice(0, COLLAPSED_COUNT);
 
   function open(v: DocumentVersionSummary, mode: "view" | "download") {
@@ -80,7 +82,7 @@ export function DocumentVersionsSection({
           </p>
         </div>
         {isApplicable ? (
-          <Button type="button" variant="secondary" className="min-h-9" onClick={() => setUploading(true)}>
+          <Button type="button" variant="secondary" className="min-h-9" onClick={() => setUploading(true)} disabled={assessmentOpen}>
             Upload New Version
           </Button>
         ) : null}
@@ -89,6 +91,10 @@ export function DocumentVersionsSection({
       {!isApplicable ? (
         <p data-testid="versions-locked" className="border-b border-border px-4 py-2.5 text-xs text-muted">
           Versions cannot be uploaded while this document is Not Applicable.
+        </p>
+      ) : assessmentOpen ? (
+        <p data-testid="versions-locked" className="border-b border-border px-4 py-2.5 text-xs text-muted">
+          Complete the current Gap Assessment before uploading a new Version.
         </p>
       ) : null}
 

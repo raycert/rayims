@@ -157,6 +157,7 @@ export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
         .from("document_register")
         .select(
           "document_id, title, doc_code, document_type, owner_name, site_id, is_applicable, status, latest_version_id, latest_version_no, latest_revision, latest_review_id",
+          { count: "exact" },
         )
         .eq("project_id", projectId)
         .order("document_id")
@@ -165,7 +166,7 @@ export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
     fetchAllPages((from, to) =>
       supabase
         .from("document_framework_items")
-        .select(`document_id, framework_item_id, documents!inner(project_id), ${ITEM_EMBED}`)
+        .select(`document_id, framework_item_id, documents!inner(project_id), ${ITEM_EMBED}`, { count: "exact" })
         .eq("documents.project_id", projectId)
         .order("document_id")
         .order("framework_item_id")
@@ -174,7 +175,7 @@ export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
     fetchAllPages((from, to) =>
       supabase
         .from("document_reviews")
-        .select("id, document_version_id, reviewed_at, document_versions!inner(documents!inner(project_id))")
+        .select("id, document_version_id, reviewed_at, document_versions!inner(documents!inner(project_id))", { count: "exact" })
         .eq("document_versions.documents.project_id", projectId)
         .not("reviewed_at", "is", null)
         .order("id")

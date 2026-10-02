@@ -100,14 +100,16 @@ export async function importDocuments(projectId: string, formData: FormData): Pr
   if (mappings.length > 0) {
     const { error: mapError } = await supabase.from("document_framework_items").insert(mappings);
     if (mapError) {
-      await supabase
-        .from("documents")
-        .delete()
-        .in(
-          "id",
-          docs.map((d) => d.id),
-        )
-        .eq("project_id", projectId);
+      // Compensation in batches of 100 ids: up to 500 ids in one URL could be refused as too long,
+      // which would leave a partial import behind (Phase 5G).
+      const ids = docs.map((d) => d.id);
+      for (let i = 0; i < ids.length; i += 100) {
+        await supabase
+          .from("documents")
+          .delete()
+          .in("id", ids.slice(i, i + 100))
+          .eq("project_id", projectId);
+      }
       return { ok: false, error: "Couldn't save the framework requirements. Nothing was imported. Try again." };
     }
   }

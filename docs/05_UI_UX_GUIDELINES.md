@@ -152,6 +152,9 @@ and prototype/demo data is not a requirement.
   fails). The workbook: "Gap Assessment" sheet with a bold, frozen, filterable header row, wrapped long text
   (tall comments are capped at ~8 lines — the full value stays in the cell), subtle status fills that match
   the app tones (neutral / blue / amber / green) next to the status text; plus a simple "Summary" sheet.
+- *(Phase 5G)* While the current Version has an open Gap Assessment, "Upload New Version" stays visible
+  but disabled, with the line "Complete the current Gap Assessment before uploading a new Version."
+  under the Versions header (same place as the Not Applicable explanation).
 - **Primary navigation** is the row or name (client, project, framework, site row with a
   chevron); secondary actions live in the overflow.
 - **No fabricated future-domain data.** Do not show placeholder or zero values for

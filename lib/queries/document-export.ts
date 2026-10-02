@@ -39,7 +39,7 @@ export async function getGapAssessmentExport(projectId: string): Promise<GapAsse
     fetchAllPages((from, to) =>
       supabase
         .from("document_versions")
-        .select("id, received_on, files(original_name), documents!inner(project_id)")
+        .select("id, received_on, files(original_name), documents!inner(project_id)", { count: "exact" })
         .eq("documents.project_id", projectId)
         .order("id")
         .range(from, to),
@@ -49,6 +49,7 @@ export async function getGapAssessmentExport(projectId: string): Promise<GapAsse
         .from("document_reviews")
         .select(
           "id, notes, reviewer:profiles!document_reviews_reviewer_id_fkey(display_name, email), document_versions!inner(document_id, documents!inner(project_id)), issues(status), verification_items(result)",
+          { count: "exact" },
         )
         .eq("document_versions.documents.project_id", projectId)
         .order("id")

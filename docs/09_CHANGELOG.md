@@ -3,6 +3,29 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 5G — Phase 5 final acceptance (2026-10-01)
+
+**Result: 100/100 acceptance checks. Phase 5 — COMPLETE / CLOSED.** No migration, RLS, grant or Storage
+change; no ADR.
+
+### Fixed
+
+- Open Gap Assessment + new Version: Upload New Version is now refused while the current Version has an
+  open assessment (UI + server, both upload steps) — the old assessment could otherwise never be
+  completed (BR-139).
+- Simultaneous "Start Gap Assessment" from two browsers created two open assessments (reproduced 3/3);
+  the server now reconciles to the earliest one (BR-140).
+- Required Document import read existing Documents unpaged (past 1000 a re-import could duplicate) —
+  now paged; the compensation delete is batched (100 ids per request).
+- Paging no longer assumes a 1000-row cap: it reads until the exact row count (BR-143).
+- Last Review dates were the UTC day in the register / export but the local day on Document Detail — all
+  three now use the viewer's local day; the export receives the browser's time zone (BR-142).
+
+### Changed
+
+- Import: header row searched in the first 10 rows (title banners above the table, BR-141).
+- Business rules BR-125 (note), BR-139 – BR-143; roadmap: Phase 5 closed, backlog classified, Phase 6 next.
+
 ## Phase 5F — Gap Assessment Excel Export (2026-09-30)
 
 **Result: 62/62 acceptance checks.** No migration, RLS, grant or Storage change; no ADR.

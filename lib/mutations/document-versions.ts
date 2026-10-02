@@ -23,6 +23,24 @@ import { fieldErrorsFrom, type ActionResult } from "./types";
 const NOT_APPLICABLE = "Versions cannot be uploaded while this document is Not Applicable.";
 const NOT_FOUND = "This document could not be found.";
 const RACE = "Another version was uploaded at the same time. Please try again.";
+const OPEN_ASSESSMENT = "Complete the current Gap Assessment before uploading a new Version.";
+
+/**
+ * Phase 5G: a new Version would leave the current Version's open (Under Review) assessment
+ * stranded — it could never be completed, because only the current Version is assessed. So an
+ * upload is refused while the current Version has an open assessment. null = could not be checked.
+ */
+async function hasOpenAssessment(supabase: SupabaseServerClient, documentId: string): Promise<boolean | null> {
+  const { data, error } = await supabase
+    .from("document_versions")
+    .select("version_no, document_reviews(status)")
+    .eq("document_id", documentId)
+    .order("version_no", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return null;
+  return (data?.document_reviews ?? []).some((r) => r.status === "under_review");
+}
 
 type FileMeta = { name: string; size: number; type: string };
 
@@ -63,6 +81,9 @@ export async function prepareDocumentVersionUpload(
   const doc = await loadDocument(supabase, projectId, documentId);
   if (!doc.ok) return { ok: false, error: doc.error };
   if (!doc.applicable) return { ok: false, error: NOT_APPLICABLE };
+  const open = await hasOpenAssessment(supabase, documentId);
+  if (open === null) return { ok: false, error: "Couldn't load the document. Try again." };
+  if (open) return { ok: false, error: OPEN_ASSESSMENT };
 
   return { ok: true, data: { storageKey: buildStorageKey(projectId, m.name), contentType: policy.mimeType } };
 }
@@ -119,6 +140,12 @@ export async function registerDocumentVersion(
   if (!doc.ok || !doc.applicable) {
     await discard();
     return { ok: false, error: doc.ok ? NOT_APPLICABLE : doc.error };
+  }
+  // Re-checked here: an assessment may have been started after the upload was prepared.
+  const open = await hasOpenAssessment(supabase, documentId);
+  if (open !== false) {
+    await discard();
+    return { ok: false, error: open ? OPEN_ASSESSMENT : "The upload could not be registered. Try again." };
   }
 
   const size = await storedObjectSize(storage, key, m.size);

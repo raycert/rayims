@@ -108,7 +108,9 @@ export function DocumentsWorkspaceView({
   async function exportRegister() {
     setExporting(true);
     try {
-      const res = await fetch(`/projects/${projectId}/documents/export`, { cache: "no-store" });
+      // The viewer's time zone only formats dates (Last Review day, export time) like the screens do.
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const res = await fetch(`/projects/${projectId}/documents/export?tz=${encodeURIComponent(tz)}`, { cache: "no-store" });
       const type = res.headers.get("Content-Type") ?? "";
       if (!res.ok || !type.includes("spreadsheetml")) throw new Error("export failed");
       const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "RayIMS-Gap-Assessment.xlsx";
@@ -249,7 +251,7 @@ export function DocumentsWorkspaceView({
                     <td className="whitespace-nowrap px-2.5 py-3">
                       <StatusBadge label={documentStatusLabel(d.status)} tone={documentStatusTone(d.status)} />
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">{d.lastReviewAt ? formatDate(d.lastReviewAt.slice(0, 10)) : "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-muted">{d.lastReviewAt ? formatDate(d.lastReviewAt) : "—"}</td>
                   </tr>
                 ))}
               </tbody>

@@ -93,6 +93,30 @@ export async function startDocumentReview(projectId: string, versionId: string):
     .single();
   if (error || !data) return { ok: false, error: "Couldn't start the assessment. Try again." };
 
+  // Phase 5G: two simultaneous starts can both pass the check above (one open assessment per Version
+  // is app-enforced; there is no database constraint). Reconcile after the insert: if more than one
+  // assessment is open on this Version, the earliest (created_at, id) is kept and the others — just
+  // started, so without comments, follow-up or evidence — are removed. Every interleaving converges on
+  // one open assessment; the request whose record was removed reports ALREADY_OPEN.
+  const { data: open } = await supabase
+    .from("document_reviews")
+    .select("id")
+    .eq("document_version_id", versionId)
+    .eq("status", "under_review")
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
+  if (open && open.length > 1) {
+    const keep = open[0].id;
+    await supabase
+      .from("document_reviews")
+      .delete()
+      .eq("document_version_id", versionId)
+      .eq("status", "under_review")
+      .neq("id", keep);
+    revalidateDocument(projectId, ctx.documentId);
+    if (keep !== data.id) return { ok: false, error: ALREADY_OPEN };
+  }
+
   revalidateDocument(projectId, ctx.documentId);
   return { ok: true, data: { reviewId: data.id } };
 }

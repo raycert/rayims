@@ -10,6 +10,8 @@ export const DATA_SHEET_NAME = "Required Documents";
 export const INSTRUCTIONS_SHEET_NAME = "Instructions";
 export const MAX_IMPORT_FILE_BYTES = 2 * 1024 * 1024;
 export const MAX_IMPORT_ROWS = 500;
+/** The header row is searched in the first rows of the sheet (title banners above the table). */
+export const HEADER_SCAN_ROWS = 10;
 export const PROJECT_WIDE_LABEL = "Project-wide";
 
 /** Canonical template headers. */
@@ -40,7 +42,7 @@ const ALIASES: Record<HeaderKey, string[]> = {
 };
 
 export type RawDocumentRow = {
-  /** The row's number in the Excel sheet (header = 1). */
+  /** The row's number in the Excel sheet (as Excel shows it; the header row may be below a banner). */
   rowNumber: number;
   framework: string;
   requirement: string;
@@ -101,9 +103,32 @@ export async function parseDocumentRegisterWorkbook(bytes: Uint8Array): Promise<
     keyByHeader.set(normalizeHeader(HEADERS[k]), k);
     for (const alias of ALIASES[k]) keyByHeader.set(normalizeHeader(alias), k);
   }
+  // Header row (Phase 5G): existing client workbooks often have a title / project banner above the
+  // table, so the header is searched in the first HEADER_SCAN_ROWS rows: the row with a Required
+  // Document column and the most recognized headers (the earliest on a tie). Rows above it are ignored.
+  let headerRow = 0;
+  let bestCount = 0;
+  for (let r = 1; r <= Math.min(HEADER_SCAN_ROWS, sheet.rowCount); r += 1) {
+    const keys = new Set<HeaderKey>();
+    sheet.getRow(r).eachCell({ includeEmpty: false }, (cell) => {
+      const key = keyByHeader.get(normalizeHeader(readCell(cell).text));
+      if (key) keys.add(key);
+    });
+    if (keys.has("title") && keys.size > bestCount) {
+      headerRow = r;
+      bestCount = keys.size;
+    }
+  }
+  if (!headerRow) {
+    return {
+      ok: false,
+      error: `No "${HEADERS.title}" column was found in the first ${HEADER_SCAN_ROWS} rows of the "${sheet.name}" sheet.`,
+    };
+  }
+
   const columnByKey = new Map<HeaderKey, number>();
   const duplicateHeaders: string[] = [];
-  sheet.getRow(1).eachCell({ includeEmpty: false }, (cell, colNumber) => {
+  sheet.getRow(headerRow).eachCell({ includeEmpty: false }, (cell, colNumber) => {
     const key = keyByHeader.get(normalizeHeader(readCell(cell).text));
     if (!key) return; // unknown columns are ignored
     if (columnByKey.has(key)) duplicateHeaders.push(HEADERS[key]);
@@ -115,14 +140,11 @@ export async function parseDocumentRegisterWorkbook(bytes: Uint8Array): Promise<
       error: `More than one column is read as "${duplicateHeaders[0]}" (check for a repeated or alias header such as Clause / Framework Requirement). Keep only one.`,
     };
   }
-  if (!columnByKey.has("title")) {
-    return { ok: false, error: `The first row of the "${sheet.name}" sheet has no "${HEADERS.title}" column.` };
-  }
 
   const rows: RawDocumentRow[] = [];
   let overLimit = false;
   sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-    if (rowNumber === 1 || overLimit) return;
+    if (rowNumber <= headerRow || overLimit) return;
     const unreadableFormulas: string[] = [];
     const text = (key: HeaderKey) => {
       const col = columnByKey.get(key);

@@ -1281,11 +1281,60 @@ Documents suite exercises it):
 After all runs: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
 pre-flight**.
 
-### Phase 5 — Documents / Versions / Reviews (5G)
-Test cases: *not yet defined.*
-Candidate areas: document with no version = Not Received; new version resets to
-Received; multiple reviews of one version; derived status rules; framework
-mapping; review → issue / verification.
+### Phase 5G — Phase 5 final acceptance (executed 2026-10-01)
+
+Production build (`next start`), hosted Supabase, Edge via Playwright (time zone Asia/Ho_Chi_Minh,
+en-US); fixtures prefixed `P5G-ACCEPT-` only (IMS Implementation with ISO 9001 / 14001 / 45001 and Site A
+/ Site B, an edge-case project, 10 / 100 / 300-document projects, an import project, an empty project and
+a Project B with `BMARKER` values). Pre-flight snapshot of genuine data taken before testing and compared
+after all suites. **Result: 100/100 PASS** (run 4 of the final suite). Earlier runs: run 1 stopped by the
+tool's 10-minute background limit (nothing asserted, fixtures removed); run 2 87/93 — found the
+simultaneous-start race (3/3 duplicates, fixed: BR-140), plus test-side issues (button reachability
+measured without scrolling past the fixed bottom nav, wrong expected message, streamed not-found
+expected as HTTP 404) and one transient database-CLI failure; run 3 92/93 — race fixed, one fixture bug
+(duplicate mapping in the bulk seed).
+
+| Area | Checks (all PASS in run 4) |
+| --- | --- |
+| Import (real client workbook) | 2 banner rows above the header ("Required Documents", project line) — header found on row 3 via aliases Clause / Document Required / PIC, extra column ignored, preview row numbers = sheet rows; result "Imported: 7 Documents · Skipped existing: 1"; repeated across frameworks → one document with 2 mappings; same title on Site A / Site B / Project-wide → 3 documents; same code, other title → separate (warning); blank code, Vietnamese owner, "9.1; 9.2" → 2 mappings; Applicable No → Not Applicable; existing document skipped byte-identical; no versions / reviews / files created; applicable imports Not Received |
+| Register | status / site / clause visible; filters Not Received (7) and Not Applicable (1) |
+| Full workflow (UI) | Not Received ("No versions received yet.") → V1 → Received → Start → Under Review → Upload New Version disabled with "Complete the current Gap Assessment before uploading a new Version." (forced upload refused by the server, no version, no object left) → Revision Required with a long consultant comment (stored and shown in full) → Create Finding (type as chosen, Open) → Add to Verification (target Activity) → assessment and status unchanged by follow-up → Finding Detail shows the origin → V2 (same file name, separate private object) → Received, V1 history read-only with its follow-up, V2 Not started → Accepted → V1 version / assessment / mappings unchanged, no delete on assessments → Verification executed in the Activity (Issue Identified) → Finding from Verification (no direct review link, Site A) → export |
+| Export | 2 rows for the 2-framework document; V2 / Rev.01 / procedure.pdf / Accepted / V2 comments / identity; "1 Finding (Open) · 1 Verification Item (Completed)" (Verification-origin Finding not counted); Last Review = viewer's local day; Not Received / N/A rows; per-site documents apart; no Project B value, no ids; writes nothing |
+| Mobile 390 / 412 | register, detail, upload drawer, complete dialog, follow-up, import page: no horizontal overflow, actions reachable and not under the bottom nav; at 390 px the whole flow (upload, assess with long comment, Create Finding with site locked to Site A, Add to Verification with Site A) |
+| Race (BR-140) | 3 simultaneous two-browser starts → exactly one open assessment each time (before the fix: 2 each time) |
+| Ordering | identical created_at: register and export agree with the view and take the comments from the same review (the Detail panel's id tie-break agreed in runs 3–4, differed in run 2 — synthetic only, backlog) |
+| Dates (BR-142) | review concluded 22:30 UTC: register, detail and export all show 30 Sep 2026 (Vietnam); export with tz=UTC → 29 Sep; unknown zone → UTC |
+| Counts | Detail 3 / 2 = database 3 / 2 = export 3 / 2 on both rows, "3 Findings (2 Open) · 2 Verification Items (1 Pending)" — closed, completed and historical-version follow-up included, Verification-origin Finding excluded |
+| Storage / delete | missing object → "File is unavailable."; Document with versions: delete blocked; latest unreviewed version deleted; reviewed version blocked ("This version has review history and cannot be deleted."); version delete removes version, file row and object; download = private bucket, 60 s signed URL, original name |
+| Errors | CSV renamed .xlsx → "Could not read this file…"; another client's site / unassigned framework / unknown clause → row errors, import blocked; .exe and > 10 MB upload refused; N/A document upload unavailable; no raw database errors |
+| Security / isolation | cross-project document URL → "Page not found" (streamed, HTTP 200), nothing leaked; signed URL and assessment start for a Project B version through Project A refused; anonymous replay of "start assessment" → 307, nothing created; anonymous register / detail / import → login, export / template → 307 |
+| Large data | 10 / 100 / 300 documents all listed; 300 documents × 4 mappings → 1200 export rows (> 1000), Findings 40 = 40, Verification 40 = 40, Last Review 80 = 80 — no truncation |
+| Performance | register 10: 4.2 / 1.2 / 3.2 s · 100: 1.3 / 1.6 / 2.0 s · 300: 1.8 / 1.4 / 1.2 s; Document Detail (3 versions, 10 assessments, 20 follow-ups) 2.4 / 0.9 / 1.1 s; import 250 rows: preview 1.2 s, import 2.8 s; export 1200 rows 4.2 s (95 KB); export main project 2.6 s |
+| Empty states / cleanup | empty project "No documents yet."; no "Coming soon" anywhere; fixtures + Storage objects removed, all Phase 5 tables 0 |
+
+**Regressions on the final code:**
+
+| Suite | Result on the final code | Earlier attempts in this phase |
+| --- | --- | --- |
+| 5A | 104/104 | — |
+| 5B | 103/103 | interrupted when a session ended (fixtures removed); 60/62 — a .doc upload did not finish in 60 s (environment) |
+| 5C | 74/74 | 72/73 — `fetch failed` network error near the end |
+| 5D | 78/78 | interrupted when a session ended (fixtures removed) |
+| 5E | 80/80 | — (missing-header message updated for BR-141) |
+| 5F | 62/62 | 61/62 — failure-toast check intercepted `/export` only; since BR-142 the request carries `?tz=` (test pattern updated) |
+| 4F | 78/78 | — |
+| 4E | 122/122 | — |
+| 4E-6 | 65/65 | — |
+| 4D-1 | 145/145 | — |
+| 4D-2 | 122/122 | 108/109 — a 10 s wait timed out in the mobile section (environment) |
+| 4C-1 | 160/160 | — |
+| 4C-2 | 155/155 | — |
+| 4B.5 | 149/149 | — |
+
+Each Phase 4 suite's cleanup script ran right after it (residue 0).
+
+After all suites: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
+pre-flight**.
 
 ### Phase 6 — Visit Summary / Reporting
 Test cases: *not yet defined.*
