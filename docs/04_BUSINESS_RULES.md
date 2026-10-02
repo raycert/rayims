@@ -502,8 +502,7 @@ Product behavior that the schema and UI must respect. Database details are in
   effectiveness is never an action status. There is no effectiveness or reopen history in
   V1: a repeat review overwrites the current one. Workflow progress is derived, not stored.
   The NC response UI is Phase 4D; the columns exist from 4C-1 and are not exposed there.
-- **BR-90** Finding / NC numbering (e.g. NC-001) is **deferred** — a Phase 6 (reporting)
-  prerequisite. No `finding_number` / `issue_number` column exists.
+- **BR-90** *(superseded in Phase 6A by BR-144 – BR-147)* Finding numbering was deferred to Phase 6.
 - **BR-91** A Verification **result is not a Finding**. Recording *Issue Identified* or *Follow-up
   Required* never creates a Finding; a Finding is created only by the explicit **Create
   Finding** action on the Verification card in **Activity Detail** (Phase 4C-2) — not from the
@@ -679,10 +678,28 @@ itself. Admin and Consultant have the same rights; anonymous users have none.
 
 ## Numbering
 
-- **BR-43** Human-readable numbering (e.g. ACT-014) is **deferred**. Do not add
-  `issue_seq` / `action_seq` or numbering triggers unless approved when the
-  Issues/Actions feature is implemented. Finding/NC numbering is a Phase 6 prerequisite
-  (BR-90, ADR-018).
+- **BR-43** Human-readable numbering of **Actions** (e.g. ACT-014) stays **deferred**: no
+  `action_seq` / action numbers. Findings are numbered since Phase 6A (BR-144 – BR-147, ADR-019).
+- **BR-144** *(Phase 6A, ADR-019)* Every **Finding** has a number, **per project**, stored as an integer
+  and shown as **F-nnn** (1 → F-001, 10 → F-010, 1000 → F-1000) — one sequence for all Finding Types
+  (a type change never changes the reference; there is no NC- / OBS- / OFI- numbering). Project A and
+  Project B may both have F-001.
+- **BR-145** *(Phase 6A)* The number is assigned by the database **when the Finding is created**, by
+  every creation path (manual, from a Verification check, from a Gap Assessment); the browser and the
+  application never choose or send it. It **never changes** — editing title, description, type,
+  priority, site, framework, status, NC response or effectiveness keeps it — and it is **never
+  reused**: deleting a Finding (Phase 4F rules, unchanged) leaves a permanent gap (F-001, F-002,
+  F-003 → delete F-003 → next is F-004). Simultaneous creation is safe (database counter, BR-146).
+- **BR-146** *(Phase 6A)* Numbering is database-controlled: a per-project counter
+  (`project_finding_counters`, internal, unreachable through the API) incremented atomically by the
+  `assign_finding_no` trigger. Never `max(finding_no) + 1` in application code.
+- **BR-147** *(Phase 6A)* The number is the consultant-facing reference wherever a Finding is named:
+  "F-001 · Title" (Finding Detail header, Action form, Actions, Verification links, Gap Assessment
+  follow-up), a "No." column on the Findings list (compact "F-001" on phone cards), "View F-001" on a
+  Verification card, and "Finding F-001 created." after creation. Search accepts "F-001", "f-1", "001"
+  or "1" — a query of that shape also matches the number (a "F-…" query matches only that number;
+  bare digits additionally keep the normal text search). RayIMS is consultant-operated: no approval,
+  submission or sign-off states exist for Findings (Open → Closed only, ADR-018).
 
 ## Reference data
 

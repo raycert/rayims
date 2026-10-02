@@ -18,6 +18,7 @@ import {
   verificationResultTone,
 } from "@/lib/ui/status-tones";
 import { formatEvidenceDate } from "@/components/evidence/evidence-format";
+import { findingLabel } from "@/lib/ui/format";
 import { completeDocumentReview, startDocumentReview, updateDocumentReview } from "@/lib/mutations/document-reviews";
 import { FindingFormDrawer } from "@/components/findings/finding-form-drawer";
 import { VerificationItemFormDrawer } from "@/components/verification/verification-item-form-drawer";
@@ -82,7 +83,7 @@ export function FollowUpSummary({ projectId, review }: { projectId: string; revi
             <li key={fi.id} className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 text-sm">
               <StatusBadge label={findingTypeLabel(fi.findingType)} tone={findingTypeTone(fi.findingType)} />
               <Link href={`/projects/${projectId}/findings/${fi.id}`} className="min-w-0 font-semibold text-primary hover:underline">
-                {fi.title}
+                {findingLabel(fi)}
               </Link>
               <StatusBadge label={findingStatusLabel(fi.status)} tone={findingStatusTone(fi.status)} />
             </li>

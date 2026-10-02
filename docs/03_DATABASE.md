@@ -25,10 +25,11 @@ the initial migration. Open Items OI-1 to OI-4 raised during Phase 0B were
   the application (see **Cross-entity consistency**).
 - No JSON blobs for business data, no ISO-specific columns in generic tables,
   no permanent file URLs, no binaries in PostgreSQL.
-- **No numbering columns or triggers** (`issue_seq`, `action_seq`, `number`):
-  human-readable numbering is deferred (ADR-015).
+- **Numbering:** only Findings are numbered — `issues.finding_no` per project, assigned by the
+  `assign_finding_no` trigger from `project_finding_counters` (Phase 6A, ADR-019). No other
+  numbering columns or triggers (`issue_seq`, `action_seq`; Actions are not numbered, ADR-015).
 
-## Table list (18)
+## Table list (19)
 
 ```
 Identity & structure : profiles, clients, sites, projects, project_sites
@@ -38,6 +39,7 @@ Documents            : documents, document_versions, document_framework_items,
                        document_reviews
 Verification & work  : verification_items, issues, actions
 Evidence             : files, attachments
+Internal (no API)    : project_finding_counters (Phase 6A)
 ```
 
 ## Relationship diagram
@@ -355,6 +357,12 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
     **`effectiveness_reviewed_by`** (→ `profiles`), **`effectiveness_reviewed_at`**. No
     history — a repeat review overwrites it.
   - `created_by`, `created_at`, `updated_at`.
+  - **`finding_no`** `integer NOT NULL`, `UNIQUE (project_id, finding_no)` (Phase 6A, ADR-019) — the
+    per-project Finding number, shown as `F-001`. Assigned by the BEFORE INSERT / UPDATE trigger
+    `assign_finding_no` (any value sent on INSERT is replaced; on UPDATE the old value is kept — it
+    never changes). Never reused: a deleted Finding leaves a gap. Existing rows were backfilled per
+    project ordered by `(created_at, id)` (hosted had none). The unique constraint's index serves
+    project-scoped lookups by number; no other index was added.
 - **Origin:** expressed by explicit nullable FKs; there is no `source_type` column.
   `verification_item_id` / `document_review_id` are the *lineage* origin: store only the
   closest (do not copy `document_review_id` onto an issue that already has
@@ -369,9 +377,23 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
   `effectiveness_reviewed_by` SET NULL (user references, indexed). Deleting an issue
   CASCADES its `attachments` rows, so a Finding delete must be controlled in the application
   (Phase 4F).
-- **Not present:** a Finding / NC number (deferred — a Phase 6 prerequisite, ADR-015 /
-  ADR-018), target closure date, owner, Major/Minor classification, correction date,
+- **Not present:** target closure date, owner, Major/Minor classification, correction date,
   reopen or effectiveness history.
+
+### project_finding_counters *(Phase 6A, ADR-019 — internal)*
+- **Purpose:** the per-project Finding number counter. Never read or written by the app.
+- **Fields:** `project_id` (PK, FK → `projects` **ON DELETE CASCADE**), `last_finding_no` `integer
+  NOT NULL CHECK (>= 0)` — the highest number ever assigned in the project (never decremented).
+- **Security:** RLS enabled with **no policies**; all privileges revoked from `public`, `anon` and
+  `authenticated` — the Data API cannot select, insert, update or delete it.
+- **Writer:** `public.assign_finding_no()` — `SECURITY DEFINER`, `search_path = ''`, EXECUTE
+  revoked from `public`, `anon`, `authenticated`; it runs only as the trigger on `issues`. On
+  INSERT it performs `insert … on conflict (project_id) do update set last_finding_no =
+  last_finding_no + 1 returning`: the counter row is locked for the rest of the transaction, so
+  simultaneous Finding inserts in one project are serialized and each gets a distinct number;
+  different projects never wait for each other.
+- **Seed:** at migration time, one row per project with Findings = its `max(finding_no)`; a project's
+  first Finding creates its row.
 
 ### actions
 - **Purpose:** a trackable unit of follow-up. May exist without an issue.

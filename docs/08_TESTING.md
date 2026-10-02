@@ -1336,7 +1336,77 @@ Each Phase 4 suite's cleanup script ran right after it (residue 0).
 After all suites: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
 pre-flight**.
 
-### Phase 6 — Visit Summary / Reporting
+### Phase 6A — Finding numbering (executed 2026-10-02)
+
+**Migration** `20261002000100_finding_numbering.sql` — first validated locally in an in-memory Postgres
+(PGlite, stubbed Supabase roles / `auth`, Supabase-like default grants) with all project migrations
+(**17/17**), then applied with `supabase db push` after a dry run listing exactly that one file. Hosted
+before → after: tables 19 → 20 (`project_finding_counters`); `issues` columns 23 → 24 (`finding_no integer
+NOT NULL`); new `issues_project_finding_no_key` (unique constraint + its index, no other index); new
+trigger `assign_finding_no` (beside `set_updated_at`); new function `assign_finding_no` (SECURITY DEFINER;
+EXECUTE only `postgres`, `service_role`); counter RLS on, 0 policies, no `anon` / `authenticated` grants;
+`issues` RLS policy and grants byte-identical; row counts unchanged (0 genuine Findings — the backfill
+had nothing to number). `types/database.ts` regenerated: only `issues.finding_no` and the counter table.
+
+| Local migration test (PGlite) | Result |
+| --- | --- |
+| Existing Findings backfilled per project by (created_at, id), incl. a created_at tie broken by id | PASS |
+| Counters seeded to each project's max; none for a project without Findings; backfill keeps `updated_at` | PASS |
+| Next number = max + 1; a project's first Finding = 1; a value sent on INSERT is ignored | PASS |
+| UPDATE of `finding_no` (with title / type / priority / status) keeps the number | PASS |
+| Delete 6 → next 7; delete 2 → next 8 (never reused) | PASS |
+| `UNIQUE (project_id, finding_no)` rejects a duplicate even with the trigger disabled | PASS |
+| `authenticated` creates Findings (numbered by the trigger) and cannot change the number | PASS |
+| `authenticated` / `anon`: no SELECT / INSERT / UPDATE / DELETE on the counter, no EXECUTE on the function (despite default grants) | PASS |
+| Project delete cascades its counter row; fresh database (0 Findings) numbers 1, 2, 3 | PASS |
+
+**Acceptance on hosted, production build:** **42/42 PASS** (run 2). Run 1: 34/37 — the Finding Detail
+H1 rendered "F-001·Title" (the separator was spaced only by CSS margins — fixed with real spaces);
+the search check expected "001" / "1" to return only F-001, but bare digits also keep the text search
+and matched "ISO 9001" in other Findings — the test now requires F-001 among the results ("F-001"
+itself still returns only F-001); the mobile check read the hidden desktop table copy (test fixed).
+
+| Area | Checks (all PASS) |
+| --- | --- |
+| Creation paths | manual → "Finding F-001 created.", stored 1, no origin; Verification → "Finding F-002 created.", origin kept; Gap Assessment → "Finding F-003 created.", review origin kept — one project sequence |
+| Display | Findings list "No." column; Finding Detail H1 "F-001 · Title", no UUID on the page; Verification card "View F-002" (title "F-002 · …"); Gap Assessment follow-up list "F-003 · Title"; Action form "Finding: F-001 · …"; Actions workspace "F-001 · …" |
+| Stability | type Nonconformity → Observation + new title: still F-001 |
+| Search | Findings: "F-001" → F-001 only; "001" and "1" include F-001; "f-2" → F-002; "Retention" → text match; Actions: "F-001" → its action; consultant "7" → F-007; "F-100" among 100 → exactly F-100 |
+| No reuse | delete F-003 → next F-004; delete F-002 → next F-005; counter 5; numbers 1, 4, 5 |
+| Tamper (Data API, consultant token) | PATCH `finding_no` 99 → still 1; INSERT with 999 → assigned 6; counter SELECT / INSERT / UPDATE / DELETE → 403 / 403 / 403 / 403 (anon 401), counter intact; `rpc/assign_finding_no` → 404 |
+| Authorization / isolation | consultant creates "Finding F-007 created." and searches it; Project B's first Finding is also F-001; a Project B Finding through a Project A URL → "Page not found", nothing leaked |
+| Concurrency | 10 simultaneous inserts (admin + consultant) in one project → all 201, 1..10; 2 × 10 in two projects → each 1..10; 20 more simultaneous → 11..30, no duplicates, counter 30 |
+| Performance | 100 sequential inserts over the network: 1..100 in order, ~123 ms each (12.3 s); Findings list with 100: 1.3 s; no new query (number is a column of the existing selects / embeds) |
+| Report readiness | `finding_no` directly selectable with an activity-scoped filter |
+| Mobile 390 / 412 | card "F-007 · type · priority · status …", Finding Detail "F-001 · …", Action card "Finding: F-001 · …", no horizontal overflow |
+| Cleanup | fixtures removed; the fixture projects' counter rows gone through the project cascade (0 left) |
+
+**Regressions on the final code:**
+
+| Suite | Result on the final code | Earlier attempt |
+| --- | --- | --- |
+| 5D | 78/78 | — |
+| 5E | 80/80 | — |
+| 5F | 62/62 | — (export keeps Finding counts only) |
+| 4C-1 | 160/160 | 159/160 — "no new table (20)" superseded by the counter table |
+| 4C-2 | 155/155 | 154/155 — source check of the embed string superseded (`finding_no` added) |
+| 4D-1 | 145/145 | 144/145 — same embed-string source check |
+| 4D-2 | 122/122 | — |
+| 4E | 122/122 | — |
+| 4F | 78/78 | — |
+
+Each Phase 4 suite's cleanup script ran right after it (residue 0).
+
+Superseded assertions updated (each marked "6A" in the test): toast text "Finding created" →
+"Finding F-nnn created." (4C-1, 4C-2, 5D); "View Finding" link → "View F-nnn" (4C-2, 4D-2); the Findings
+table's title is now the second column (4C-1 row reader); 4C-1's "no new table (20)" → 21 (the approved
+counter table); 4C-2 / 4D-1 source checks of the embed string now include `finding_no` (still one
+embedded query, no per-item query).
+
+After all suites: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
+pre-flight**.
+
+### Phase 6 — Visit Summary / Reporting (6B–6E)
 Test cases: *not yet defined.*
 Candidate areas: report sections populated from data; printable output.
 

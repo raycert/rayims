@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { actionStatusLabel, actionStatusTone, priorityLabel, priorityTone } from "@/lib/ui/status-tones";
-import { formatDate, isActionOverdue } from "@/lib/ui/format";
+import { formatDate, isActionOverdue, relatedFindingLabel } from "@/lib/ui/format";
 import { ActionStatusControl } from "./action-status-control";
 import { EvidenceButton } from "@/components/evidence/evidence-panel";
 import type { ActionRow } from "@/lib/queries/actions";
@@ -48,7 +48,7 @@ export function ActionCard({
             <>
               Finding:{" "}
               <Link href={`/projects/${projectId}/findings/${action.findingId}`} className="font-semibold text-primary hover:underline">
-                {action.findingTitle}
+                {relatedFindingLabel(action.findingNo, action.findingTitle)}
               </Link>
             </>
           ) : (

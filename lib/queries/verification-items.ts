@@ -137,7 +137,7 @@ export async function listVerificationItems(projectId: string): Promise<Verifica
 }
 
 /** Compact summary of a Finding linked to a verification item (issues.verification_item_id). */
-export type LinkedFindingSummary = { id: string; title: string; findingType: string; status: string };
+export type LinkedFindingSummary = { id: string; findingNo: number; title: string; findingType: string; status: string };
 
 export type ActivityVerificationItemRow = {
   id: string;
@@ -192,7 +192,7 @@ export async function listActivityVerificationItems(
 ): Promise<ActivityVerificationItemRow[]> {
   const supabase = await createClient();
   const columns =
-    `id, question, priority, result, notes, site_id, framework_item_id, target_activity_id, verified_activity_id, verified_at, framework_items(code, title, frameworks(code, edition)), profiles!verification_items_verified_by_fkey(display_name), issues(id, title, finding_type, status, created_at), ${EVIDENCE_EMBED}`;
+    `id, question, priority, result, notes, site_id, framework_item_id, target_activity_id, verified_activity_id, verified_at, framework_items(code, title, frameworks(code, edition)), profiles!verification_items_verified_by_fkey(display_name), issues(id, finding_no, title, finding_type, status, created_at), ${EVIDENCE_EMBED}`;
 
   const [targetRes, verifiedRes] = await Promise.all([
     supabase.from("verification_items").select(columns).eq("project_id", projectId).eq("target_activity_id", activityId),
@@ -215,7 +215,7 @@ export async function listActivityVerificationItems(
       evidence: mapEvidence(row.attachments as RawEvidence[]),
       findings: [...(row.issues ?? [])]
         .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0))
-        .map((f) => ({ id: f.id, title: f.title, findingType: f.finding_type, status: f.status })),
+        .map((f) => ({ id: f.id, findingNo: f.finding_no, title: f.title, findingType: f.finding_type, status: f.status })),
       frameworkItemLabel: row.framework_items ? [row.framework_items.code, row.framework_items.title].filter(Boolean).join(" — ") : null,
       frameworkIdentity: row.framework_items?.frameworks
         ? formatFrameworkIdentity(row.framework_items.frameworks.code, row.framework_items.frameworks.edition)

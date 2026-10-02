@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { FINDING_TYPES } from "@/lib/validation/findings";
 import { VERIFICATION_PRIORITIES } from "@/lib/validation/verification-items";
 import { findingTypeLabel, priorityLabel } from "@/lib/ui/status-tones";
-import { formatDate } from "@/lib/ui/format";
+import { formatDate, formatFindingNumber } from "@/lib/ui/format";
 import { createFinding, createFindingFromReview, createFindingFromVerification, updateFinding } from "@/lib/mutations/findings";
 import type { FindingRow } from "@/lib/queries/findings";
 import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
@@ -189,7 +189,9 @@ export function FindingFormDrawer({
         setFieldErrors(result.fieldErrors ?? {});
         return;
       }
-      onSaved(mode === "create" ? "Finding created" : "Finding updated");
+      // The number the database assigned (ADR-019) — the reference the consultant can use right away.
+      const findingNo = result.data && "findingNo" in result.data ? result.data.findingNo : null;
+      onSaved(mode === "create" ? (findingNo ? `Finding ${formatFindingNumber(findingNo)} created.` : "Finding created") : "Finding updated");
     });
   }
 

@@ -133,6 +133,22 @@ After any user or settings change:
 - A `files` row whose object is missing shows "File is unavailable." in the app; the metadata is
   kept on purpose — investigate before deleting it.
 
+## Finding numbers (Phase 6A)
+
+- Numbers are assigned by the database (ADR-019); nothing in the app or the dashboard needs to set them.
+- **Checks (SQL editor, read-only):**
+  - Findings without a number — must be none (the column is NOT NULL):
+    `select count(*) from public.issues where finding_no is null;`
+  - Duplicate numbers — impossible (`UNIQUE (project_id, finding_no)`).
+  - Counter behind the highest number (should never happen):
+    `select i.project_id, max(i.finding_no) as max_no, c.last_finding_no from public.issues i left join
+    public.project_finding_counters c on c.project_id = i.project_id group by i.project_id,
+    c.last_finding_no having c.last_finding_no is null or c.last_finding_no < max(i.finding_no);`
+- **Only forward repair** if that query ever returns a row: set the counter **up** to the highest
+  number (`update public.project_finding_counters set last_finding_no = <max_no> where project_id =
+  '<id>' and last_finding_no < <max_no>;`, or insert the missing row). **Never lower or reset a
+  counter** and never renumber Findings — numbers may already be in client reports.
+
 ## Documents (Phase 5)
 
 - Document Version files use the same private bucket, key scheme and orphan query as Evidence above.

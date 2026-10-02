@@ -21,6 +21,8 @@ export type ActionRow = {
   activityStartDate: string | null;
   /** null = standalone action. Immutable after creation. */
   findingId: string | null;
+  /** Per-project number of the related Finding (ADR-019); null = standalone action. */
+  findingNo: number | null;
   findingTitle: string | null;
   findingType: string | null;
   /** A closed Finding freezes its linked actions (read-only until the Finding is reopened). */
@@ -31,7 +33,7 @@ export type ActionRow = {
 
 /** Columns of an action plus its Activity and (when linked) its Finding — one embed, no extra query. */
 export const ACTION_COLUMNS =
-  `id, project_id, description, owner_name, due_date, priority, status, completion_notes, completed_at, site_id, activity_id, issue_id, created_at, activities(id, name, start_date), issues(id, title, finding_type, status), ${EVIDENCE_EMBED}`;
+  `id, project_id, description, owner_name, due_date, priority, status, completion_notes, completed_at, site_id, activity_id, issue_id, created_at, activities(id, name, start_date), issues(id, finding_no, title, finding_type, status), ${EVIDENCE_EMBED}`;
 
 export type RawAction = {
   id: string;
@@ -48,7 +50,7 @@ export type RawAction = {
   issue_id: string | null;
   created_at: string;
   activities: { id: string; name: string; start_date: string | null } | null;
-  issues?: { id: string; title: string; finding_type: string; status: string } | null;
+  issues?: { id: string; finding_no: number; title: string; finding_type: string; status: string } | null;
   attachments?: RawEvidence[] | null;
 };
 
@@ -69,6 +71,7 @@ export function mapAction(a: RawAction, siteMap: Map<string, string>): ActionRow
     activityName: a.activities?.name ?? null,
     activityStartDate: a.activities?.start_date ?? null,
     findingId: a.issue_id,
+    findingNo: a.issues?.finding_no ?? null,
     findingTitle: a.issues?.title ?? null,
     findingType: a.issues?.finding_type ?? null,
     findingStatus: a.issues?.status ?? null,

@@ -9,6 +9,8 @@ import { EVIDENCE_EMBED, mapEvidence, type EvidenceItem, type RawEvidence } from
 export type FindingRow = {
   id: string;
   projectId: string;
+  /** Per-project Finding number (ADR-019), shown as F-001 via formatFindingNumber. */
+  findingNo: number;
   findingType: string;
   title: string;
   description: string | null;
@@ -67,13 +69,14 @@ export type FindingReviewOrigin = {
 };
 
 const FINDING_COLUMNS =
-  "id, project_id, finding_type, title, description, priority, status, site_id, activity_id, framework_item_id, verification_item_id, created_at, closed_at, framework_items(id, code, title, frameworks(code, edition)), activities(id, name, start_date, start_time)";
+  "id, project_id, finding_no, finding_type, title, description, priority, status, site_id, activity_id, framework_item_id, verification_item_id, created_at, closed_at, framework_items(id, code, title, frameworks(code, edition)), activities(id, name, start_date, start_time)";
 
 const DETAIL_COLUMNS = `${FINDING_COLUMNS}, correction, root_cause, effectiveness_result, effectiveness_notes, effectiveness_reviewed_by, effectiveness_reviewed_at, effectiveness_reviewer:profiles!issues_effectiveness_reviewed_by_fkey(display_name, email), actions(id, project_id, description, owner_name, due_date, priority, status, completion_notes, completed_at, site_id, activity_id, issue_id, created_at, activities(id, name, start_date), ${EVIDENCE_EMBED}), ${EVIDENCE_EMBED}, document_review_id, document_reviews(status, notes, document_versions(version_no, revision, documents(id, title, site_id))), verification_items(id, question), created_by_profile:profiles!issues_created_by_fkey(display_name), closed_by_profile:profiles!issues_closed_by_fkey(display_name, email)`;
 
 type RawFinding = {
   id: string;
   project_id: string;
+  finding_no: number;
   finding_type: string;
   title: string;
   description: string | null;
@@ -93,6 +96,7 @@ function mapRow(f: RawFinding, siteMap: Map<string, string>): FindingRow {
   return {
     id: f.id,
     projectId: f.project_id,
+    findingNo: f.finding_no,
     findingType: f.finding_type,
     title: f.title,
     description: f.description,
@@ -169,7 +173,7 @@ export async function getFinding(projectId: string, findingId: string): Promise<
     effectivenessReviewerName: f.effectiveness_reviewer?.display_name ?? f.effectiveness_reviewer?.email ?? null,
     actions: [...(f.actions ?? [])]
       .map((a) =>
-        mapAction({ ...(a as RawAction), issues: { id: base.id, title: base.title, finding_type: base.findingType, status: base.status } }, siteMap),
+        mapAction({ ...(a as RawAction), issues: { id: base.id, finding_no: base.findingNo, title: base.title, finding_type: base.findingType, status: base.status } }, siteMap),
       )
       .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1)),
     verificationQuestion: f.verification_items?.question ?? null,

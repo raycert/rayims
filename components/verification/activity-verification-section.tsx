@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
-import { formatDate } from "@/lib/ui/format";
+import { findingLabel, formatDate, formatFindingNumber } from "@/lib/ui/format";
 import {
   findingStatusLabel,
   findingStatusTone,
@@ -91,9 +91,10 @@ function ItemCard({
             {findingCount === 1 ? (
               <Link
                 href={`/projects/${projectId}/findings/${item.findings[0].id}`}
+                title={findingLabel(item.findings[0])}
                 className="-my-2 inline-flex min-h-9 items-center font-semibold text-primary hover:underline"
               >
-                View Finding
+                View {formatFindingNumber(item.findings[0].findingNo)}
               </Link>
             ) : (
               <button
@@ -115,7 +116,7 @@ function ItemCard({
                     href={`/projects/${projectId}/findings/${f.id}`}
                     className="min-w-0 flex-1 truncate font-semibold text-foreground hover:underline"
                   >
-                    {f.title}
+                    {findingLabel(f)}
                   </Link>
                   <StatusBadge label={findingStatusLabel(f.status)} tone={findingStatusTone(f.status)} />
                 </li>

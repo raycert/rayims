@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn, openNativePicker } from "@/lib/utils";
 import { VERIFICATION_PRIORITIES } from "@/lib/validation/verification-items";
 import { priorityLabel } from "@/lib/ui/status-tones";
-import { formatDate } from "@/lib/ui/format";
+import { findingLabel, formatDate, relatedFindingLabel } from "@/lib/ui/format";
 import { createAction, deleteAction, getActionDeleteState, updateAction } from "@/lib/mutations/actions";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import type { ActionRow } from "@/lib/queries/actions";
@@ -19,6 +19,7 @@ type Scope = "project_wide" | "specific_site";
 /** Finding context when adding an action from Finding Detail (link is server-derived and immutable). */
 export type ActionFindingContext = {
   id: string;
+  findingNo: number;
   title: string;
   isNonconformity: boolean;
   activityId: string | null;
@@ -76,7 +77,7 @@ export function ActionFormDrawer({
   const siteLocked = !!selectedActivity?.siteId;
   const lockedSiteName = siteLocked ? catalog.sites.find((s) => s.id === selectedActivity!.siteId)?.name : undefined;
 
-  const linkedTitle = finding?.title ?? action?.findingTitle ?? null;
+  const linkedTitle = finding ? findingLabel(finding) : relatedFindingLabel(action?.findingNo ?? null, action?.findingTitle ?? null);
   const isCorrective = finding ? finding.isNonconformity : action?.findingType === "nonconformity";
   const noun = isCorrective ? "Corrective Action" : "Action";
 

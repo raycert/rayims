@@ -3,6 +3,34 @@ export function formatFrameworkIdentity(code: string, edition: string): string {
   return `${code}:${edition}`;
 }
 
+/**
+ * Finding reference (Phase 6A, ADR-019): the stored per-project integer shown as F-nnn —
+ * 1 → "F-001", 1000 → "F-1000". The one place this format is built.
+ */
+export function formatFindingNumber(findingNo: number): string {
+  return `F-${String(findingNo).padStart(3, "0")}`;
+}
+
+/** "F-001 · Retention period missing" — the consultant-facing label wherever a Finding is named. */
+export function findingLabel(f: { findingNo: number; title: string }): string {
+  return `${formatFindingNumber(f.findingNo)} · ${f.title}`;
+}
+
+/** A related Finding named from nullable parts (e.g. on an Action): "F-001 · title"; null without a Finding. */
+export function relatedFindingLabel(findingNo: number | null, title: string | null): string | null {
+  if (!title) return null;
+  return findingNo != null ? findingLabel({ findingNo, title }) : title;
+}
+
+/**
+ * The Finding number a search query refers to, or null: "F-001", "f-1", "F1", "001", "1" → 1.
+ * Only a whole query of that shape counts — other text keeps its normal title / description search.
+ */
+export function findingNumberFromQuery(query: string): number | null {
+  const m = /^(?:f\s*-?\s*)?0*(\d{1,6})$/i.exec(query.trim());
+  return m ? Number(m[1]) : null;
+}
+
 /** "management_system" -> "Management System" — cosmetic only; the stored value never changes. */
 export function humanizeCategory(category: string): string {
   return category

@@ -470,3 +470,35 @@ behavior).
 `actions.status` and `priority` (`low | medium | high`). "Overdue" is derived,
 never stored. `updated_at` added to `document_reviews`. See `03_DATABASE.md`
 (V1 value lists).
+
+## ADR-019 — Finding Numbering
+
+**Context:** RayIMS V1 is consultant-operated: the consultant records Findings and discusses them with
+the client, in follow-up and — from Phase 6 — in Activity Reports and exported deliverables. UUIDs are
+not usable references. ADR-015 deferred human-readable numbering until an approach was approved; the
+Phase 6 pre-implementation review made Finding numbers a Phase 6 prerequisite.
+**Decision:**
+- Every Finding has a number **per project**, stored as `issues.finding_no integer NOT NULL` with
+  `UNIQUE (project_id, finding_no)`, and displayed as **F-nnn** (zero-padded to 3 digits, growing to
+  F-1000). The display string is never stored.
+- One sequence for all Finding Types (the type may change before closure; the reference must not) —
+  no NC- / OBS- / OFI- sequences.
+- Assigned **at INSERT** by the database: a `BEFORE INSERT OR UPDATE` trigger
+  (`assign_finding_no`, `SECURITY DEFINER`, `search_path = ''`) increments an internal per-project
+  counter (`project_finding_counters`) with an atomic upsert, which locks the project's counter row and
+  serializes simultaneous inserts. No `max() + 1` in application code; the browser never sends it.
+- **Immutable** (the trigger keeps the old value on UPDATE) and **never reused** — a deleted Finding
+  (Phase 4F rules, unchanged) leaves a gap; the counter is never decremented or reset.
+- The counter table has RLS with no policies and no grants; the function's EXECUTE is revoked from
+  `public`, `anon` and `authenticated`. Both are internal infrastructure, not exposed in the UI.
+- **Actions are not numbered** (ADR-015 still applies to them). No approval, submission or sign-off
+  workflow is introduced: a Finding stays Open → Closed under ADR-018.
+**Reason:** a stable, short, per-project reference for consultant / client communication that every
+creation path gets automatically, safe under concurrent creation without application locking.
+**Consequences:** one additive migration (`20261002000100_finding_numbering.sql`): one internal table,
+one column with a deterministic backfill (per project by `created_at, id`), one unique constraint, one
+trigger function and trigger; no change to `issues` RLS or grants. The generated Insert type lists
+`finding_no` as required, so the application inserts Findings through one helper that omits it
+(`lib/mutations/finding-insert.ts`). Reports and exports read `finding_no` directly.
+**Supersedes:** ADR-015 for Findings only.
+**Status:** Approved (Phase 6A)

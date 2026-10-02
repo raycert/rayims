@@ -17,6 +17,7 @@ import {
   priorityLabel,
   priorityTone,
 } from "@/lib/ui/status-tones";
+import { findingNumberFromQuery, formatFindingNumber } from "@/lib/ui/format";
 import { FindingFormDrawer } from "./finding-form-drawer";
 import type { FindingRow } from "@/lib/queries/findings";
 import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
@@ -55,8 +56,11 @@ export function FindingsWorkspaceView({
     if (priorityFilter !== "all") list = list.filter((f) => f.priority === priorityFilter);
     const q = search.trim().toLowerCase();
     if (q) {
+      // "F-012", "012" or "12" also finds Finding number 12 (Phase 6A); text search is unchanged.
+      const no = findingNumberFromQuery(q);
       list = list.filter(
         (f) =>
+          f.findingNo === no ||
           f.title.toLowerCase().includes(q) ||
           (f.description ?? "").toLowerCase().includes(q) ||
           (f.siteName ?? "").toLowerCase().includes(q) ||
@@ -169,10 +173,10 @@ export function FindingsWorkspaceView({
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
-                  {["Finding", "Type", "Site", "Framework", "Priority", "Status"].map((h, i) => (
+                  {["No.", "Finding", "Type", "Site", "Framework", "Priority", "Status"].map((h, i) => (
                     <th
                       key={h}
-                      className={`py-3 text-left text-[13px] font-semibold uppercase tracking-wide text-muted ${i === 0 || i === 5 ? "px-4" : "px-2.5"}`}
+                      className={`py-3 text-left text-[13px] font-semibold uppercase tracking-wide text-muted ${i === 0 || i === 6 ? "px-4" : "px-2.5"}`}
                     >
                       {h}
                     </th>
@@ -190,7 +194,8 @@ export function FindingsWorkspaceView({
                     }}
                     className="cursor-pointer border-t border-border hover:bg-neutral-soft/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2"
                   >
-                    <td className="max-w-sm px-4 py-3">
+                    <td className="whitespace-nowrap px-4 py-3 align-top font-semibold tabular-nums">{formatFindingNumber(f.findingNo)}</td>
+                    <td className="max-w-sm px-2.5 py-3">
                       <Link
                         href={`/projects/${projectId}/findings/${f.id}`}
                         onClick={(e) => e.stopPropagation()}
@@ -235,6 +240,7 @@ export function FindingsWorkspaceView({
                 className="block rounded-lg border border-border bg-surface p-3.5 shadow-sm focus-visible:outline-2 focus-visible:outline-primary"
               >
                 <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[13px] font-semibold tabular-nums">{formatFindingNumber(f.findingNo)}</span>
                   <StatusBadge label={findingTypeLabel(f.findingType)} tone={findingTypeTone(f.findingType)} />
                   <StatusBadge label={priorityLabel(f.priority)} tone={priorityTone(f.priority)} />
                   <StatusBadge label={findingStatusLabel(f.status)} tone={findingStatusTone(f.status)} />

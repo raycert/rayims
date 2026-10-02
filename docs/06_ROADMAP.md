@@ -32,7 +32,12 @@
 | — 5E  | Required Document Excel Import              | **COMPLETED** |
 | — 5F  | Gap Assessment Export                       | **COMPLETED** |
 | — 5G  | Phase 5 final acceptance                    | **COMPLETED** |
-| 6     | Visit Summary / Reporting                   | Planned — NEXT |
+| 6     | Visit Summary / Reporting                   | **IN PROGRESS** |
+| — 6A  | Finding numbering                           | **COMPLETED** |
+| — 6B  | Activity Report narrative                   | Planned — NEXT |
+| — 6C  | Activity Report data integration            | Planned |
+| — 6D  | Activity Report export                      | Planned (format decision pending) |
+| — 6E  | Phase 6 final acceptance                    | Planned |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
 
 > **The product workflow remains flexible.** The implementation order above does
@@ -632,11 +637,47 @@ the item; server-rendered dates use the server's time zone before hydration (set
 zone or render dates client-side when deploying).
 
 
-## Phase 6 — Visit Summary / Reporting [NEXT]
+## Phase 6 — Visit Summary / Reporting [IN PROGRESS]
 
 Visit summary on activities and a printable visit report generated from
-structured data.
+structured data. Phase 6 pre-implementation review (2026-10-02): one **Activity Report** per Activity,
+rendered from current data; narrative stays on `activities` (ADR-013) plus `summary` and
+`client_participants` (6B); report scope = checks executed in the Activity, Findings with
+`issues.activity_id`, Actions of the Activity or of those Findings; no images in V1; no report status,
+versioning or approval. Export format (DOCX vs the approved printable HTML page) is an open owner
+decision before 6D. RayIMS stays a consultant workspace — no approval / sign-off workflow.
+
+### Phase 6A — Finding numbering [COMPLETED]
+
+Per-project Finding numbers **F-001** (integer `issues.finding_no`, ADR-019): assigned by a database
+trigger from an internal counter at INSERT (race-safe, every creation path), immutable, never reused
+(delete gaps), one sequence for all Finding Types; shown on the Findings list, Finding Detail, Actions,
+Verification links, Gap Assessment follow-up and the creation toast; searchable as "F-001" / "001" /
+"1". One migration (`20261002000100_finding_numbering.sql`). See `08_TESTING.md`.
+
+### Phase 6B — Activity Report narrative [NEXT]
+
 
 ## Phase 7 — Dashboard / Polish / Demo / Deployment
 
 Minimal dashboard, polish, demo data, deployment to Vercel.
+
+**Document workflow backlog (recorded 2026-10-02 — not scheduled, not part of Phase 6; no schema, no
+SDKs, no change to Document upload behaviour until approved):**
+
+- **Bulk Document Upload** — *Phase 7 / productivity backlog.* Documents → Bulk Upload → select
+  multiple files (or a folder, if the browser supports it cleanly) → auto-match **suggestions** → user
+  confirmation → Document Versions created in bulk. Principles: it uploads **files / Versions only** —
+  Required Documents still come from manual create or the Required Document Excel Import; matching uses
+  deterministic hints only (Document Code in the file name, exact / normalized title, site context; no
+  AI filename matching); a match is a suggestion the user confirms before upload; unmatched files stay
+  unresolved, never silently attached; no Version yet → V1, otherwise the next Version; a Document whose
+  current Version has an open Gap Assessment still cannot take a new Version (BR-139); a failure must
+  not leave partial database / file state.
+- **External Document Source** — *Phase 7 / storage-integration backlog.* A Document Version (or
+  document source) may reference external storage (Google Drive, Google Docs, SharePoint, OneDrive).
+  Principles: internal upload to RayIMS stays the default — it is the controlled assessment snapshot;
+  an external link is supplementary, never a replacement for Version history; a live Drive / Docs URL
+  alone is not a stable snapshot; a future integration may store provider, external file id, external
+  revision / version id and source URL; a future "snapshot for assessment" step may copy a specific
+  external revision into RayIMS Storage.

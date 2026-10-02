@@ -10,6 +10,7 @@ import { documentSiteError, frameworkItemAllowedForReview, loadReviewForFollowUp
 import { evaluateFindingClosure, type ClosureEvaluation } from "@/lib/domain/finding-closure";
 import { evaluateFindingDelete, type DeleteEvaluation } from "@/lib/domain/delete-rules";
 import { fieldErrorsFrom, type ActionResult } from "./types";
+import { insertFinding } from "./finding-insert";
 
 function revalidateFinding(projectId: string, findingId?: string) {
   revalidatePath(`/projects/${projectId}/findings`);
@@ -23,7 +24,7 @@ function revalidateFinding(projectId: string, findingId?: string) {
  * root_cause, effectiveness_*) and closed_at/closed_by are never referenced by this
  * insert, even if a tampered client submits them — they stay at their database defaults.
  */
-export async function createFinding(projectId: string, input: unknown): Promise<ActionResult<{ id: string }>> {
+export async function createFinding(projectId: string, input: unknown): Promise<ActionResult<{ id: string; findingNo: number }>> {
   const user = await requireUser();
 
   const parsed = findingSchema.safeParse(input);
@@ -56,25 +57,21 @@ export async function createFinding(projectId: string, input: unknown): Promise<
     };
   }
 
-  const { data, error } = await supabase
-    .from("issues")
-    .insert({
-      project_id: projectId,
-      finding_type: d.findingType,
-      title: d.title,
-      description: d.description,
-      priority: d.priority,
-      site_id: d.siteId,
-      activity_id: d.activityId,
-      framework_item_id: d.frameworkItemId,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
+  const { data, error } = await insertFinding(supabase, {
+    project_id: projectId,
+    finding_type: d.findingType,
+    title: d.title,
+    description: d.description,
+    priority: d.priority,
+    site_id: d.siteId,
+    activity_id: d.activityId,
+    framework_item_id: d.frameworkItemId,
+    created_by: user.id,
+  });
   if (error) return { ok: false, error: "Couldn't create the finding. Try again." };
 
   revalidateFinding(projectId);
-  return { ok: true, data: { id: data.id } };
+  return { ok: true, data: { id: data.id, findingNo: data.finding_no } };
 }
 
 /**
@@ -89,7 +86,7 @@ export async function createFindingFromReview(
   projectId: string,
   reviewId: string,
   input: unknown,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; findingNo: number }>> {
   const user = await requireUser();
   const parsed = findingSchema.safeParse(input);
   if (!parsed.success) {
@@ -113,28 +110,24 @@ export async function createFindingFromReview(
     };
   }
 
-  const { data, error } = await supabase
-    .from("issues")
-    .insert({
-      project_id: projectId,
-      finding_type: d.findingType,
-      title: d.title,
-      description: d.description,
-      priority: d.priority,
-      site_id: d.siteId,
-      activity_id: d.activityId,
-      framework_item_id: d.frameworkItemId,
-      document_review_id: ctx.reviewId,
-      verification_item_id: null,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
+  const { data, error } = await insertFinding(supabase, {
+    project_id: projectId,
+    finding_type: d.findingType,
+    title: d.title,
+    description: d.description,
+    priority: d.priority,
+    site_id: d.siteId,
+    activity_id: d.activityId,
+    framework_item_id: d.frameworkItemId,
+    document_review_id: ctx.reviewId,
+    verification_item_id: null,
+    created_by: user.id,
+  });
   if (error) return { ok: false, error: "Couldn't create the finding. Try again." };
 
   revalidateFinding(projectId);
   revalidatePath(`/projects/${projectId}/documents/${ctx.documentId}`);
-  return { ok: true, data: { id: data.id } };
+  return { ok: true, data: { id: data.id, findingNo: data.finding_no } };
 }
 
 /**
@@ -399,7 +392,7 @@ export async function createFindingFromVerification(
   activityId: string,
   verificationItemId: string,
   input: unknown,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; findingNo: number }>> {
   const user = await requireUser();
 
   const parsed = verificationFindingSchema.safeParse(input);
@@ -453,27 +446,23 @@ export async function createFindingFromVerification(
     }
   }
 
-  const { data, error } = await supabase
-    .from("issues")
-    .insert({
-      project_id: projectId,
-      finding_type: d.findingType,
-      title: d.title,
-      description: d.description,
-      priority: d.priority,
-      site_id: d.siteId,
-      activity_id: activityId,
-      framework_item_id: d.frameworkItemId,
-      verification_item_id: verificationItemId,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
+  const { data, error } = await insertFinding(supabase, {
+    project_id: projectId,
+    finding_type: d.findingType,
+    title: d.title,
+    description: d.description,
+    priority: d.priority,
+    site_id: d.siteId,
+    activity_id: activityId,
+    framework_item_id: d.frameworkItemId,
+    verification_item_id: verificationItemId,
+    created_by: user.id,
+  });
   if (error) return { ok: false, error: "Couldn't create the finding. Try again." };
 
   revalidateFinding(projectId);
   revalidatePath(`/projects/${projectId}/activities/${activityId}`);
-  return { ok: true, data: { id: data.id } };
+  return { ok: true, data: { id: data.id, findingNo: data.finding_no } };
 }
 
 /**

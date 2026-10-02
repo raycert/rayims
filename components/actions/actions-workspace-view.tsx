@@ -10,7 +10,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Toast, useToast } from "@/components/ui/toast";
 import { ACTION_STATUSES } from "@/lib/validation/actions";
 import { actionStatusLabel, priorityLabel, priorityTone } from "@/lib/ui/status-tones";
-import { formatDate, isActionOverdue } from "@/lib/ui/format";
+import { findingNumberFromQuery, formatDate, isActionOverdue, relatedFindingLabel } from "@/lib/ui/format";
 import { ActionCard } from "./action-card";
 import { ActionFormDrawer } from "./action-form-drawer";
 import { ActionStatusControl } from "./action-status-control";
@@ -57,8 +57,11 @@ export function ActionsWorkspaceView({
     if (linkFilter === "standalone") list = list.filter((a) => a.findingId === null);
     const q = search.trim().toLowerCase();
     if (q) {
+      // "F-012" / "012" / "12" also finds the Actions of Finding number 12 (Phase 6A).
+      const no = findingNumberFromQuery(q);
       list = list.filter(
         (a) =>
+          (no !== null && a.findingNo === no) ||
           a.description.toLowerCase().includes(q) ||
           (a.ownerName ?? "").toLowerCase().includes(q) ||
           (a.findingTitle ?? "").toLowerCase().includes(q) ||
@@ -219,10 +222,10 @@ export function ActionsWorkspaceView({
                         {a.findingId ? (
                           <Link
                             href={`/projects/${projectId}/findings/${a.findingId}`}
-                            title={a.findingTitle ?? undefined}
+                            title={relatedFindingLabel(a.findingNo, a.findingTitle) ?? undefined}
                             className="line-clamp-2 text-primary hover:underline"
                           >
-                            {a.findingTitle}
+                            {relatedFindingLabel(a.findingNo, a.findingTitle)}
                           </Link>
                         ) : (
                           "Standalone"

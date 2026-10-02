@@ -20,7 +20,7 @@ import {
   priorityLabel,
   priorityTone,
 } from "@/lib/ui/status-tones";
-import { formatDate } from "@/lib/ui/format";
+import { findingLabel, formatDate, formatFindingNumber } from "@/lib/ui/format";
 import {
   closeFinding,
   deleteFinding,
@@ -195,11 +195,15 @@ export function FindingDetailView({
           Findings
         </Link>
         <span className="mx-1.5">/</span>
-        <span className="text-foreground">{finding.title}</span>
+        <span className="text-foreground">{findingLabel(finding)}</span>
       </div>
 
       <div className="mb-1.5 flex flex-wrap items-start justify-between gap-3">
-        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{finding.title}</h1>
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+          {/* Real spaces (not margins), so the text reads and copies as "F-001 · Title". */}
+          <span className="tabular-nums">{formatFindingNumber(finding.findingNo)}</span>{" "}
+          <span className="font-normal text-muted">·</span> {finding.title}
+        </h1>
         <div className="flex flex-wrap items-center gap-1.5">
           {!isClosed ? (
             <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
@@ -616,7 +620,7 @@ export function FindingDetailView({
           catalog={catalog}
           finding={
             actionDrawer.mode === "create"
-              ? { id: finding.id, title: finding.title, isNonconformity: isNc, activityId: finding.activityId, siteId: finding.siteId }
+              ? { id: finding.id, findingNo: finding.findingNo, title: finding.title, isNonconformity: isNc, activityId: finding.activityId, siteId: finding.siteId }
               : undefined
           }
           action={actionDrawer.mode === "edit" ? actionDrawer.action : undefined}

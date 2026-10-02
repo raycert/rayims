@@ -165,6 +165,11 @@ and prototype/demo data is not a requirement.
   The approved `.dc.html` files are not edited to remove them.
 - **Admin controls** on the Framework Library / Detail are shown to Admins only; the
   library still reads as a reference catalog for everyone.
+- *(Phase 6A)* **Finding numbers** are built only by `formatFindingNumber` / `findingLabel`
+  (`lib/ui/format.ts`): "F-001" alone where space is tight (Findings "No." column — first column,
+  tabular figures; phone cards — before the badges; Verification card "View F-001"), "F-001 · Title"
+  wherever a Finding is named in text (Finding Detail H1 with real spaces, breadcrumb, Action form
+  context, Actions list / cards, Gap Assessment follow-up list). Never a raw integer, never a UUID.
 
 ## Out of scope for this document
 

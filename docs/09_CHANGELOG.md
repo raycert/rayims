@@ -3,6 +3,30 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 6A — Finding numbering (2026-10-02)
+
+**Result: 42/42 acceptance checks.** One migration; ADR-019.
+
+### Added
+
+- Migration `20261002000100_finding_numbering.sql`: `issues.finding_no` (backfilled, NOT NULL,
+  `UNIQUE (project_id, finding_no)`), internal `project_finding_counters` (RLS, no policies, no
+  grants), trigger function `assign_finding_no` (SECURITY DEFINER, EXECUTE revoked) and trigger. No
+  `issues` RLS / grant change. `types/database.ts` regenerated.
+- Finding numbers **F-001** on the Findings list ("No." column / phone cards), Finding Detail header
+  and breadcrumb, Action form and Actions list / cards, Verification card links ("View F-001"), Gap
+  Assessment follow-up list and the creation toast ("Finding F-001 created."); number search on
+  Findings and Actions ("F-001", "001", "1").
+- `formatFindingNumber`, `findingLabel`, `relatedFindingLabel`, `findingNumberFromQuery`
+  (`lib/ui/format.ts`); `insertFinding` (`lib/mutations/finding-insert.ts`) used by all three Finding
+  creation paths.
+- ADR-019 — Finding Numbering (supersedes ADR-015 for Findings only); BR-144 – BR-147.
+
+### Recorded (backlog, not implemented)
+
+- Phase 7: Bulk Document Upload with match suggestions / folder upload, and External Document Source
+  (Google Drive / Docs, SharePoint, OneDrive; "snapshot for assessment") — see `06_ROADMAP.md`.
+
 ## Phase 5G — Phase 5 final acceptance (2026-10-01)
 
 **Result: 100/100 acceptance checks. Phase 5 — COMPLETE / CLOSED.** No migration, RLS, grant or Storage

@@ -773,6 +773,7 @@ export type Database = {
           effectiveness_result: string | null
           effectiveness_reviewed_at: string | null
           effectiveness_reviewed_by: string | null
+          finding_no: number
           finding_type: string
           framework_item_id: string | null
           id: string
@@ -798,6 +799,7 @@ export type Database = {
           effectiveness_result?: string | null
           effectiveness_reviewed_at?: string | null
           effectiveness_reviewed_by?: string | null
+          finding_no: number
           finding_type?: string
           framework_item_id?: string | null
           id?: string
@@ -823,6 +825,7 @@ export type Database = {
           effectiveness_result?: string | null
           effectiveness_reviewed_at?: string | null
           effectiveness_reviewed_by?: string | null
+          finding_no?: number
           finding_type?: string
           framework_item_id?: string | null
           id?: string
@@ -934,6 +937,29 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      project_finding_counters: {
+        Row: {
+          last_finding_no: number
+          project_id: string
+        }
+        Insert: {
+          last_finding_no: number
+          project_id: string
+        }
+        Update: {
+          last_finding_no?: number
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_finding_counters_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_frameworks: {
         Row: {
