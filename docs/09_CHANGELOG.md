@@ -3,6 +3,20 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 6C — Activity Report data integration (2026-10-03)
+
+**Result: 29/29 (plus the 21/21 report-rules unit test) acceptance checks.** No migration, RLS, grant or Storage change; no ADR.
+
+### Added
+
+- `lib/reports/activity-report.ts` — `assembleActivityReport`: the Activity Report model and every report
+  rule (Verification scope, Finding scope, Action union / de-duplication, Evidence scope, ordering); pure,
+  type-only imports — the single source the 6D export must reuse.
+- `lib/queries/activity-report.ts` — `getActivityReportData(projectId, activityId)`: five parallel,
+  project-scoped queries.
+- **Activity Report Summary** on Activity Detail (`components/activities/activity-report-summary.tsx`).
+- BR-150 – BR-153.
+
 ## Phase 6B — Activity Report narrative (2026-10-03)
 
 **Result: 35/35 acceptance checks.** One migration; no ADR (ADR-013 note).

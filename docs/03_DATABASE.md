@@ -197,8 +197,15 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
     done), **`summary`** (overall consultant conclusion), `next_steps` (recommended / agreed next steps),
     **`client_participants`** (free text: client attendees / coordinators). All nullable text; the two
     in bold were added in Phase 6B (migration `20261003000100_activity_summary_fields.sql`, no default,
-    no CHECK, no FK, no RLS / grant change). No report table — a future Activity Report reads these
+    no CHECK, no FK, no RLS / grant change). No report table — the Activity Report (Phase 6C) reads these
     columns plus derived Verification / Finding / Action / Evidence data.
+  - **Activity Report read (Phase 6C, no schema change):** `getActivityReportData`
+    (`lib/queries/activity-report.ts`) — five parallel queries, each filtered by `project_id` (and the
+    Activity): the Activity (+ type, consultant, project / client, its attachments); the project's site
+    names; `verification_items` with `verified_activity_id = A OR target_activity_id = A` (+ requirement,
+    linked `issues`, attachments); `issues` with `activity_id = A` (+ requirement, linked `actions` with
+    attachments, attachments); `actions` with `activity_id = A` (+ their `issues` reference,
+    attachments). All filters are indexed. Inclusion rules: BR-150 – BR-153.
   - `created_by`, timestamps
 - **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
 - **Nullable:** `site_id` (project-wide activity), `consultant_id`, `start_date`,

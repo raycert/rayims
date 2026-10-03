@@ -57,6 +57,31 @@ Product behavior that the schema and UI must respect. Database details are in
   status change, no Finding / Action / Verification / Evidence. There is no report status, version,
   submission, review, approval or sign-off — RayIMS V1 is consultant-operated. The fields create no
   reference, so Activity delete rules are unchanged.
+- **BR-150** *(Phase 6C)* **Activity Report = Activity metadata + the Activity Summary narrative +
+  data derived from the Activity's records, always rendered from the CURRENT state** (a Finding closed
+  after the visit shows as Closed). No report table, snapshot, status, version, approval or sign-off;
+  the exported file (Phase 6D) is the point-in-time copy. All inclusion, de-duplication and ordering
+  rules live in ONE place — `lib/reports/activity-report.ts` (`assembleActivityReport`), fed by
+  `getActivityReportData` — and the export must reuse it (never re-implement the rules).
+- **BR-151** *(Phase 6C)* **Verification in an Activity Report:** *executed here* =
+  `verified_activity_id = A` with a result — counted by result (Verified OK, Issue Identified, Follow-up
+  Required) whatever Activity it was planned for; *planned, not completed* = `target_activity_id = A`
+  without a result (separate count); *completed in another activity* = `target_activity_id = A` with a
+  result executed elsewhere (count only — never a result here). Only executed-here checks with Issue
+  Identified / Follow-up Required are listed (question, requirement, result, notes, F-nnn references);
+  Verified OK is counted, not listed, and never turned into "positive observations".
+- **BR-152** *(Phase 6C)* **Findings in an Activity Report:** `issues.activity_id = A` only, ordered by
+  Finding number — a Finding created from a check already carries the executing Activity, so there is
+  no second path and no double count; a Finding without an Activity is never inferred into a report
+  (no site / framework / date matching). Shown: number, type, title, description, requirement, site,
+  priority, status — not the NC response or effectiveness. **Actions:** `actions.activity_id = A` ∪
+  Actions of those Findings, **de-duplicated by Action id**; open (Open / In Progress / Pending Review)
+  first, then by due date (undated last), description; Closed last; the existing Overdue rule.
+- **BR-153** *(Phase 6C)* **Evidence in an Activity Report:** attachments of the Activity, of its
+  report checks (executed here or planned here and pending), of its report Findings and of its report
+  Actions — each attachment has one parent, so it is counted once; rows of another project are never
+  included. **Metadata only, no images** (file name, caption, what it is attached to); View / Download
+  use the usual on-click 60 s link.
 - **BR-61** The Master Plan is not a database table. It is the Project Workspace's
   Plan view over that project's `activities`, always scoped to one `project_id`; there
   is no global cross-project activities list in V1 (Phase 3B-1).

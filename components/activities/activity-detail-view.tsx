@@ -14,6 +14,8 @@ import { ACTIVITY_STATUSES } from "@/lib/validation/activities";
 import { deleteActivity, setActivityStatus } from "@/lib/mutations/activities";
 import { ActivityFormDrawer } from "./activity-form-drawer";
 import { ActivitySummaryDrawer, SUMMARY_FIELDS } from "./activity-summary-drawer";
+import { ActivityReportSummary } from "./activity-report-summary";
+import type { ActivityReport } from "@/lib/reports/activity-report";
 import { ActivityVerificationSection } from "@/components/verification/activity-verification-section";
 import { EvidenceSection } from "@/components/evidence/evidence-panel";
 import type { ActivityDetail, ActivityFormCatalog } from "@/lib/queries/activities";
@@ -43,12 +45,15 @@ export function ActivityDetailView({
   catalog,
   verificationItems,
   verificationCatalog,
+  report,
 }: {
   projectName: string;
   activity: ActivityDetail;
   catalog: ActivityFormCatalog;
   verificationItems: ActivityVerificationItemRow[];
   verificationCatalog: VerificationFormCatalog;
+  /** Activity Report model (Phase 6C) — system-derived Verification / Findings / Actions / Evidence. */
+  report: ActivityReport;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -292,6 +297,8 @@ export function ActivityDetailView({
         />
 
         <ActivitySummarySection activity={activity} onEdit={() => setEditingSummary(true)} />
+
+        <ActivityReportSummary report={report} />
       </div>
 
       {editingSummary ? (

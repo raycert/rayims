@@ -177,6 +177,16 @@ and prototype/demo data is not a requirement.
   **Edit Activity Summary** in the section header. No "Not set." rows. The editor is a normal drawer
   (bottom sheet on phones) with four text areas and one helper line each; no wizard. "Activity Summary"
   is the UI term — not "Visit Summary" (Activities can be online, training, document review…).
+- *(Phase 6C)* **Activity Report Summary** — the last Activity Detail section ("Derived from this
+  Activity's records — current state."), compact and read-only, separate from the consultant narrative:
+  **Verification Summary** (one line of counts — executed, Verified OK, Issue Identified, Follow-up Required,
+  plus "planned, not completed" / "completed in another activity" when non-zero — then only the
+  Issue / Follow-up checks), **Findings (n)** (F-nnn, type / priority / status badges, title linking to
+  the Finding, requirement; site only when it differs from the Activity's), **Actions / Follow-up (n)**
+  (description, F-nnn or "Standalone", owner, due date, Overdue badge, status), **Evidence (n)** (only
+  non-empty groups, file names wrap, View / Download on click). Empty → one line each ("No checks
+  executed.", "No Findings recorded.", "No Actions recorded.", "No report Evidence recorded."). Cards on
+  every width — no table that scrolls sideways. No Export button and no "Coming soon" before 6D.
 
 ## Out of scope for this document
 

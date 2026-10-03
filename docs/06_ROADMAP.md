@@ -35,8 +35,8 @@
 | 6     | Visit Summary / Reporting                   | **IN PROGRESS** |
 | — 6A  | Finding numbering                           | **COMPLETED** |
 | — 6B  | Activity Report narrative                   | **COMPLETED** |
-| — 6C  | Activity Report data integration            | Planned — NEXT |
-| — 6D  | Activity Report export                      | Planned (format decision pending) |
+| — 6C  | Activity Report data integration            | **COMPLETED** |
+| — 6D  | Activity Report export                      | Planned — NEXT (format decision pending) |
 | — 6E  | Phase 6 final acceptance                    | Planned |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
 
@@ -663,7 +663,19 @@ empty / partial states and a focused **Edit Activity Summary** drawer (Edit Acti
 schedule and Plan). Any status, Admin = Consultant, no approval / report status. One migration
 (`20261003000100_activity_summary_fields.sql`). See `08_TESTING.md`.
 
-### Phase 6C — Activity Report data integration [NEXT]
+### Phase 6C — Activity Report data integration [COMPLETED]
+
+The system-derived side of the Activity Report: one report model (`lib/reports/activity-report.ts`,
+the single source of report rules) loaded by `getActivityReportData` and shown as the **Activity Report
+Summary** on Activity Detail — Verification counts (executed here / planned, not completed / completed
+elsewhere) and issue checks, the Activity's Findings (F-nnn), Actions (union, de-duplicated) and
+Evidence (metadata). Current state; no export, snapshot or approval; no schema change. See
+`08_TESTING.md`.
+
+### Phase 6D — Activity Report export [NEXT]
+
+Export built from the 6C report model only (no second implementation of the rules). Format decision
+(DOCX vs the approved printable HTML page) pending.
 
 
 ## Phase 7 — Dashboard / Polish / Demo / Deployment

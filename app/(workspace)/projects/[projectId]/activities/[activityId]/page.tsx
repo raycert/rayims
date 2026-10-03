@@ -4,6 +4,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import { getProjectWorkspace } from "@/lib/queries/projects";
 import { getActivity, getActivityFormCatalog } from "@/lib/queries/activities";
 import { getVerificationFormCatalog, listActivityVerificationItems } from "@/lib/queries/verification-items";
+import { getActivityReportData } from "@/lib/queries/activity-report";
 
 export async function generateMetadata({
   params,
@@ -31,11 +32,14 @@ export default async function ActivityDetailPage({
   // never distinguishes "wrong id" from "right id, wrong project".
   if (!project || !activity) notFound();
 
-  const [catalog, verificationItems, verificationCatalog] = await Promise.all([
+  const [catalog, verificationItems, verificationCatalog, report] = await Promise.all([
     getActivityFormCatalog(projectId, activity.activityTypeId),
     listActivityVerificationItems(projectId, activityId),
     getVerificationFormCatalog(projectId),
+    // Phase 6C: the Activity Report model (same loader + rules the export will use).
+    getActivityReportData(projectId, activityId),
   ]);
+  if (!report) notFound();
 
   return (
     <PageContainer>
@@ -45,6 +49,7 @@ export default async function ActivityDetailPage({
         catalog={catalog}
         verificationItems={verificationItems}
         verificationCatalog={verificationCatalog}
+        report={report}
       />
     </PageContainer>
   );

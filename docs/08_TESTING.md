@@ -1458,7 +1458,65 @@ include the two new (NULL) columns; the same hash over the original columns equa
 every other snapshot key is identical, and both genuine Activities have NULL `summary` /
 `client_participants`. Fixture residue 0 (only Chinh Long and Test 1 remain).
 
-### Phase 6 — Visit Summary / Reporting (6C–6E)
+### Phase 6C — Activity Report data integration (executed 2026-10-03)
+
+No migration, RLS, grant or Storage change. Two levels of testing:
+
+**1. Report rules unit test — 21/21 PASS.** `assembleActivityReport` (`lib/reports/activity-report.ts`)
+run directly by Node on synthetic raw rows: deterministic output; executed here = 3 (incl. a check
+planned for another Activity) counted by result; planned-here pending = 1 and completed elsewhere = 1
+kept separate; issue list = only executed-here Issue Identified / Follow-up Required, with requirement
+"ISO 14001:2015 · 8.1 — …" and F-002; Findings `activity_id = A` only, ordered 1, 2, 7, a Finding with
+no Activity dropped; origins manual / verification / document_review; site names resolved; no NC response
+data; an Action on both paths once; a Finding-linked Action without `activity_id` included; standalone
+Activity Action included; an Activity Action linked to another Activity's Finding keeps F-030; Action
+order (open, due date, undated, closed last); Evidence 5 = Activity 1 + Verification 2 (executed + pending
+here) + Finding 1 + Action 1, the elsewhere check's file excluded, the both-paths Action's file once;
+Finding Evidence named "F-002 · …"; consultant falls back to email; narrative passed through; empty
+Activity; Evidence of another project dropped.
+
+**2. Hosted acceptance, production build — 29/29 PASS** (run 2; re-run 29/29 after the heading rename
+below). Run 1: 27/29 — the block headings' counts were spaced only by a CSS margin, so the text read
+"EVIDENCE(4)" (fixed with a real space; same class as 6A-01), and the performance fixture attached
+Evidence to Action numbers 31–39 of 30 (fixture fixed).
+
+| Matrix | Checks (all PASS) |
+| --- | --- |
+| Layout | sections Plan → Verification → General Activity Evidence → Outcome / Activity Summary → Activity Report Summary; no Export / "Coming soon" |
+| A / B / C | Activity A: "4 executed · 2 Verified OK · 1 Issue Identified · 1 Follow-up Required" (incl. a check planned for B), "1 planned, not completed", "1 completed in another activity"; Activity B: the check planned for A but done in B counts there; B's own check done in A shows as completed elsewhere |
+| Issue list | only the Issue / Follow-up checks executed in A, with requirement, notes and "F-001 · title" |
+| D / E / F / G | Findings of A: F-001 (verification-origin), F-002 (manual), F-005 (Gap Assessment-origin with Activity A); project-wide F-004 and B's F-003 absent; row shows number, type, priority, status, title, description, requirement; site only where it differs from the Activity's |
+| H / I / J | 3 Actions: the Finding-linked one without `activity_id` (F-001, owner, Overdue — existing rule — first), the one on both paths once, the standalone one (Closed, last); B's Action absent |
+| K | Evidence 4 = Activity 1 / Verification 1 / Finding 1 / Action 1; the elsewhere check's and Project B's files absent; no signed URL before a click; Download → existing on-click flow ("File is unavailable." for a fixture without an object) |
+| L | empty Activity: "No checks executed.", "No Findings recorded.", "No Actions recorded.", "No report Evidence recorded.", no empty group boxes |
+| Read-only | viewing all reports left Activities, checks, Findings, Actions, attachments and files byte-identical |
+| N / access | Project B Activity via a Project A URL → "Page not found", nothing leaked; signed out → login; consultant sees the same summary |
+| M | 390 / 412 px: F-001, actions and a long Evidence file name wrap, no horizontal overflow |
+| Performance | 50 checks / 20 Findings / 30 Actions / 40 Evidence on one Activity, all shown; Activity Detail 1048 / 765 / 812 ms |
+
+**Regressions on the final code:**
+
+| Suite | Result | Earlier attempt (this phase) |
+| --- | --- | --- |
+| 6B | 35/35 | — |
+| 6A | 42/42 | — |
+| 5D | 78/78 | — |
+| 5F | 62/62 | — |
+| 4C-1 | 160/160 | — |
+| 4C-2 | 155/155 | 154/155 — counted the Close Finding button right after navigation, before render (passed unchanged on rerun) |
+| 4D-1 | 145/145 | — |
+| 4D-2 | 122/122 | — |
+| 4E | 122/122 | — |
+| 4E-6 | 65/65 | 64/65 — its "Activity status not repeated as a badge" check counted every "In Progress" span on the page, now including Action status badges in the Report Summary (check scoped outside it) |
+| 4F | 78/78 | 17/18 — the Report Summary's "Verification" block heading had the same name as the Verification section, so a section locator matched twice → the block was renamed **"Verification Summary"** in the app |
+
+Superseded assertions updated (marked "6C"): Activity Detail section order / count now includes
+"Activity Report Summary" (4E-6, 4F, 6B); the 4E-6 badge check above.
+
+After all suites: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
+pre-flight**.
+
+### Phase 6 — Visit Summary / Reporting (6D–6E)
 Test cases: *not yet defined.*
 Candidate areas: report sections populated from data; printable output.
 
