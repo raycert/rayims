@@ -36,8 +36,8 @@
 | — 6A  | Finding numbering                           | **COMPLETED** |
 | — 6B  | Activity Report narrative                   | **COMPLETED** |
 | — 6C  | Activity Report data integration            | **COMPLETED** |
-| — 6D  | Activity Report export                      | Planned — NEXT (format decision pending) |
-| — 6E  | Phase 6 final acceptance                    | Planned |
+| — 6D  | Activity Report DOCX export                 | **COMPLETED** |
+| — 6E  | Phase 6 final acceptance                    | Planned — NEXT |
 | 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
 
 > **The product workflow remains flexible.** The implementation order above does
@@ -639,13 +639,13 @@ zone or render dates client-side when deploying).
 
 ## Phase 6 — Visit Summary / Reporting [IN PROGRESS]
 
-Visit summary on activities and a printable visit report generated from
-structured data. Phase 6 pre-implementation review (2026-10-02): one **Activity Report** per Activity,
+Activity Summary on activities and an Activity Report generated from structured data, exported as an
+editable DOCX (ADR-020). Phase 6 pre-implementation review (2026-10-02): one **Activity Report** per Activity,
 rendered from current data; narrative stays on `activities` (ADR-013) plus `summary` and
 `client_participants` (6B); report scope = checks executed in the Activity, Findings with
 `issues.activity_id`, Actions of the Activity or of those Findings; no images in V1; no report status,
-versioning or approval. Export format (DOCX vs the approved printable HTML page) is an open owner
-decision before 6D. RayIMS stays a consultant workspace — no approval / sign-off workflow.
+versioning or approval. Export format: **DOCX** (owner decision for 6D, ADR-020 — supersedes the
+printable-HTML direction for Activity Reports). RayIMS stays a consultant workspace — no approval / sign-off workflow.
 
 ### Phase 6A — Finding numbering [COMPLETED]
 
@@ -672,10 +672,19 @@ elsewhere) and issue checks, the Activity's Findings (F-nnn), Actions (union, de
 Evidence (metadata). Current state; no export, snapshot or approval; no schema change. See
 `08_TESTING.md`.
 
-### Phase 6D — Activity Report export [NEXT]
+### Phase 6D — Activity Report DOCX export [COMPLETED]
 
-Export built from the 6C report model only (no second implementation of the rules). Format decision
-(DOCX vs the approved printable HTML page) pending.
+**Export Report** on Activity Detail → an editable .docx generated on demand from the 6C report model
+(`lib/reports/activity-report-docx.ts`, presentation only; route
+`/projects/[projectId]/activities/[activityId]/report`). One built-in template, A4 portrait, nine
+sections, no images / links / stored copy / export history / approval. New dependency: `docx`. No
+schema change. ADR-020. See `08_TESTING.md`.
+
+### Phase 6E — Phase 6 final acceptance [NEXT]
+
+**Phase 7 backlog (from Phase 6):** photos in the Activity Report (needs an explicit "include in report"
+choice); per-client / branded report templates (logo, colours); optional retention of exported report
+files.
 
 
 ## Phase 7 — Dashboard / Polish / Demo / Deployment

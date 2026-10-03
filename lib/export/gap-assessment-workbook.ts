@@ -1,6 +1,9 @@
 import ExcelJS from "exceljs";
 import type { GapAssessmentDocument } from "@/lib/queries/document-export";
 import { documentStatusLabel, documentStatusTone, type Tone } from "@/lib/ui/status-tones";
+import { fileNamePart, safeTimeZone, xmlSafe, zonedParts } from "./shared";
+
+export { safeTimeZone };
 
 /**
  * Gap Assessment Register export (Phase 5F): a consultant / client-facing workbook, not a data
@@ -102,33 +105,7 @@ export function followUpSummary(doc: Pick<GapAssessmentDocument, "findings" | "v
   return parts.join(" · ");
 }
 
-/** Characters XML 1.0 cannot hold would corrupt the workbook; everything else is kept as typed. */
-const clean = (v: string | null | undefined) => (v ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
-
-/** A time zone Intl knows (the viewer's, sent by the browser); anything else → UTC. */
-export function safeTimeZone(timeZone: string | null | undefined): string {
-  if (!timeZone) return "UTC";
-  try {
-    new Intl.DateTimeFormat("en-CA", { timeZone });
-    return timeZone;
-  } catch {
-    return "UTC";
-  }
-}
-
-function zonedParts(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return { y: get("year"), m: get("month"), d: get("day"), hh: get("hour"), mm: get("minute") };
-}
+const clean = xmlSafe;
 
 /**
  * → an Excel date. A plain date ("2026-09-30", e.g. received_on) is that day. A timestamp (reviewed_at)
@@ -148,16 +125,7 @@ function estimatedLines(text: string, width: number): number {
 
 /** "Chinh Long – IMS 2026" + date → "RayIMS-Gap-Assessment-Chinh-Long-IMS-2026-20260930.xlsx" */
 export function gapAssessmentFileName(projectName: string, now: Date, timeZone = "UTC"): string {
-  const safe =
-    projectName
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/đ/g, "d")
-      .replace(/Đ/g, "D")
-      .replace(/[^A-Za-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 80)
-      .replace(/-+$/, "") || "Project";
+  const safe = fileNamePart(projectName, "Project");
   const p = zonedParts(now, timeZone);
   return `RayIMS-Gap-Assessment-${safe}-${p.y}${p.m}${p.d}.xlsx`;
 }

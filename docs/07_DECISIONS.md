@@ -504,3 +504,31 @@ trigger function and trigger; no change to `issues` RLS or grants. The generated
 (`lib/mutations/finding-insert.ts`). Reports and exports read `finding_no` directly.
 **Supersedes:** ADR-015 for Findings only.
 **Status:** Approved (Phase 6A)
+
+## ADR-020 — Activity Report Export Format
+
+**Context:** Phase 6 needs a client deliverable for an Activity (site assessment, internal audit,
+training…). V1 scope and architecture said "printable HTML page (browser print / Save as PDF)".
+Consultants finish reports in Word (logo, wording, layout) before sending them; a printed web page is
+not editable. The product owner approved DOCX for Phase 6D.
+**Decision:**
+- The V1 Activity Report export format is **DOCX**, generated on demand on the server with the `docx`
+  package (pure JavaScript; no native binary, LibreOffice, headless browser or PDF tooling).
+- The DOCX is built from the **same ActivityReport model** as the on-screen Activity Report Summary
+  (`getActivityReportData` → `assembleActivityReport`, Phase 6C). The generator is presentation only;
+  report inclusion rules are never re-implemented for the export.
+- The screen is the **current state**; the downloaded DOCX is the **point-in-time** artifact. RayIMS keeps
+  **no report record, export history, stored copy, status, version, approval or sign-off**.
+- The DOCX stays **editable** after export; the consultant may finish it in Word and save as PDF there.
+- **One built-in RayIMS template** (A4 portrait, neutral, navy headings, no logo). Per-client / branded
+  templates are deferred; so are photos in the report (no images in V1 — no include-in-report choice,
+  file size, temporary signed URLs).
+- **Server-side PDF generation stays out of scope.**
+**Reason:** an editable consulting deliverable with no new infrastructure, consistent with the
+consultant-operated V1 (no workflow), and one source of report rules for screen and file.
+**Consequences:** `docx` added as a dependency; route `/projects/[projectId]/activities/[activityId]/report`
+(GET, `requireUser`, project-scoped, `Cache-Control: no-store`); no migration. The printable-HTML
+statements in `01_V1_SCOPE.md` and `02_ARCHITECTURE.md` are updated for Activity Reports.
+**Supersedes:** the printable-HTML direction for Activity Reports (01_V1_SCOPE scope item 14 and the
+deferred "server-side PDF → printable HTML page" note; 02_ARCHITECTURE cost principle).
+**Status:** Approved (Phase 6D)

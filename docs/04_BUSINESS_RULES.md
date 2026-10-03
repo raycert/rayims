@@ -82,6 +82,25 @@ Product behavior that the schema and UI must respect. Database details are in
   Actions — each attachment has one parent, so it is counted once; rows of another project are never
   included. **Metadata only, no images** (file name, caption, what it is attached to); View / Download
   use the usual on-click 60 s link.
+- **BR-154** *(Phase 6D, ADR-020)* **Export Report** on Activity Detail downloads the Activity Report as an
+  editable **.docx**, generated on demand on the server from the **same ActivityReport model** the screen
+  shows (`getActivityReportData` → `assembleActivityReport`; the generator `lib/reports/activity-report-docx.ts`
+  only lays it out). Only the route ids (and the viewer's time zone, for formatting) come from the
+  browser. Admin and Consultant alike; signed out → login; an Activity of another project → 404. Nothing
+  is written: no report record, export history, stored copy, status, version or approval — the
+  downloaded file is the point-in-time copy (RayIMS does not keep it), the screen stays current state.
+- **BR-155** *(Phase 6D)* DOCX content and order: title "{Activity Type label} Report" (no "Report Report");
+  1 Project / Activity Information (client, project, activity, type, site or Project-wide, mode, date /
+  period, consultant, status, client participants — empty values left out), 2 Objectives & Scope,
+  3 Work Performed, 4 Verification Summary (counts; optional counts only when non-zero; table of the
+  Issue / Follow-up checks with requirement, question, result, notes, F-nnn), 5 Findings (No., Type,
+  Framework Requirement, Finding = title + description, Site, Priority, Status — no NC response),
+  6 Actions / Follow-up (Action, Related Finding F-nnn or "—", Owner, Due Date, Priority, Status;
+  overdue → "Open — Overdue"), 7 Evidence (Origin, Attached to, Caption, File — metadata only, no images
+  or links), 8 Consultant Summary, 9 Recommendations / Next Steps. Empty sections show one line (same
+  wording as Activity Detail). Consultant text keeps its line breaks; nothing is translated. File name
+  `RayIMS-{Type}-Report-{Project}-{YYYYMMDD of the Activity start date}-{Site|Project-wide}.docx` (no ids,
+  accents removed, unsafe characters collapsed).
 - **BR-61** The Master Plan is not a database table. It is the Project Workspace's
   Plan view over that project's `activities`, always scoped to one `project_id`; there
   is no global cross-project activities list in V1 (Phase 3B-1).

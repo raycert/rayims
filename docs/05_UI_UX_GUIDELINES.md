@@ -186,7 +186,13 @@ and prototype/demo data is not a requirement.
   (description, F-nnn or "Standalone", owner, due date, Overdue badge, status), **Evidence (n)** (only
   non-empty groups, file names wrap, View / Download on click). Empty → one line each ("No checks
   executed.", "No Findings recorded.", "No Actions recorded.", "No report Evidence recorded."). Cards on
-  every width — no table that scrolls sideways. No Export button and no "Coming soon" before 6D.
+  every width — no table that scrolls sideways.
+- *(Phase 6D)* **Export Report** — secondary button in the Activity Report Summary header ("Exporting…"
+  while it runs; an inline error if it fails); downloads the .docx directly, no dialog. The DOCX uses the
+  one built-in template: A4 portrait, 2 cm margins, Arial, navy (#1F3A5F) headings with a thin rule,
+  light grey table borders, a light header fill repeated on every page, rows kept together, a footer with
+  the report title, activity, generation time (viewer's time zone) and page number. No logo, no colour
+  beyond navy / grey, readable in black and white. Per-client templates and photos are backlog.
 
 ## Out of scope for this document
 

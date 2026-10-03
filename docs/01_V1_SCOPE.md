@@ -31,8 +31,9 @@ without explicit approval.
 12. **Document Review** — review of a document version, with a result.
 13. **Evidence / Attachments** — photos, PDFs, Excel, Word and screenshots
     attached to core entities via the shared files registry.
-14. **Visit Summary / Report** — generated from structured data as a printable
-    page (no server-side PDF generation).
+14. **Activity Summary / Activity Report** — consultant narrative on the Activity plus data derived from
+    its records, shown on Activity Detail and exported as an editable **DOCX** (ADR-020; no server-side
+    PDF generation, no report record, status or approval).
 15. **Minimal Dashboard** — upcoming activities and open / overdue actions.
 
 ## Phase 2 scope (Client / Project / Site / Frameworks)
@@ -88,7 +89,7 @@ Where such things look useful, they are **future considerations only**.
 | `ltree` paths, full-text search                           | Adjacency list + recursive query is sufficient                        |
 | Soft delete, audit log                                    | `created_by` + `updated_at` are sufficient for V1                     |
 | Image thumbnails / storage image transformations          | Cost; compress client-side at upload instead                          |
-| Server-side PDF generation                                | Printable HTML page instead                                           |
+| Server-side PDF generation                                | Activity Report exports as editable DOCX instead (ADR-020); Save as PDF from Word if needed |
 | Domain tables for Carbon / ESG / CBAM                     | Not created in V1                                                     |
 | DB trigger against framework hierarchy cycles             | Prevented in the application in Phase 2 (ADR-016)                     |
 | Atomic `save_project` database function                  | Phase 2 uses idempotent multi-step saves                              |

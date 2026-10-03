@@ -3,6 +3,25 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 6D — Activity Report DOCX export (2026-10-03)
+
+**Result: 43/43 acceptance checks.** No migration, RLS, grant or Storage change. ADR-020.
+
+### Added
+
+- **Export Report** on Activity Detail (Activity Report Summary header) → GET
+  `/projects/[projectId]/activities/[activityId]/report` → editable .docx.
+- `lib/reports/activity-report-docx.ts` — `buildActivityReportDocx`, `activityReportTitle`,
+  `activityReportFileName` (presentation only; input = the 6C ActivityReport model).
+- `lib/export/shared.ts` — time zone, XML-safe text and file-name helpers now shared by the Gap
+  Assessment workbook and the Activity Report.
+- Dependency `docx`. ADR-020; BR-154, BR-155.
+
+### Changed
+
+- 01_V1_SCOPE / 02_ARCHITECTURE: the Activity Report exports as DOCX (printable HTML superseded for
+  Activity Reports; server-side PDF still out of scope).
+
 ## Phase 6C — Activity Report data integration (2026-10-03)
 
 **Result: 29/29 (plus the 21/21 report-rules unit test) acceptance checks.** No migration, RLS, grant or Storage change; no ADR.

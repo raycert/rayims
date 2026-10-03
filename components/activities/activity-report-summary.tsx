@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getEvidenceUrl } from "@/lib/mutations/evidence";
 import { isViewableEvidence } from "@/lib/validation/evidence";
@@ -45,18 +46,57 @@ const requirement = (identity: string | null, label: string | null) =>
  * the report model (lib/reports/activity-report.ts — the single source of report rules, also used by
  * the export). Compact and read-only: Verification counts + only the checks with Issue Identified /
  * Follow-up Required, the Activity's Findings (F-nnn), its Actions / follow-up and its Evidence
- * (metadata; View / Download through the usual short-lived link). Current state, no export here.
+ * (metadata; View / Download through the usual short-lived link). Current state. Export Report
+ * (Phase 6D) downloads the same model as an editable .docx.
  */
 export function ActivityReportSummary({ report }: { report: ActivityReport }) {
   const { verification: v, findings, actions, evidence } = report;
   const projectId = report.activity.projectId;
   const activitySite = report.activity.siteName;
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  /** Downloads the .docx built on the server from the same report model (nothing is stored). */
+  async function exportReport() {
+    setExporting(true);
+    setExportError(null);
+    try {
+      // The viewer's time zone only formats the export time (and the file date for an undated Activity).
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const res = await fetch(`/projects/${projectId}/activities/${report.activity.id}/report?tz=${encodeURIComponent(tz)}`, { cache: "no-store" });
+      const type = res.headers.get("Content-Type") ?? "";
+      if (!res.ok || !type.includes("wordprocessingml")) throw new Error("export failed");
+      const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "RayIMS-Activity-Report.docx";
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch {
+      setExportError("Could not export the report. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <section data-testid="activity-report-summary" className="rounded-lg border border-border bg-surface">
-      <div className="border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold">Activity Report Summary</h2>
-        <p className="text-xs text-muted">Derived from this Activity&apos;s records — current state.</p>
+      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border px-4 py-3">
+        <div>
+          <h2 className="text-sm font-semibold">Activity Report Summary</h2>
+          <p className="text-xs text-muted">Derived from this Activity&apos;s records — current state.</p>
+          {exportError ? (
+            <p role="alert" className="mt-1 text-xs text-danger">
+              {exportError}
+            </p>
+          ) : null}
+        </div>
+        <Button type="button" variant="secondary" className="min-h-9" onClick={exportReport} disabled={exporting} aria-busy={exporting}>
+          {exporting ? "Exporting…" : "Export Report"}
+        </Button>
       </div>
       <div className="divide-y divide-border">
         <Block title="Verification Summary">

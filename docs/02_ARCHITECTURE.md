@@ -183,7 +183,8 @@ portfolio/demo and small internal use.
 - Minimize queries and API calls (embedded queries, specific columns, pagination).
 - Compress and resize photos client-side before upload; set bucket file-size
   limits; do not use storage image transformations.
-- Generate reports as printable HTML (browser print / Save as PDF).
+- Generate the Activity Report as an editable DOCX on demand, in memory, with the `docx` package
+  (pure JavaScript, no native binary, no headless browser) — ADR-020. No server-side PDF; nothing stored.
 - Do not optimize prematurely for enterprise scale.
 
 Operational notes (**verify current provider limits when relevant**):

@@ -1516,9 +1516,64 @@ Superseded assertions updated (marked "6C"): Activity Detail section order / cou
 After all suites: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
 pre-flight**.
 
-### Phase 6 — Visit Summary / Reporting (6D–6E)
+### Phase 6D — Activity Report DOCX export (executed 2026-10-03)
+
+No migration, RLS, grant or Storage change; new dependency `docx` 9.8.1 (pure JavaScript). The test
+downloads the real `.docx` files (browser download and route requests), opens the package with JSZip and
+reads `word/document.xml`, its tables and paragraphs.
+
+**Acceptance on hosted, production build — 43/43 PASS** (run 2). Run 1: 40/42 — both failures in the
+test: a "no Finalize / Approve / Submit / Sign…" button pattern also matched the app's "Sign out" (pattern
+anchored to whole workflow words), and the whole-run no-mutation hash included the test's own deliberate
+close / reopen of F-002 (split into a check before that step and a fresh baseline after it). Every DOCX
+content check passed in both runs.
+
+| Area | Checks (all PASS) |
+| --- | --- |
+| Entry point | **Export Report** in the Report Summary header, secondary style; no Finalize / Approve / Submit / Sign-off |
+| File | `RayIMS-Site-Assessment-Report-P6D-ACCEPT-ISO-Implementation-20261027-Viet-Long.docx`; headers `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `attachment; filename="…"`, `no-store` |
+| Structure | valid zip with `[Content_Types].xml` and `word/document.xml`; document.xml well-formed (browser DOMParser); A4 portrait (11906 × 16838); no `word/media`, drawings, links or signed URLs; table header rows repeat (`w:tblHeader`), rows don't split, headings keep with next; every table grid ≤ the 9638-twip content width |
+| Content order | title "Site Assessment Report" + activity name; sections 1 Project / Activity Information … 9 Recommendations / Next Steps in order, each once |
+| Information | client, project, type, site, mode "On-site", "27/10/2026 08:30 – 16:00", status, consultant, Client Participants "Nguyễn Văn A — Trưởng phòng Chất lượng" + second line; no N/A / Not provided / undefined / null |
+| Narrative | Objectives and Planned Work / Scope as separate paragraphs; Work Performed "Đã đánh giá hiện trạng tài liệu…", blank line and second paragraph preserved; multi-paragraph Consultant Summary; Next Steps lines |
+| Verification | counts Executed 8 / Verified OK 6 / Issue Identified 1 / Follow-up Required 1 / Planned, not completed 1 / Completed in another Activity 1 = the screen; issue table 2 rows (requirement "ISO 14001:2015 · 8.1 — …", question, result, notes, F-001) |
+| Findings | F-001, F-002, F-005 each once = the screen; Vietnamese title "Chưa kiểm soát đầy đủ hồ sơ theo yêu cầu." with a long description; site Long An; no Correction / Root Cause / Effectiveness; columns No. / Type / Framework Requirement / Finding / Site / Priority / Status |
+| Actions | 4 = the screen; the both-paths Action once; overdue "Open — Overdue" with F-001 and owner; standalone "—"; long Action, Vietnamese owner, due 15/12/2026; columns as specified |
+| Evidence | 4 rows = the screen, one per origin (Activity / Verification / Finding / Action); Finding origin "F-001 · …"; long file name; no Project B or completed-elsewhere file |
+| Parity / consultant | consultant export: document body byte-identical to the admin's |
+| Cross-activity | export B counts the check planned for A (Issue Identified 1) and holds F-003; export A only "Completed in another Activity" 1, no F-003 |
+| Empty | Activity without narrative / checks / Findings / Actions / Evidence: valid DOCX, only the information table, one line per section ("No objectives or planned work recorded.", "No checks executed.", "No issue or follow-up checks recorded.", "No Findings recorded.", "No Actions recorded.", "No report Evidence recorded.", "No consultant summary recorded.", "No next steps recorded.") |
+| Point in time | after closing F-002 a new export shows Closed, the earlier file still Open |
+| Isolation / access | Project A route + Project B Activity → 404; Project B route + Project A Activity → 404; malformed id → 404 — no DOCX; signed out → 307, no DOCX bytes |
+| No mutation | the exports changed no Activity, check, Finding, Action, attachment, file or Storage object (checked before and after the deliberate F-002 step) |
+| Mobile | 390 / 412 px: Export Report reachable, not under the bottom nav, downloads, no overflow |
+| Performance | full report 638 ms (browser download), 13.8 KB; large report (50 checks / 20 Findings / 30 Actions / 40 Evidence) all rows present, 480 / 335 / 359 ms, 17 KB |
+
+**Report rules unit test (6C):** 21/21 on the final code.
+
+**Regressions on the final code:**
+
+| Suite | Result | Earlier attempt (this phase) |
+| --- | --- | --- |
+| 6C | 29/29 | 28/29 — its "no Export control" check is superseded by the Export Report button (now: one enabled Export Report, still no "Coming soon") |
+| 6B | 35/35 | — |
+| 6A | 42/42 | — |
+| 5D | 78/78 | — |
+| 5F | 62/62 | — (Gap Assessment workbook after the shared-helper refactor) |
+| 4C-1 | 160/160 | — |
+| 4C-2 | 155/155 | — |
+| 4D-1 | 145/145 | — |
+| 4D-2 | 122/122 | — |
+| 4E | 122/122 | — |
+| 4E-6 | 65/65 | — |
+| 4F | 78/78 | — |
+
+After all suites: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
+pre-flight**.
+
+### Phase 6 — Visit Summary / Reporting (6E)
 Test cases: *not yet defined.*
-Candidate areas: report sections populated from data; printable output.
+Candidate areas: Phase 6 end-to-end acceptance (narrative → report summary → DOCX).
 
 ### Phase 7 — Dashboard / Polish / Demo / Deployment
 Test cases: *not yet defined.*
