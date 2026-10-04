@@ -3,6 +3,18 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 6E — Phase 6 final acceptance (2026-10-04)
+
+**Result: 57/57 (plus the 21/21 report-rules unit test) acceptance checks. Phase 6 — COMPLETE / CLOSED.** No migration, RLS, grant, Storage or
+application-code change; no ADR.
+
+### Changed (documentation only)
+
+- 00_PRODUCT_VISION / 01_V1_SCOPE: Activity Summary / Activity Report wording (no "visit report"); the
+  numbering deferrals now say Findings are numbered (ADR-019) and Actions are not.
+- 07_DECISIONS: ADR-015 and ADR-018 carry a note that Finding numbering was delivered (ADR-019).
+- 06_ROADMAP: Phase 6 COMPLETE / CLOSED, Phase 7 NEXT, consolidated Phase 7 backlog.
+
 ## Phase 6D — Activity Report DOCX export (2026-10-03)
 
 **Result: 43/43 acceptance checks.** No migration, RLS, grant or Storage change. ADR-020.

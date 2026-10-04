@@ -191,6 +191,8 @@ Issues/Actions are implemented, if it proves necessary.
 **Reason:** Quick-win scope; correction requested during Phase 0A approval.
 **Consequences:** Issues and actions are identified by title/description and UUID
 until a numbering approach is approved.
+**Note (Phase 6A):** superseded for **Findings** by ADR-019 (per-project `F-nnn`); still in force for
+**Actions** (not numbered).
 **Status:** Approved
 
 ## ADR-016 — Framework administration by Admins
@@ -379,7 +381,7 @@ management system.
   `document_review_id` remain the origin *lineage* ("store the closest origin"); a Finding may
   also carry `activity_id` (where it was observed) alongside a `verification_item_id`.
 - **Finding number is deferred** (ADR-015 stands): stable Finding/NC numbering is a **Phase 6
-  prerequisite**, not solved now.
+  prerequisite**, not solved now. *(Delivered in Phase 6A — ADR-019.)*
 - **Still excluded:** CAPA workflow engine, configurable approval workflow, escalation
   engine, RCA methodology tooling (5 Why, Fishbone), revision/history engine, e-signatures,
   AI root-cause analysis, enterprise CAPA automation. Not added: target closure date,

@@ -32,13 +32,13 @@
 | — 5E  | Required Document Excel Import              | **COMPLETED** |
 | — 5F  | Gap Assessment Export                       | **COMPLETED** |
 | — 5G  | Phase 5 final acceptance                    | **COMPLETED** |
-| 6     | Visit Summary / Reporting                   | **IN PROGRESS** |
+| 6     | Visit Summary / Reporting (Activity Report) | **COMPLETED / CLOSED** |
 | — 6A  | Finding numbering                           | **COMPLETED** |
 | — 6B  | Activity Report narrative                   | **COMPLETED** |
 | — 6C  | Activity Report data integration            | **COMPLETED** |
 | — 6D  | Activity Report DOCX export                 | **COMPLETED** |
-| — 6E  | Phase 6 final acceptance                    | Planned — NEXT |
-| 7     | Dashboard / Polish / Demo / Deployment      | Planned       |
+| — 6E  | Phase 6 final acceptance                    | **COMPLETED** |
+| 7     | Dashboard / Polish / Pilot readiness        | Planned — NEXT |
 
 > **The product workflow remains flexible.** The implementation order above does
 > **not** imply that Document Review must occur after Site Verification. Phase 4
@@ -457,7 +457,7 @@ result); a Nonconformity has no Close action yet.
 **Verified (2026-09-27): 160/160 acceptance checks** (hosted Supabase, production build,
 Playwright/Edge, 1280×800, 390px, 412px) — see `08_TESTING.md`. Not in this slice:
 Verification → Create Finding (4C-2), Correction/RCA/Effectiveness UI and Corrective
-Actions (4D), Evidence (4E), delete (4F). **Finding/NC numbering is a Phase 6 prerequisite.**
+Actions (4D), Evidence (4E), delete (4F). **Finding/NC numbering is a Phase 6 prerequisite** *(done — 6A)*.
 
 ### Phase 4C-2 — Verification → Finding integration [COMPLETED]
 
@@ -637,7 +637,7 @@ the item; server-rendered dates use the server's time zone before hydration (set
 zone or render dates client-side when deploying).
 
 
-## Phase 6 — Visit Summary / Reporting [IN PROGRESS]
+## Phase 6 — Visit Summary / Reporting [COMPLETE / CLOSED]
 
 Activity Summary on activities and an Activity Report generated from structured data, exported as an
 editable DOCX (ADR-020). Phase 6 pre-implementation review (2026-10-02): one **Activity Report** per Activity,
@@ -680,16 +680,35 @@ Evidence (metadata). Current state; no export, snapshot or approval; no schema c
 sections, no images / links / stored copy / export history / approval. New dependency: `docx`. No
 schema change. ADR-020. See `08_TESTING.md`.
 
-### Phase 6E — Phase 6 final acceptance [NEXT]
+### Phase 6E — Phase 6 final acceptance [COMPLETED]
+
+The whole consultant flow accepted end to end (plan an Activity → execute Verification → raise Findings
+F-nnn through all three paths → manage Actions → capture Evidence → write the Activity Summary → review the
+Activity Report Summary → export the DOCX), with screen / DOCX parity, current-state semantics, isolation,
+authorization, mobile / desktop, time-zone and large-Activity checks. **Phase 6 — COMPLETE / CLOSED.** See
+`08_TESTING.md`.
 
 **Phase 7 backlog (from Phase 6):** photos in the Activity Report (needs an explicit "include in report"
 choice); per-client / branded report templates (logo, colours); optional retention of exported report
 files.
 
 
-## Phase 7 — Dashboard / Polish / Demo / Deployment
+## Phase 7 — Dashboard / Polish / Demo / Deployment [NEXT]
 
-Minimal dashboard, polish, demo data, deployment to Vercel.
+Minimal dashboard, polish, demo data, deployment to Vercel (Polish / productivity / pilot readiness).
+
+**Consolidated Phase 7 backlog (recorded at Phase 6 close — none of it is scheduled or approved):**
+
+- *Document productivity:* Bulk Document Upload with match suggestions and folder upload; External
+  Document Source (Google Drive / Google Docs, SharePoint / OneDrive) and "Snapshot for Assessment";
+  Expected Records / Required Evidence as Document-level context (not Review Comments).
+- *Reporting:* photos in the Activity Report (explicit "include in report" choice); branded / custom report
+  templates; report export retention / an issued-report register.
+- *Navigation / polish:* review-origin Verification items link to the item, not the workspace; server-rendered
+  dates use the server's time zone before hydration (deployment time zone or client rendering).
+- *Hardening (needs approved migrations):* document / version delete races; a database partial unique
+  index for one open review per version; a deterministic latest-review tie-break in the `document_register`
+  view (`id`); import as one database transaction.
 
 **Document workflow backlog (recorded 2026-10-02 — not scheduled, not part of Phase 6; no schema, no
 SDKs, no change to Document upload behaviour until approved):**

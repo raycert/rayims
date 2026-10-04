@@ -133,6 +133,14 @@ After any user or settings change:
 - A `files` row whose object is missing shows "File is unavailable." in the app; the metadata is
   kept on purpose — investigate before deleting it.
 
+## Activity Reports (Phase 6D)
+
+- The Activity Report is generated on demand (Export Report on Activity Detail → .docx) from the
+  current data and streamed to the browser. **RayIMS stores nothing**: no copy of an exported file, no
+  export history, no Storage object — there is nothing to back up, clean up or retain. A report that must be
+  kept is kept by whoever downloaded it; a new export always shows the current state.
+- The export needs no extra service or setting (pure-JavaScript `docx` package, no headless browser).
+
 ## Finding numbers (Phase 6A)
 
 - Numbers are assigned by the database (ADR-019); nothing in the app or the dashboard needs to set them.

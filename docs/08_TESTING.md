@@ -1571,9 +1571,76 @@ content check passed in both runs.
 After all suites: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
 pre-flight**.
 
-### Phase 6 — Visit Summary / Reporting (6E)
-Test cases: *not yet defined.*
-Candidate areas: Phase 6 end-to-end acceptance (narrative → report summary → DOCX).
+### Phase 6E — Phase 6 final acceptance (executed 2026-10-03 / 2026-10-04)
+
+Validation only: no application-code, schema, RLS, grant or Storage change (documentation edits only).
+Production build (`next start`), hosted Supabase, Edge via Playwright (time zone Asia/Ho_Chi_Minh).
+Fixtures prefixed `P6E-ACCEPT-` only. Before testing: schema / RLS / grant / Storage fingerprint
+(`p6e-schema`) and a genuine-data snapshot; both compared again after all suites.
+
+**Result: 57/57 PASS** (run 2). Run 1: 56/57 — the "linked Action without Activity" step of the test left
+the Finding's prefilled Activity in the Action form (test now chooses "No activity" explicitly; the
+product behaviour — prefilling the Finding's Activity — is as designed). The whole scenario is driven
+by a Consultant account through the UI.
+
+| Area | Checks (all PASS) |
+| --- | --- |
+| Phase 3 behaviour | consultant creates the Activity in the Master Plan (type Site Assessment, site, mode, consultant, date and times; status Planned), it appears in the plan, edit (end time) and status → In Progress persist |
+| Scenario data | 9 checks: 4 Verified OK, 2 Issue Identified, 1 Follow-up Required, 1 planned not completed, 1 planned for A but executed in B |
+| Finding numbering | Findings from a Verification (F-001), manually with the Activity (F-002), from a Gap Assessment with the Activity selected (F-003) — "Finding F-00n created." — one sequence; origins stored as designed; the check executed in B produced F-004 on B; title / type / status edits (and `finding_no` 99 forced over the API) keep F-002; delete of F-006 → next F-007 |
+| Actions | linked without Activity, linked + Activity A, overdue (derived), standalone, Closed — union of 5 on the report, the both-paths Action once |
+| Narrative | whitespace-only Consultant Summary stored as NULL; Vietnamese text, paragraph breaks, Client Participants saved; Plan fields and status unchanged |
+| Activity Detail | sections Plan → Verification → General Activity Evidence → Outcome / Activity Summary → Activity Report Summary; all 10 headings unique; every button named; Export Report present, no approval / finalize control |
+| Report vs database | counts 7 executed / 4 / 2 / 1, 1 planned not completed, 1 completed elsewhere; only 3 Issue / Follow-up checks listed; Findings F-001..F-003 (F-004 absent); Actions 5; Evidence 4 (the elsewhere check's file excluded) — each equals a direct SQL count |
+| Finding number everywhere | Findings list, Finding Detail H1 "F-001 · title" (copies with real spaces, no UUID), Actions "F-001 · title", Verification "View F-001", Gap Assessment follow-up "F-003 · title", Report Summary, DOCX |
+| DOCX | filename `RayIMS-Site-Assessment-Report-P6E-ACCEPT-IMS-Implementation-20261027-P6E-ACCEPT-Viet-Long.docx`; valid zip, well-formed document.xml; A4 portrait, page-number footer, repeated table headers, no table wider than the page; no media, signed URL or UUID; 9 sections in order, each once; "27/10/2026 08:30 – 16:30"; Vietnamese and paragraph breaks intact |
+| Screen / DOCX parity | Verification counts, Finding numbers and statuses, Actions (count, once, Overdue, due date, Closed), Evidence count |
+| Current state | F-001 closed after an export: the new file says Closed, the earlier file still Open; repeated exports changed no Activity / check / Finding / Action / attachment / file / Storage object |
+| Cross-activity | export B counts the executed check and owns F-004; export A shows it only as "Completed in another Activity" |
+| Empty Activity | undated, no narrative / checks / Findings / Actions / Evidence: compact empty states on screen; valid DOCX with only the information table; file date = the viewer's local date in two zones (Asia/Ho_Chi_Minh 20261003, Pacific/Kiritimati 20261004), footer time in the same zone |
+| Isolation / signed out | Project A route + Project B Activity / export / Finding → not found, nothing leaked; signed out: Activity Detail → login, narrative action replay refused (307), Finding insert refused (401), export 307 with no bytes, nothing changed |
+| Mobile 390 / 412 | report readable, F-001 visible, no overflow; long Evidence file name wraps; Export Report reachable, not under the bottom nav; Activity Summary editor usable, Save visible while typing |
+| Desktop | Export Report secondary, not dominant; hierarchy Plan → Verification → Outcome → Report Summary |
+| Large Activity | 50 checks / 20 Findings / 30 Actions / 40 Evidence: detail 964 / 772 / 770 ms, DOCX 287 / 281 / 256 ms, 17 KB, all rows present |
+| Cleanup | fixtures removed; issues / actions / attachments / files / documents / finding counters 0 |
+
+**Report rules unit test (6C):** 21/21.
+
+**Regressions on the final code:**
+
+| Suite | Result | Earlier attempt (this phase) |
+| --- | --- | --- |
+| 6D | 43/43 | — |
+| 6C | 29/29 | — |
+| 6B | 35/35 | — |
+| 6A | 42/42 | — |
+| 5C | 74/74 | — |
+| 5D | 78/78 | — |
+| 5E | 80/80 | — |
+| 5F | 62/62 | — |
+| 4C-1 | 160/160 | — |
+| 4C-2 | 155/155 | 154/155 — the "Close Finding available" check read the button count once right after navigation, before the page had rendered (it also failed once in 6C and passed on rerun); the test now waits for the button, then counts |
+| 4D-1 | 145/145 | — |
+| 4D-2 | 122/122 | — |
+| 4E | 122/122 | — |
+| 4E-6 | 65/65 | — |
+| 4F | 78/78 | — |
+
+**Phase 3:** no Phase 3 suite remains in the test harness. Activity create / edit / status / site / consultant /
+time / Master Plan behaviour is covered by the 6E scenario (above) and by 4E-6, 4F and 6B (Activity Detail,
+status control, delete rules, Activity Summary). This is stated as coverage, not as a Phase 3 suite pass.
+
+**Schema review (hosted, read-only fingerprint before vs after: identical).** 12 migrations; 20 tables;
+Phase 6 additions are exactly `project_finding_counters` and `issues.finding_no` (6A), `activities.summary` and
+`activities.client_participants` (6B); none in 6C / 6D. Every business table keeps its single
+"authenticated full access" policy and authenticated-only grants; `project_finding_counters` has RLS on, no
+policies and no `anon` / `authenticated` grants (SELECT and function EXECUTE both false); functions
+`assign_finding_no` (security definer), `handle_new_user`, `set_updated_at`. **Storage:** bucket
+`rayims-files` private, 10 MB limit, the same three authenticated policies, 0 objects before and after —
+the report export writes nothing.
+
+After all suites: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
+pre-flight**.
 
 ### Phase 7 — Dashboard / Polish / Demo / Deployment
 Test cases: *not yet defined.*

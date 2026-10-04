@@ -32,7 +32,7 @@ The V1 working flow:
 ```
 Project setup → Master plan / activities → Document review
   → Create items for site verification → Site visit / verification
-  → Issue identification → Action tracking → Visit summary → Visit report
+  → Issue identification → Action tracking → Activity summary → Activity report (DOCX)
 ```
 
 **The workflow is not a fixed sequence.** Document Review and Site Visit have no

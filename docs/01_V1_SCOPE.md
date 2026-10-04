@@ -17,7 +17,7 @@ without explicit approval.
    frameworks they use.
 6. **Master Plan / Activities** — plan project work: activity type, site
    (optional), dates, mode (on-site / online), planned days, consultant,
-   objectives, planned work, status. Also holds the visit summary fields.
+   objectives, planned work, status. Also holds the Activity Summary fields.
 7. **Verification** — verification items created from document review or
    manually, scheduled to an activity, and completed with a result.
 8. **Findings** (database table `issues`) — audit / site findings: Nonconformity,
@@ -81,11 +81,11 @@ Where such things look useful, they are **future considerations only**.
 | Item                                                      | Note                                                                 |
 | --------------------------------------------------------- | -------------------------------------------------------------------- |
 | `visit_notes` table                                       | Visit summary lives on `activities`; notes on verification items; photos as captioned attachments (ADR-013) |
-| Human-readable numbering (e.g. ACT-014)                   | Deferred; no `issue_seq` / `action_seq`, no numbering triggers (ADR-015) |
+| Human-readable numbering of **Actions** (e.g. ACT-014)    | Deferred; no `action_seq` (ADR-015). Findings are numbered F-001 since Phase 6A (ADR-019) |
 | Activity ↔ framework junction (`activity_frameworks`)     | Frameworks derived from project and from item references             |
 | Per-project, per-item assessment status matrix            | Future additive table (gap assessment)                                |
 | Organizations, `project_members`, client contacts         | Future multi-user / portal work                                       |
-| Finding number (NC-001 style), target closure date, Major/Minor, effectiveness history, evidence category | Backlog; Finding/NC numbering is a Phase 6 prerequisite (ADR-018, ADR-015) |
+| Target closure date, Major/Minor, effectiveness history, evidence category | Backlog (ADR-018). The Finding number was delivered in Phase 6A as F-nnn (ADR-019) |
 | `ltree` paths, full-text search                           | Adjacency list + recursive query is sufficient                        |
 | Soft delete, audit log                                    | `created_by` + `updated_at` are sufficient for V1                     |
 | Image thumbnails / storage image transformations          | Cost; compress client-side at upload instead                          |
