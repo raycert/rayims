@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Toast, useToast } from "@/components/ui/toast";
 import { DOCUMENT_STATUSES, documentStatusLabel, documentStatusTone } from "@/lib/ui/status-tones";
-import { formatDate } from "@/lib/ui/format";
+import { LocalTime } from "@/components/ui/local-time";
 import { DocumentFormDrawer } from "./document-form-drawer";
 import type { DocumentFormCatalog, DocumentRow } from "@/lib/queries/documents";
 
@@ -251,7 +251,7 @@ export function DocumentsWorkspaceView({
                     <td className="whitespace-nowrap px-2.5 py-3">
                       <StatusBadge label={documentStatusLabel(d.status)} tone={documentStatusTone(d.status)} />
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted">{d.lastReviewAt ? formatDate(d.lastReviewAt) : "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-muted">{d.lastReviewAt ? <LocalTime iso={d.lastReviewAt} mode="date" /> : "—"}</td>
                   </tr>
                 ))}
               </tbody>

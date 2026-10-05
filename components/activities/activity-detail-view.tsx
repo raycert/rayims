@@ -9,6 +9,7 @@ import { OverflowMenu } from "@/components/ui/overflow-menu";
 import { Toast, useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { activityStatusLabel } from "@/lib/ui/status-tones";
+import { useToday } from "@/components/ui/use-today";
 import { activityModeLabel, formatActivityDateTime, isActivityOverdue } from "@/lib/ui/format";
 import { ACTIVITY_STATUSES } from "@/lib/validation/activities";
 import { deleteActivity, setActivityStatus } from "@/lib/mutations/activities";
@@ -63,7 +64,8 @@ export function ActivityDetailView({
   const [pending, startTransition] = useTransition();
   const { message, show } = useToast();
 
-  const overdue = isActivityOverdue(activity);
+  const today = useToday();
+  const overdue = isActivityOverdue(activity, today);
 
   function handleSaved(msg: string) {
     setEditing(false);

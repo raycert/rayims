@@ -1,3 +1,5 @@
+import { formatBusinessDate } from "./business-date";
+
 /** "ISO 9001" + "2015" -> "ISO 9001:2015" — the reference identity used across Projects screens. */
 export function formatFrameworkIdentity(code: string, edition: string): string {
   return `${code}:${edition}`;
@@ -39,9 +41,18 @@ export function humanizeCategory(category: string): string {
     .join(" ");
 }
 
-export function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+/**
+ * A DATE-ONLY value (due date, Activity start / end date, received date) as text — the same calendar
+ * day for every viewer (Phase 7A, lib/ui/business-date). Timestamps use <LocalTime>, never this.
+ */
+export function formatDate(date: string | null): string {
+  if (!date) return "—";
+  return formatBusinessDate(date);
+}
+
+/** "27 Oct 2026 · Site Assessment" style label of an Activity in a select (date-only start). */
+export function activityOptionLabel(a: { name: string; startDate: string | null }): string {
+  return a.startDate ? `${formatDate(a.startDate)} · ${a.name}` : `Undated · ${a.name}`;
 }
 
 /** "14:30:00" (Postgres time) -> "14:30". Never renders "00:00" for a null value. */
@@ -78,12 +89,13 @@ export function formatActivityDateTime(
 
 /**
  * Action overdue is derived, never stored (BR-34): due_date before today and status not
- * closed (pending_review can be overdue). No due date = never overdue. Same string date
- * comparison as isActivityOverdue.
+ * closed (pending_review can be overdue). No due date = never overdue. `today` is the VIEWER's
+ * local calendar day (Phase 7A; useToday() in the browser, the viewer's zone in exports). Same
+ * string date comparison as isActivityOverdue.
  */
-export function isActionOverdue(action: { status: string; dueDate: string | null }): boolean {
+export function isActionOverdue(action: { status: string; dueDate: string | null }, today: string): boolean {
   if (action.status === "closed" || !action.dueDate) return false;
-  return action.dueDate < new Date().toISOString().slice(0, 10);
+  return action.dueDate < today;
 }
 
 /**
@@ -93,14 +105,16 @@ export function isActionOverdue(action: { status: string; dueDate: string | null
  * considered — a today's activity isn't overdue because its end_time already passed.
  * String comparison avoids timezone parsing.
  */
-export function isActivityOverdue(activity: {
-  status: string;
-  startDate: string | null;
-  endDate: string | null;
-}): boolean {
+export function isActivityOverdue(
+  activity: {
+    status: string;
+    startDate: string | null;
+    endDate: string | null;
+  },
+  today: string,
+): boolean {
   if (activity.status === "completed" || activity.status === "cancelled") return false;
   const effectiveEnd = activity.endDate ?? activity.startDate;
   if (!effectiveEnd) return false;
-  const today = new Date().toISOString().slice(0, 10);
   return effectiveEnd < today;
 }

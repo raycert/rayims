@@ -133,6 +133,15 @@ After any user or settings change:
 - A `files` row whose object is missing shows "File is unavailable." in the app; the metadata is
   kept on purpose — investigate before deleting it.
 
+## Regression harness (Phase 7A)
+
+- The acceptance / regression scripts live in `tests/regression` (see `tests/README.md`): they drive a
+  production build in a headless browser against the **hosted** Supabase project, create fixtures with a
+  per-suite prefix (`P7A-ACCEPT-`, ...) and remove them. Run them by hand at the end of a phase
+  (`npm run build`, `npx next start -p 3105 -H 127.0.0.1`, then `npm run test:regression`).
+- They need `.env.local` and `.env.test.local` (never committed), the linked Supabase CLI and a local
+  Chromium-family browser. Take the snapshot / schema fingerprints before and after a phase; leave no fixtures behind.
+
 ## Activity Reports (Phase 6D)
 
 - The Activity Report is generated on demand (Export Report on Activity Detail → .docx) from the
@@ -168,6 +177,6 @@ After any user or settings change:
   mappings fail, the Documents just created are deleted again. A crash in between could leave
   Documents without their mappings; they are visible in the register (no requirements) and can be
   completed or deleted in the app.
-- **Dates:** review dates are shown in the viewer's local time zone (the export uses the downloading
-  browser's zone and prints it next to the export time). Server-rendered pages format dates in the
-  server's time zone before the browser takes over — keep the deployment time zone in mind (Phase 7).
+- **Dates:** date-only values (due dates, Activity dates) print the same day for every viewer; timestamps
+  and "today" (overdue) use the viewer's own time zone in the browser (Phase 7A, BR-157 / BR-158); the
+  exports use the downloading browser's zone. The deployment time zone no longer changes what is shown.

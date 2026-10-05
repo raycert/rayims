@@ -3,6 +3,33 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 7A — Pilot Foundation + regression harness preservation (2026-10-04)
+
+**Result: 107/107 (plus 9/9 Activity smoke, 92/92 date unit) acceptance checks; all 15 core regression suites green (5F on rerun).** No migration, RLS, grant or Storage change; no ADR; no new
+dependency in the application (dev only: `playwright-core`, `jszip`).
+
+### Added
+
+- **Consultant Home** at `/dashboard` (navigation label "Home"): Upcoming Activities, Overdue Actions,
+  Documents Under Review, Recent Projects — five rows each, empty state, `lib/queries/work.ts`
+  (fixed query count), `lib/domain/work-lists.ts`, `components/work/`. The Project Overview's Upcoming /
+  Overdue sections now use the same components. BR-156.
+- `lib/ui/business-date.ts`, `useToday()`, `LocalTime`: date-only values print the same day in every
+  time zone; "today" is the viewer's local day (Action / Activity overdue, Overview, Home, DOCX "Overdue");
+  timestamps show in the viewer's zone with no hydration mismatch. BR-157, BR-158.
+- Gap Assessment follow-up links open `/verification?item={id}`: scroll + highlight, safe for malformed /
+  other-project / deleted ids. BR-159.
+- Activity filter on Findings (BR-160) and Actions (BR-161).
+- **Regression harness preserved in `tests/`** (suites, fixtures, safety fingerprints, `run.mjs`,
+  README) with `npm run test:regression` / `npm run test:unit`; new `p7a` suites.
+
+### Changed
+
+- `isActionOverdue` / `isActivityOverdue` / `compareActions` take an explicit `today`;
+  `compareActions` moved to `lib/domain/action-order.ts`. The UTC-based `listOverdueActions` /
+  `listUpcomingActivities` were replaced by `getWorkLists`.
+- `formatEvidenceDate` removed (replaced by `LocalTime`); the client detail page uses the shared date helper.
+
 ## Phase 6E — Phase 6 final acceptance (2026-10-04)
 
 **Result: 57/57 (plus the 21/21 report-rules unit test) acceptance checks. Phase 6 — COMPLETE / CLOSED.** No migration, RLS, grant, Storage or

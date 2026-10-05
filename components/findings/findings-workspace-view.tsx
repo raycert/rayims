@@ -17,7 +17,7 @@ import {
   priorityLabel,
   priorityTone,
 } from "@/lib/ui/status-tones";
-import { findingNumberFromQuery, formatFindingNumber } from "@/lib/ui/format";
+import { activityOptionLabel, findingNumberFromQuery, formatFindingNumber } from "@/lib/ui/format";
 import { FindingFormDrawer } from "./finding-form-drawer";
 import type { FindingRow } from "@/lib/queries/findings";
 import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
@@ -40,6 +40,7 @@ export function FindingsWorkspaceView({
   const [statusFilter, setStatusFilter] = useState("all");
   const [siteFilter, setSiteFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [activityFilter, setActivityFilter] = useState("all");
   const [creating, setCreating] = useState(false);
   const { message, show } = useToast();
 
@@ -54,6 +55,9 @@ export function FindingsWorkspaceView({
     if (statusFilter !== "all") list = list.filter((f) => f.status === statusFilter);
     if (siteFilter !== "all") list = list.filter((f) => (f.siteName ?? PROJECT_WIDE) === siteFilter);
     if (priorityFilter !== "all") list = list.filter((f) => f.priority === priorityFilter);
+    // issues.activity_id only (never inferred through a Verification) — the same rule as the Activity Report.
+    if (activityFilter === "none") list = list.filter((f) => f.activityId === null);
+    else if (activityFilter !== "all") list = list.filter((f) => f.activityId === activityFilter);
     const q = search.trim().toLowerCase();
     if (q) {
       // "F-012", "012" or "12" also finds Finding number 12 (Phase 6A); text search is unchanged.
@@ -69,10 +73,15 @@ export function FindingsWorkspaceView({
       );
     }
     return list;
-  }, [findings, search, typeFilter, statusFilter, siteFilter, priorityFilter]);
+  }, [findings, search, typeFilter, statusFilter, siteFilter, priorityFilter, activityFilter]);
 
   const filtersActive =
-    search || typeFilter !== "all" || statusFilter !== "all" || siteFilter !== "all" || priorityFilter !== "all";
+    search ||
+    typeFilter !== "all" ||
+    statusFilter !== "all" ||
+    siteFilter !== "all" ||
+    priorityFilter !== "all" ||
+    activityFilter !== "all";
 
   function clearFilters() {
     setSearch("");
@@ -80,6 +89,7 @@ export function FindingsWorkspaceView({
     setStatusFilter("all");
     setSiteFilter("all");
     setPriorityFilter("all");
+    setActivityFilter("all");
   }
 
   function open(f: FindingRow) {
@@ -132,6 +142,16 @@ export function FindingsWorkspaceView({
             ]}
           />
           <FilterSelect label="Site" value={siteFilter} onChange={setSiteFilter} options={siteOptions.map((s) => ({ value: s, label: s }))} />
+          <FilterSelect
+            label="Activity"
+            allLabel="All Activities"
+            value={activityFilter}
+            onChange={setActivityFilter}
+            options={[
+              { value: "none", label: "Project-wide / No Activity" },
+              ...catalog.activities.map((a) => ({ value: a.id, label: activityOptionLabel(a) })),
+            ]}
+          />
           <FilterSelect
             label="Priority"
             value={priorityFilter}
@@ -277,20 +297,23 @@ function FilterSelect({
   value,
   onChange,
   options,
+  allLabel,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
+  /** Text of the "everything" option when "All {label}" reads badly (e.g. "All Activities"). */
+  allLabel?: string;
 }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={`Filter by ${label}`}
-      className="min-h-9 rounded-md border border-border bg-surface px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+      className="min-h-9 max-w-full rounded-md border border-border bg-surface px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
     >
-      <option value="all">All {label}</option>
+      <option value="all">{allLabel ?? `All ${label}`}</option>
       {options.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}

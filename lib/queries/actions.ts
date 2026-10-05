@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { isActionOverdue } from "@/lib/ui/format";
+import { compareActions } from "@/lib/domain/action-order";
+import { utcToday } from "@/lib/ui/business-date";
 import { siteNameMap } from "./activities";
 import { EVIDENCE_EMBED, mapEvidence, type EvidenceItem, type RawEvidence } from "./evidence";
 
@@ -80,63 +81,6 @@ export function mapAction(a: RawAction, siteMap: Map<string, string>): ActionRow
   };
 }
 
-/**
- * Default order (Phase 4D-1): Overdue first, then not-closed before closed, then due date
- * ascending (no due date last), then priority high -> medium -> low, then created_at newest
- * first, then id (deterministic tie breaker).
- */
-export function compareActions(a: ActionRow, b: ActionRow): number {
-  const aOver = isActionOverdue(a);
-  const bOver = isActionOverdue(b);
-  if (aOver !== bOver) return aOver ? -1 : 1;
-
-  const aOpen = a.status !== "closed";
-  const bOpen = b.status !== "closed";
-  if (aOpen !== bOpen) return aOpen ? -1 : 1;
-
-  if (a.dueDate !== b.dueDate) {
-    if (a.dueDate === null) return 1;
-    if (b.dueDate === null) return -1;
-    return a.dueDate < b.dueDate ? -1 : 1;
-  }
-
-  const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
-  const aRank = rank[a.priority] ?? 1;
-  const bRank = rank[b.priority] ?? 1;
-  if (aRank !== bRank) return aRank - bRank;
-
-  if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? 1 : -1;
-  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-}
-
-/**
- * Project Overview (Phase 4F): the overdue actions of one project — the same rule as everywhere
- * (due date before today, status not Closed; isActionOverdue) — soonest due first, then priority.
- * Returns at most `limit` rows plus the total overdue count. One query; the database pre-filters.
- */
-export async function listOverdueActions(
-  projectId: string,
-  limit = 5,
-): Promise<{ items: ActionRow[]; total: number }> {
-  const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
-  const [res, siteMap] = await Promise.all([
-    supabase
-      .from("actions")
-      .select(ACTION_COLUMNS)
-      .eq("project_id", projectId)
-      .neq("status", "closed")
-      .lt("due_date", today),
-    siteNameMap(supabase, projectId),
-  ]);
-  if (res.error) throw new Error("Could not load overdue actions.");
-  const overdue = (res.data ?? [])
-    .map((a) => mapAction(a as RawAction, siteMap))
-    .filter(isActionOverdue)
-    .sort(compareActions);
-  return { items: overdue.slice(0, limit), total: overdue.length };
-}
-
 /** Project Actions workspace: linked AND standalone actions of one project, in one query. */
 export async function listProjectActions(projectId: string): Promise<ActionRow[]> {
   const supabase = await createClient();
@@ -145,5 +89,5 @@ export async function listProjectActions(projectId: string): Promise<ActionRow[]
     siteNameMap(supabase, projectId),
   ]);
   if (res.error) throw new Error("Could not load actions.");
-  return (res.data ?? []).map((a) => mapAction(a as RawAction, siteMap)).sort(compareActions);
+  return (res.data ?? []).map((a) => mapAction(a as RawAction, siteMap)).sort((x, y) => compareActions(x, y, utcToday()));
 }

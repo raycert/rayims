@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
-import { findingLabel, formatDate, formatFindingNumber } from "@/lib/ui/format";
+import { LocalTime } from "@/components/ui/local-time";
+import { findingLabel, formatFindingNumber } from "@/lib/ui/format";
 import {
   findingStatusLabel,
   findingStatusTone,
@@ -73,7 +74,7 @@ function ItemCard({
             <p className="mt-1.5 line-clamp-2 text-xs text-muted">Notes: {item.notes}</p>
           ) : null}
           <p className="mt-1 text-xs text-muted">
-            Verified {formatDate(item.verifiedAt)} · {item.verifiedByName ?? "—"}
+            Verified {item.verifiedAt ? <LocalTime iso={item.verifiedAt} mode="date" /> : "—"} · {item.verifiedByName ?? "—"}
           </p>
         </>
       ) : null}

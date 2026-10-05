@@ -10,7 +10,9 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Toast, useToast } from "@/components/ui/toast";
 import { ACTION_STATUSES } from "@/lib/validation/actions";
 import { actionStatusLabel, priorityLabel, priorityTone } from "@/lib/ui/status-tones";
-import { findingNumberFromQuery, formatDate, isActionOverdue, relatedFindingLabel } from "@/lib/ui/format";
+import { activityOptionLabel, findingNumberFromQuery, formatDate, isActionOverdue, relatedFindingLabel } from "@/lib/ui/format";
+import { useToday } from "@/components/ui/use-today";
+import { compareActions } from "@/lib/domain/action-order";
 import { ActionCard } from "./action-card";
 import { ActionFormDrawer } from "./action-form-drawer";
 import { ActionStatusControl } from "./action-status-control";
@@ -39,8 +41,10 @@ export function ActionsWorkspaceView({
   const [siteFilter, setSiteFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [linkFilter, setLinkFilter] = useState("all");
+  const [activityFilter, setActivityFilter] = useState("all");
   const [drawer, setDrawer] = useState<{ mode: "create" } | { mode: "edit"; action: ActionRow } | null>(null);
   const { message, show } = useToast();
+  const today = useToday();
 
   const siteOptions = useMemo(
     () => Array.from(new Set(actions.map((a) => a.siteName ?? PROJECT_WIDE))).sort(),
@@ -48,11 +52,16 @@ export function ActionsWorkspaceView({
   );
 
   const filtered = useMemo(() => {
-    let list = actions;
-    if (statusFilter === "overdue") list = list.filter((a) => isActionOverdue(a));
+    // The server orders with its own estimate of today; re-order with the viewer's real local day.
+    let list = [...actions].sort((x, y) => compareActions(x, y, today));
+    if (statusFilter === "overdue") list = list.filter((a) => isActionOverdue(a, today));
     else if (statusFilter !== "all") list = list.filter((a) => a.status === statusFilter);
     if (siteFilter !== "all") list = list.filter((a) => (a.siteName ?? PROJECT_WIDE) === siteFilter);
     if (priorityFilter !== "all") list = list.filter((a) => a.priority === priorityFilter);
+    // The Action's OWN Activity (actions.activity_id) — a Finding-linked Action without one is "No Activity" here.
+    // (The Activity Report is broader: it also lists the Actions of its Findings.)
+    if (activityFilter === "none") list = list.filter((a) => a.activityId === null);
+    else if (activityFilter !== "all") list = list.filter((a) => a.activityId === activityFilter);
     if (linkFilter === "linked") list = list.filter((a) => a.findingId !== null);
     if (linkFilter === "standalone") list = list.filter((a) => a.findingId === null);
     const q = search.trim().toLowerCase();
@@ -70,10 +79,15 @@ export function ActionsWorkspaceView({
       );
     }
     return list;
-  }, [actions, search, statusFilter, siteFilter, priorityFilter, linkFilter]);
+  }, [actions, today, search, statusFilter, siteFilter, priorityFilter, linkFilter, activityFilter]);
 
   const filtersActive =
-    search || statusFilter !== "all" || siteFilter !== "all" || priorityFilter !== "all" || linkFilter !== "all";
+    search ||
+    statusFilter !== "all" ||
+    siteFilter !== "all" ||
+    priorityFilter !== "all" ||
+    linkFilter !== "all" ||
+    activityFilter !== "all";
 
   function clearFilters() {
     setSearch("");
@@ -81,6 +95,7 @@ export function ActionsWorkspaceView({
     setSiteFilter("all");
     setPriorityFilter("all");
     setLinkFilter("all");
+    setActivityFilter("all");
   }
 
   function refreshWith(msg: string) {
@@ -118,6 +133,13 @@ export function ActionsWorkspaceView({
             ]}
           />
           <FilterSelect label="Site" value={siteFilter} onChange={setSiteFilter} options={siteOptions.map((s) => ({ value: s, label: s }))} />
+          <FilterSelect
+            label="Activity"
+            allLabel="All Activities"
+            value={activityFilter}
+            onChange={setActivityFilter}
+            options={[{ value: "none", label: "No Activity" }, ...catalog.activities.map((a) => ({ value: a.id, label: activityOptionLabel(a) }))]}
+          />
           <FilterSelect
             label="Priority"
             value={priorityFilter}
@@ -181,7 +203,7 @@ export function ActionsWorkspaceView({
               </thead>
               <tbody>
                 {filtered.map((a) => {
-                  const overdue = isActionOverdue(a);
+                  const overdue = isActionOverdue(a, today);
                   const frozen = a.findingStatus === "closed";
                   return (
                     <tr key={a.id} data-action-id={a.id} className="border-t border-border align-top">
@@ -297,20 +319,23 @@ function FilterSelect({
   value,
   onChange,
   options,
+  allLabel,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
+  /** Text of the "everything" option when "All {label}" reads badly (e.g. "All Activities"). */
+  allLabel?: string;
 }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={`Filter by ${label}`}
-      className="min-h-9 rounded-md border border-border bg-surface px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+      className="min-h-9 max-w-full rounded-md border border-border bg-surface px-2.5 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
     >
-      <option value="all">All {label}</option>
+      <option value="all">{allLabel ?? `All ${label}`}</option>
       {options.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}

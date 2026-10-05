@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Toast, useToast } from "@/components/ui/toast";
 import { activityStatusLabel, activityStatusTone } from "@/lib/ui/status-tones";
+import { useToday } from "@/components/ui/use-today";
 import { activityModeLabel, formatActivityDateTime, isActivityOverdue } from "@/lib/ui/format";
 import { ActivityFormDrawer } from "@/components/activities/activity-form-drawer";
 import type { ActivityFormCatalog, ActivityPlanRow } from "@/lib/queries/activities";
@@ -33,6 +34,7 @@ export function MasterPlanView({
   const [statusFilter, setStatusFilter] = useState("all");
   const [creating, setCreating] = useState(false);
   const { message, show } = useToast();
+  const today = useToday();
 
   const siteOptions = useMemo(
     () => Array.from(new Set(activities.map((a) => a.siteName ?? PROJECT_WIDE))).sort(),
@@ -172,7 +174,7 @@ export function MasterPlanView({
               </thead>
               <tbody>
                 {filtered.map((a) => {
-                  const overdue = isActivityOverdue(a);
+                  const overdue = isActivityOverdue(a, today);
                   const cancelled = a.status === "cancelled";
                   return (
                     <tr
@@ -209,7 +211,7 @@ export function MasterPlanView({
           {/* Mobile cards */}
           <div className="flex flex-col gap-2.5 md:hidden">
             {filtered.map((a) => {
-              const overdue = isActivityOverdue(a);
+              const overdue = isActivityOverdue(a, today);
               const cancelled = a.status === "cancelled";
               return (
                 <div

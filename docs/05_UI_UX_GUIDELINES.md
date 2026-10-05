@@ -194,6 +194,24 @@ and prototype/demo data is not a requirement.
   the report title, activity, generation time (viewer's time zone) and page number. No logo, no colour
   beyond navy / grey, readable in black and white. Per-client templates and photos are backlog.
 
+## Phase 7A UI patterns (pilot foundation)
+
+- **Home** (`/dashboard`, labelled "Home"): a page title and one sentence, then compact lists in cards —
+  Upcoming Activities and Overdue Actions side by side from about 768 px (stacked on phones),
+  Documents Under Review full width, Recent Projects last. Rows are links (title, one muted detail line
+  that wraps, status badge on the right), five at most; no charts, KPIs or "welcome" copy. When nothing
+  is pending a single card says "No pending work needs your attention." with a primary **View Projects**
+  button. Never "Your workspace is ready…".
+- **Dates:** a date-only value reads the same everywhere (BR-157); timestamps are the viewer's local time
+  via `LocalTime`; "today" is the viewer's local day (BR-158). Do not build dates with
+  `new Date(value).toLocale…` in components.
+- **Filters** keep the existing row of selects. The Activity filter reads "All Activities"; Findings add
+  "Project-wide / No Activity", Actions "No Activity". Filters are not in the URL (except the existing
+  `?filter=overdue` of Actions).
+- **Deep link highlight:** a linked row gets a light primary tint with a primary edge (phone: primary
+  border and ring) for a few seconds, no animation; the item is scrolled to the middle of the screen,
+  clear of the bottom navigation.
+
 ## Out of scope for this document
 
 Detailed screen layouts, wireframes, component specifications and the visual

@@ -20,10 +20,10 @@ export default async function ProjectVerificationPage({
   searchParams,
 }: {
   params: Promise<{ projectId: string }>;
-  searchParams: Promise<{ imported?: string }>;
+  searchParams: Promise<{ imported?: string; item?: string }>;
 }) {
   const { projectId } = await params;
-  const { imported } = await searchParams;
+  const { imported, item } = await searchParams;
   const importedCount = /^\d{1,4}$/.test(imported ?? "") ? Number(imported) : 0;
   const project = await getProjectWorkspace(projectId);
   if (!project) notFound();
@@ -36,7 +36,7 @@ export default async function ProjectVerificationPage({
   return (
     <PageContainer>
       <ProjectWorkspaceHeader project={project} activeTab="verification" />
-      <VerificationWorkspaceView projectId={projectId} items={items} catalog={catalog} importedCount={importedCount} />
+      <VerificationWorkspaceView projectId={projectId} items={items} catalog={catalog} importedCount={importedCount} focusItem={item?.slice(0, 64)} />
     </PageContainer>
   );
 }

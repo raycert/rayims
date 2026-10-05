@@ -12,14 +12,10 @@ import { deleteSiteRecord } from "@/lib/mutations/sites";
 import { ClientFormDrawer } from "./client-form-drawer";
 import { SiteFormDrawer } from "./site-form-drawer";
 import { SiteRow } from "./site-row";
+import { formatDate } from "@/lib/ui/format";
 import type { ClientDetail, SiteRow as SiteRowData } from "@/lib/queries/clients";
 
 type SiteDrawerState = { mode: "create" } | { mode: "edit"; site: SiteRowData } | null;
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
-}
 
 export function ClientDetailView({ client }: { client: ClientDetail }) {
   const router = useRouter();

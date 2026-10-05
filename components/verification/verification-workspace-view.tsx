@@ -36,12 +36,15 @@ export function VerificationWorkspaceView({
   items,
   catalog,
   importedCount = 0,
+  focusItem,
 }: {
   projectId: string;
   items: VerificationItemRow[];
   catalog: VerificationFormCatalog;
   /** Set (via ?imported=N) right after a successful Excel import: shows the toast once. */
   importedCount?: number;
+  /** From ?item=<id> (a Gap Assessment's follow-up link): the check to scroll to and highlight. */
+  focusItem?: string;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -52,6 +55,22 @@ export function VerificationWorkspaceView({
   const [drawer, setDrawer] = useState<{ mode: "create" } | { mode: "edit"; item: VerificationItemRow } | null>(null);
   const [deleting, setDeleting] = useState<VerificationItemRow | null>(null);
   const { message, show } = useToast();
+  // The deep link only ever resolves inside THIS project's items, so another project's id (or a deleted /
+  // malformed one) simply finds nothing: a compact note, never data from elsewhere.
+  const focused = focusItem ? (items.find((i) => i.id === focusItem) ?? null) : null;
+  const [highlightId, setHighlightId] = useState<string | null>(focused?.id ?? null);
+  const [noteDismissed, setNoteDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!focused) return;
+    // Both layouts are in the DOM (table on desktop, cards on mobile): scroll the one that is displayed.
+    const el = Array.from(document.querySelectorAll<HTMLElement>(`[data-verification-item-id="${focused.id}"]`)).find(
+      (node) => node.offsetParent !== null,
+    );
+    el?.scrollIntoView({ block: "center" });
+    const timer = window.setTimeout(() => setHighlightId(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [focused]);
 
   const menuItems = (v: VerificationItemRow) => [
     { label: "Edit", onSelect: () => setDrawer({ mode: "edit", item: v }) },
@@ -141,6 +160,19 @@ export function VerificationWorkspaceView({
           </Button>
         </div>
       </div>
+
+      {focusItem && !focused && !noteDismissed ? (
+        <div
+          data-testid="verification-link-note"
+          role="status"
+          className="mt-3 flex items-center justify-between gap-3 rounded-md border border-border bg-neutral-soft px-3 py-2 text-sm"
+        >
+          <span>The linked verification item is no longer available.</span>
+          <button type="button" onClick={() => setNoteDismissed(true)} className="font-semibold text-primary hover:underline">
+            Dismiss
+          </button>
+        </div>
+      ) : null}
 
       {items.length > 0 ? (
         <div className="my-4 flex flex-wrap items-center gap-2.5">
@@ -234,12 +266,14 @@ export function VerificationWorkspaceView({
                 {filtered.map((v) => (
                   <tr
                     key={v.id}
+                    data-verification-item-id={v.id}
+                    data-highlighted={highlightId === v.id ? "true" : undefined}
                     tabIndex={0}
                     onClick={() => setDrawer({ mode: "edit", item: v })}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && e.target === e.currentTarget) setDrawer({ mode: "edit", item: v });
                     }}
-                    className="cursor-pointer border-t border-border hover:bg-neutral-soft/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2"
+                    className={`cursor-pointer border-t border-border hover:bg-neutral-soft/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2 ${highlightId === v.id ? "bg-primary/15 shadow-[inset_3px_0_0_var(--color-primary)]" : ""}`}
                   >
                     <td className="max-w-sm px-4 py-3">
                       <div className="font-semibold">{v.question}</div>
@@ -277,13 +311,15 @@ export function VerificationWorkspaceView({
             {filtered.map((v) => (
               <div
                 key={v.id}
+                data-verification-item-id={v.id}
+                data-highlighted={highlightId === v.id ? "true" : undefined}
                 role="button"
                 tabIndex={0}
                 onClick={() => setDrawer({ mode: "edit", item: v })}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") setDrawer({ mode: "edit", item: v });
                 }}
-                className="cursor-pointer rounded-lg border border-border bg-surface p-3.5 shadow-sm focus-visible:outline-2 focus-visible:outline-primary"
+                className={`cursor-pointer rounded-lg border bg-surface p-3.5 shadow-sm focus-visible:outline-2 focus-visible:outline-primary ${highlightId === v.id ? "border-primary ring-2 ring-primary/40" : "border-border"}`}
               >
                 <div className="mb-1.5 flex items-center justify-between gap-2">
                   <StatusBadge label={priorityLabel(v.priority)} tone={priorityTone(v.priority)} />

@@ -111,7 +111,8 @@ Product behavior that the schema and UI must respect. Database details are in
   A multi-day activity does not use times.
 - **BR-63** An activity is overdue (derived, never stored) when its effective end date
   (`end_date` if set, else `start_date`) is before today and its status is not
-  `completed` or `cancelled` — the same derivation principle as BR-34 for actions.
+  `completed` or `cancelled` — the same derivation principle as BR-34 for actions; `today` is the
+  viewer's local calendar day (BR-158).
 - **BR-64** Activity date/time validation (Phase 3B-2, server-authoritative — never a
   raw database error): `start_time` requires `start_date`; `end_time` requires some
   date context (`start_date` or `end_date`); when both dates are set, `end_date >=
@@ -515,7 +516,7 @@ Product behavior that the schema and UI must respect. Database details are in
   site visit).
 - **BR-33** Action workflow: Open → In Progress → Pending Review → Closed.
 - **BR-34** **Overdue is derived, not stored:** an action is overdue when
-  `due_date < today` and `status <> closed`.
+  `due_date < today` and `status <> closed`. `today` is the **viewer's local calendar day** (BR-158).
 - **BR-35** Open actions must be available to surface as **open actions to follow
   up** in later site visits: actions of the project that are not closed and
   belong to the visited site or are project-wide. (Data model only in V1
@@ -720,10 +721,55 @@ itself. Admin and Consultant have the same rights; anonymous users have none.
 
 - **BR-112** The Project Overview shows **Overdue Actions**: the project's actions matching BR-34
   (`due_date` before today, status not Closed — the same `isActionOverdue` rule as the Actions
-  workspace; today is the UTC date, see backlog), at most **5**, ordered by due date (oldest
+  workspace; today is the viewer's local calendar day, BR-158), at most **5**, ordered by due date (oldest
   first), then priority High → Low, then newest created, then id; with the total count, each row's
   description, due date, owner, Finding (or "Standalone") and status, and **View all Actions**
   (Actions workspace pre-filtered to Overdue). Empty state: "No overdue actions." No KPI or chart.
+
+## Pilot foundation (Phase 7A)
+
+- **BR-156** *(Phase 7A)* The consultant **Home** (route `/dashboard`, navigation label "Home", the
+  post-login page) answers "what do I need to work on next?" across **all Projects the user can read**
+  (V1 authorization is authenticated full business access, BR-42 — no tenant filtering is added). Four
+  compact sections, **at most 5 rows each**, no charts or KPIs: **Upcoming Activities** (status not
+  Completed / Cancelled and `start_date` today or later; soonest first by date, time, name; undated
+  Activities never), **Overdue Actions** (BR-34; soonest due first, then priority; the heading shows the
+  total; a Finding-linked row opens its Finding, a standalone row the Project's Actions workspace
+  filtered to Overdue), **Documents Under Review** (the current Version has an open Gap Assessment:
+  `document_reviews.status = under_review`; oldest open first; opens Document Detail — no new Document
+  status) and **Recent Projects** (newest created). When the first three are empty the page says "No
+  pending work needs your attention." with **View Projects**. Opening Home reads only; it writes nothing.
+  It uses a fixed number of queries (no N+1) — see BR-158 for how "today" is decided.
+- **BR-157** *(Phase 7A)* **Date-only values** (due date, Activity start / end date, Version received
+  date, Project dates) are calendar days, not moments: they print as the **same day in every time zone**
+  (parsed and formatted as UTC calendar values, one shared helper `formatDate` /
+  `lib/ui/business-date.ts`). **Timestamps** (recorded / closed / reviewed / verified / uploaded at) are
+  moments: they are shown in the **viewer's** time zone by the `LocalTime` component (the server renders a
+  hidden placeholder, so no server-zone time is ever shown and there is no hydration mismatch).
+- **BR-158** *(Phase 7A)* **"Today" for every business-date rule is the viewer's local calendar day** — Action
+  overdue (BR-34), Activity overdue (BR-63), the Project Overview and Home lists, Upcoming Activities,
+  and the "Overdue" mark in the DOCX (the zone the export is generated for). The rules themselves are
+  unchanged. In the browser `useToday()` supplies the day (re-read every minute and when the tab becomes
+  visible). The server cannot know the zone, so for Home / Overview it returns the rows that are certain
+  plus those of the **two undecided days** (the server's UTC day and the one before; a viewer's local day
+  is always within one day of UTC) and the browser decides them; `compareActions` takes `today` the same
+  way. No timezone cookie or locale framework exists.
+- **BR-159** *(Phase 7A)* **Verification deep link:** `/projects/{projectId}/verification?item={id}`. The
+  Gap Assessment follow-up list links its Verification items this way. The workspace looks the id up
+  **among this Project's items only**, scrolls that item into view and highlights it for a few seconds
+  (table row on desktop, card on phone); filters and search are untouched. A malformed id, another
+  Project's item, a deleted item or an over-long value is ignored with a compact, dismissible note —
+  nothing from elsewhere is read or shown. There is no Verification detail route.
+- **BR-160** *(Phase 7A)* **Findings Activity filter:** "All Activities", "Project-wide / No Activity" and each
+  of the Project's Activities. Activity A means `issues.activity_id = A`; Project-wide means
+  `activity_id IS NULL`. Never inferred through a Verification item — the same rule as the Activity Report
+  (BR-152). It combines with search, Type, Status, Site and Priority; Clear resets it. Client-side, not in the URL.
+- **BR-161** *(Phase 7A)* **Actions Activity filter:** "All Activities", "No Activity" and each of the
+  Project's Activities. Activity A means `actions.activity_id = A` — **the Action's own Activity only**. A
+  Finding-linked Action whose own `activity_id` is NULL is "No Activity" here. The **Activity Report is
+  deliberately broader** (BR-152 / BR-153: the Activity's Actions plus the Actions of its Findings); the
+  workspace filter describes where the Action itself was recorded. It combines with search, Status
+  (including Overdue), Site, Priority and the Finding link filter.
 
 ## Access and identity
 

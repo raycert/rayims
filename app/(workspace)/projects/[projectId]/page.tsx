@@ -3,8 +3,7 @@ import { ProjectWorkspaceView } from "@/components/projects/project-workspace-vi
 import { ProjectWorkspaceHeader } from "@/components/projects/project-workspace-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { getProjectWorkspace } from "@/lib/queries/projects";
-import { listUpcomingActivities } from "@/lib/queries/activities";
-import { listOverdueActions } from "@/lib/queries/actions";
+import { getWorkLists } from "@/lib/queries/work";
 
 export async function generateMetadata({
   params,
@@ -25,10 +24,7 @@ export default async function ProjectWorkspacePage({
   const project = await getProjectWorkspace(projectId);
   if (!project) notFound();
 
-  const [upcomingActivities, overdueActions] = await Promise.all([
-    listUpcomingActivities(projectId),
-    listOverdueActions(projectId),
-  ]);
+  const { upcoming: upcomingActivities, overdue: overdueActions } = await getWorkLists({ scopeProjectId: projectId, limit: 3 });
 
   return (
     <PageContainer>

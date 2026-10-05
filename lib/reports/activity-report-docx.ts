@@ -15,6 +15,7 @@ import {
   WidthType,
 } from "docx";
 import { fileNamePart, xmlSafe, zonedParts } from "@/lib/export/shared";
+import { dateInZone } from "@/lib/ui/business-date";
 import { formatFindingNumber, isActionOverdue } from "@/lib/ui/format";
 import {
   actionStatusLabel,
@@ -168,6 +169,8 @@ const cellLines = (lines: { text: string; bold?: boolean; muted?: boolean }[]) =
 export async function buildActivityReportDocx(report: ActivityReport, ctx: { generatedAt: Date; timeZone: string }): Promise<Buffer> {
   const { activity: a, narrative: n, verification: v, findings, actions, evidence } = report;
   const g = zonedParts(ctx.generatedAt, ctx.timeZone);
+  // "Overdue" is judged on the viewer's calendar day (the zone the file is generated for), as on screen.
+  const today = dateInZone(ctx.generatedAt, ctx.timeZone);
   const generated = `${g.d}/${g.m}/${g.y} ${g.hh}:${g.mm} (${ctx.timeZone})`;
   const title = activityReportTitle(a.typeLabel);
   const requirement = (identity: string | null, label: string | null) => [identity, label].filter(Boolean).join(" · ");
@@ -275,7 +278,7 @@ export async function buildActivityReportDocx(report: ActivityReport, ctx: { gen
             x.ownerName ?? "",
             dmy(x.dueDate),
             priorityLabel(x.priority),
-            isActionOverdue(x) ? `${actionStatusLabel(x.status)} — Overdue` : actionStatusLabel(x.status),
+            isActionOverdue(x, today) ? `${actionStatusLabel(x.status)} — Overdue` : actionStatusLabel(x.status),
           ]),
         ),
   );

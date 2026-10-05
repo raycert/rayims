@@ -38,7 +38,7 @@
 | — 6C  | Activity Report data integration            | **COMPLETED** |
 | — 6D  | Activity Report DOCX export                 | **COMPLETED** |
 | — 6E  | Phase 6 final acceptance                    | **COMPLETED** |
-| 7     | Dashboard / Polish / Pilot readiness        | Planned — NEXT |
+| 7     | Dashboard / Polish / Pilot readiness        | **IN PROGRESS** (7A completed; 7B next) |
 
 > **The product workflow remains flexible.** The implementation order above does
 > **not** imply that Document Review must occur after Site Verification. Phase 4
@@ -544,7 +544,7 @@ Planning (manual + Excel import), mobile onsite execution, Verification → Find
 Corrective Actions, effectiveness review, closure / reopen, Observation and OFI, standalone
 actions, Evidence, controlled delete and the overdue-actions overview are complete and verified
 against the hosted project. Backlog carried forward: "today" for overdue is the UTC date
-(timezone handling), hide inert tabs on mobile, collapsible mobile filters, Finding origin in the
+(timezone handling — fixed in Phase 7A), hide inert tabs on mobile, collapsible mobile filters, Finding origin in the
 header.
 
 ## Phase 5 — Documents / Versions / Reviews [COMPLETE / CLOSED]
@@ -693,9 +693,27 @@ choice); per-client / branded report templates (logo, colours); optional retenti
 files.
 
 
-## Phase 7 — Dashboard / Polish / Demo / Deployment [NEXT]
+## Phase 7 — Dashboard / Polish / Demo / Deployment [IN PROGRESS]
 
 Minimal dashboard, polish, demo data, deployment to Vercel (Polish / productivity / pilot readiness).
+
+**Phase 7 slices (order approved by the product owner after the Phase 7 pre-implementation review):**
+
+| Slice | Name | Status |
+| --- | --- | --- |
+| 7A | Pilot Foundation + regression harness preservation | **COMPLETED** |
+| 7B | Data-integrity hardening (one migration, approved in principle: Document → Version and Version → Review delete FKs RESTRICT; one-open-review partial unique index; deterministic latest-review tie-break in `document_register`) | **NEXT** |
+| 7C | Bulk Document Upload (multi-select, deterministic match review, per-file atomic, no migration) | Planned |
+| 7D | Expected Records / Required Evidence (`documents.expected_records`, import, Gap Assessment, export) | Planned |
+| 7E | Deployment readiness + pilot dry-run | Planned |
+
+### Phase 7A — Pilot Foundation [COMPLETED]
+
+Consultant Home (replaces the placeholder Dashboard), date-only and timestamp correctness, the viewer's
+local "today" for every overdue / upcoming rule, the Gap Assessment → Verification deep link, Activity
+filters on Findings and Actions, a small copy sweep, mobile / desktop acceptance, and the regression
+harness preserved in `tests/` (see `tests/README.md`). No migration, RLS, grant or Storage change; no ADR.
+BR-156 – BR-161. Results in `08_TESTING.md`.
 
 **Consolidated Phase 7 backlog (recorded at Phase 6 close — none of it is scheduled or approved):**
 
@@ -704,8 +722,8 @@ Minimal dashboard, polish, demo data, deployment to Vercel (Polish / productivit
   Expected Records / Required Evidence as Document-level context (not Review Comments).
 - *Reporting:* photos in the Activity Report (explicit "include in report" choice); branded / custom report
   templates; report export retention / an issued-report register.
-- *Navigation / polish:* review-origin Verification items link to the item, not the workspace; server-rendered
-  dates use the server's time zone before hydration (deployment time zone or client rendering).
+- *Navigation / polish:* ~~review-origin Verification items link to the item~~ and ~~server-rendered dates use
+  the server's time zone~~ — **done in 7A**.
 - *Hardening (needs approved migrations):* document / version delete races; a database partial unique
   index for one open review per version; a deterministic latest-review tie-break in the `document_register`
   view (`id`); import as one database transaction.

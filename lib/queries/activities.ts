@@ -106,33 +106,6 @@ export async function listActivities(projectId: string): Promise<ActivityPlanRow
   return (activitiesRes.data ?? []).map((a) => mapActivityRow(a, siteMap));
 }
 
-/**
- * Project Workspace Overview's small "Upcoming Activities" widget (Phase 3B-3).
- * Rule: status not in (completed, cancelled) AND start_date >= today, ordered
- * start_date -> start_time -> name, limited server-side (never fetches the whole
- * Master Plan just to show 3 rows). Undated activities are never "upcoming".
- */
-export async function listUpcomingActivities(projectId: string, limit = 3): Promise<ActivityPlanRow[]> {
-  const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
-  const [activitiesRes, siteMap] = await Promise.all([
-    supabase
-      .from("activities")
-      .select(ACTIVITY_LIST_COLUMNS)
-      .eq("project_id", projectId)
-      .gte("start_date", today)
-      .not("status", "in", "(completed,cancelled)")
-      .order("start_date", { ascending: true, nullsFirst: false })
-      .order("start_time", { ascending: true, nullsFirst: false })
-      .order("name", { ascending: true })
-      .limit(limit),
-    siteNameMap(supabase, projectId),
-  ]);
-  if (activitiesRes.error) throw new Error("Could not load upcoming activities.");
-
-  return (activitiesRes.data ?? []).map((a) => mapActivityRow(a, siteMap));
-}
-
 export type ActivityDetail = ActivityPlanRow & {
   /** Evidence attached to the Activity itself (not to its verification items). */
   evidence: EvidenceItem[];

@@ -8,7 +8,8 @@ import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 import { documentStatusLabel, documentStatusTone } from "@/lib/ui/status-tones";
 import { formatDate } from "@/lib/ui/format";
 import { deleteDocumentVersion, getDocumentVersionDeleteState, getDocumentVersionUrl } from "@/lib/mutations/document-versions";
-import { formatEvidenceDate, formatFileSize } from "@/components/evidence/evidence-format";
+import { LocalTime } from "@/components/ui/local-time";
+import { formatFileSize } from "@/components/evidence/evidence-format";
 import { VersionUploadDrawer } from "./version-upload-drawer";
 import { AssessmentHistory, GapAssessmentPanel, type FollowUpContext } from "./gap-assessment";
 import type { DocumentFrameworkItem, DocumentVersionSummary } from "@/lib/queries/documents";
@@ -121,13 +122,9 @@ export function DocumentVersionsSection({
                       <span className="ml-2 text-xs text-muted">{formatFileSize(v.sizeBytes)}</span>
                     </p>
                     <p className="text-xs text-muted">
-                      {[
-                        v.receivedOn ? `Received ${formatDate(v.receivedOn)}` : null,
-                        `Uploaded by ${v.uploadedByName ?? "Unknown user"}`,
-                        formatEvidenceDate(v.createdAt),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
+                      {v.receivedOn ? `Received ${formatDate(v.receivedOn)} · ` : ""}
+                      {`Uploaded by ${v.uploadedByName ?? "Unknown user"} · `}
+                      <LocalTime iso={v.createdAt} />
                     </p>
                     {v.notes ? <p className="mt-1 whitespace-pre-wrap text-sm">{v.notes}</p> : null}
                     <div className="mt-1 flex flex-wrap gap-x-4 text-sm">

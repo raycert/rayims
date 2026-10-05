@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { File, FileImage, FileText } from "lucide-react";
 import { getEvidenceUrl, removeEvidence } from "@/lib/mutations/evidence";
 import { isViewableEvidence } from "@/lib/validation/evidence";
-import { formatEvidenceDate, formatFileSize } from "./evidence-format";
+import { LocalTime } from "@/components/ui/local-time";
+import { formatFileSize } from "./evidence-format";
 import type { EvidenceItem } from "@/lib/queries/evidence";
 
 function Icon({ mimeType }: { mimeType: string | null }) {
@@ -74,7 +75,7 @@ export function EvidenceList({
               <p className="break-all text-sm font-semibold">{item.fileName}</p>
               {item.caption ? <p className="text-sm">{item.caption}</p> : null}
               <p className="text-xs text-muted">
-                {formatFileSize(item.sizeBytes)} · {item.uploadedByName ?? "Unknown user"} · {formatEvidenceDate(item.uploadedAt)}
+                {formatFileSize(item.sizeBytes)} · {item.uploadedByName ?? "Unknown user"} · <LocalTime iso={item.uploadedAt} />
               </p>
               <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm">
                 {isViewableEvidence(item.mimeType) ? (

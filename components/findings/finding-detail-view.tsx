@@ -35,21 +35,12 @@ import { FindingFormDrawer } from "./finding-form-drawer";
 import { NcResponseDrawer } from "./nc-response-drawer";
 import { ActionCard } from "@/components/actions/action-card";
 import { ActionFormDrawer } from "@/components/actions/action-form-drawer";
+import { LocalTime } from "@/components/ui/local-time";
 import type { ActionRow } from "@/lib/queries/actions";
 import type { FindingDetail } from "@/lib/queries/findings";
 import type { VerificationFormCatalog } from "@/lib/queries/verification-items";
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function TextField({ label, value }: { label: string; value: string | null }) {
+function TextField({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="px-4 py-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</div>
@@ -502,7 +493,7 @@ export function FindingDetailView({
                   {finding.effectivenessResult ? (finding.effectivenessReviewerName ?? "Unknown user") : "—"}
                 </dd>
                 <dt className="text-xs font-semibold uppercase tracking-wide text-muted sm:pt-0.5">Reviewed At</dt>
-                <dd>{finding.effectivenessReviewedAt ? formatDateTime(finding.effectivenessReviewedAt) : "—"}</dd>
+                <dd>{finding.effectivenessReviewedAt ? <LocalTime iso={finding.effectivenessReviewedAt} /> : "—"}</dd>
               </dl>
             ) : (
               <p className="px-4 py-3 text-sm text-muted">Not reviewed yet.</p>
@@ -581,12 +572,22 @@ export function FindingDetailView({
             ) : null}
             <TextField
               label="Recorded"
-              value={`${formatDateTime(finding.createdAt)}${finding.createdByName ? ` · ${finding.createdByName}` : ""}`}
+              value={
+                <>
+                  <LocalTime iso={finding.createdAt} />
+                  {finding.createdByName ? ` · ${finding.createdByName}` : ""}
+                </>
+              }
             />
             {isClosed && finding.closedAt ? (
               <TextField
                 label="Closed"
-                value={`${formatDateTime(finding.closedAt)}${finding.closedByName ? ` · ${finding.closedByName}` : ""}`}
+                value={
+                  <>
+                    <LocalTime iso={finding.closedAt} />
+                    {finding.closedByName ? ` · ${finding.closedByName}` : ""}
+                  </>
+                }
               />
             ) : null}
           </div>

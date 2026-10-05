@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { actionStatusLabel, actionStatusTone, priorityLabel, priorityTone } from "@/lib/ui/status-tones";
 import { formatDate, isActionOverdue, relatedFindingLabel } from "@/lib/ui/format";
+import { useToday } from "@/components/ui/use-today";
 import { ActionStatusControl } from "./action-status-control";
 import { EvidenceButton } from "@/components/evidence/evidence-panel";
 import type { ActionRow } from "@/lib/queries/actions";
@@ -26,7 +27,8 @@ export function ActionCard({
   onChanged: (message: string) => void;
   onError: (message: string) => void;
 }) {
-  const overdue = isActionOverdue(action);
+  const today = useToday();
+  const overdue = isActionOverdue(action, today);
   const frozen = action.findingStatus === "closed";
   const closed = action.status === "closed";
 

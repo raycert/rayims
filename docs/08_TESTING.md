@@ -1642,7 +1642,83 @@ the report export writes nothing.
 After all suites: fixture residue 0 (only Chinh Long and Test 1 remain) and **genuine data identical to
 pre-flight**.
 
-### Phase 7 — Dashboard / Polish / Demo / Deployment
-Test cases: *not yet defined.*
-Candidate areas: dashboard figures; mobile walkthrough; production build and
-deployment checks.
+### Phase 7A — Pilot Foundation + regression harness preservation (executed 2026-10-04 / 2026-10-05)
+
+Production build (`next start`), hosted Supabase, Edge via Playwright (time zone Asia/Ho_Chi_Minh unless a
+check names another), run **from the committed harness in `tests/`** (`node tests/regression/run.mjs`).
+Fixtures prefixed `P7A-ACCEPT-`. Before testing: schema / RLS / grant / Storage fingerprint (`p7a-schema`,
+identical to the Phase 6E final one: 12 migrations, 20 tables) and a genuine-data snapshot (`p7a-snapshot`);
+both compared again afterwards — **identical**. No migration, RLS, grant, Storage or application-data change.
+
+**Result: `p7a` 107/107 PASS** (first runs failed only on test-side problems, listed below), **`p7a-activity`
+9/9**, **`p7a-unit` 92/92** (four process time zones), report-rules unit test 21/21.
+
+| Area | Checks (all PASS) |
+| --- | --- |
+| Home — empty | no fixtures: "No pending work needs your attention." + View Projects, no placeholder wording, title / navigation "Home" |
+| Home — data | Upcoming: 5 rows, soonest first across Projects, Project + Type + Site shown, Completed / Cancelled excluded, row opens Activity Detail. Overdue: 5 rows, total (10) in the heading, F-nnn, owner, due date, Project; closed / not-yet-due excluded; Finding-linked row → Finding, others → Actions?filter=overdue. Documents Under Review: 5 rows, total (8), oldest first, V1, Under Review; concluded / unreceived excluded; row → Document Detail. Recent Projects: the 5 newest. No overflow, no hydration warning, side-by-side at 1280×800 |
+| Authorization | Consultant sees the same Home as Admin; signed out → login, no fixture content |
+| Project Overview | the shared sections: 3 upcoming of this Project only, Overdue (8) of this Project only |
+| Date-only | 2026-10-03 shows "Oct 3, 2026" on Actions and Activity Detail in Asia/Ho_Chi_Minh, UTC, America/Los_Angeles, Pacific/Kiritimati; unit test shows the previous implementation printed "Oct 2, 2026" in Los Angeles |
+| Local today | controlled clock: Action due 2026-10-03 and Activity ending 2026-10-03 are NOT overdue at local 23:59 on 3 Oct and ARE overdue at 00:01 on 4 Oct, in Asia/Ho_Chi_Minh and America/Los_Angeles; unit boundary cases also for UTC and UTC+14 |
+| Timestamps | 2026-10-03T16:59Z shows 11:59 PM (Ho Chi Minh) / 09:59 AM (Los Angeles); server HTML carries a hidden placeholder, never a server-zone time; no hydration warning |
+| Deep link | Gap Assessment follow-up → `/verification?item=<id>`: item 26 rows down is scrolled into view and highlighted without searching, highlight differs from a normal row without hover, clears after ~6 s; at 390 / 412 px visible, highlighted, not under the bottom nav, no overflow |
+| Invalid deep links | malformed id, another Project's item, deleted item, 300-character value: workspace loads (HTTP < 400), compact note, no highlight, nothing from another Project; note dismissible |
+| Findings filter | options = All Activities, Project-wide / No Activity, this Project's Activities only; exact results for FA (2), FB (1), No Activity (1), empty Activity (empty state); combines with Type and search; Clear resets it |
+| Actions filter | same options (No Activity); FA → only the Action whose own Activity is FA (the Finding-linked Action without an Activity is not included), FB (1), No Activity (2); combines with Status (Overdue) and search; Clear resets it; the Activity Report still lists both Actions (broader rule kept) |
+| Mobile 390 / 412 | Home, Activity Detail, Verification, Finding detail (timestamp row), Finding create form, Findings, Actions (Activity filters fit and work), Document Detail + Gap Assessment (Complete Assessment reachable, not under the bottom nav), Activity Summary editor (Save visible): no horizontal overflow |
+| Desktop 1280×800 | Actions and Findings filters stay in at most two rows |
+| Copy sweep | Home, Projects, Project Overview, Activity Detail, Verification, Findings, Actions, Documents, Document Detail: no stale / approval / placeholder wording |
+| No mutation | Activities, checks, Findings, Actions, Documents, reviews, files, Storage objects identical after Home, filters, deep links and date display |
+| Cleanup | fixtures removed; issues / actions / attachments / files / documents / objects 0 |
+
+**Test-side problems found while writing the suite (fixed in the test, not product defects):** the first fixture
+build used ~130 CLI calls (rewritten as one SQL batch); a follow-up list exists only on a concluded
+assessment (fixture review made concluded); the summary button is "Add Activity Summary" while empty; the
+filter-row check counted per-row status selects; a fixture question contained the word "approval"; and the
+first highlight check measured the hover colour (the highlight was strengthened and the check now moves
+the mouse away and compares with a normal row).
+
+**Performance (this machine, hosted database):** Home 443 – 739 ms warm (6.3 s on the first cold request);
+Findings / Actions Activity filter applied in 11 – 75 ms (client-side); deep link including the Document
+Detail page and a click 3.1 – 5.0 s. Home runs a fixed set of queries — six in parallel (Upcoming × 2,
+Overdue × 2, Documents Under Review, Recent Projects) plus one site-name lookup; the Project Overview four plus
+one; no per-row queries (stated from the code, not instrumented).
+
+**Phase 3 minimal Activity smoke test (`p7a-activity`, 9/9):** Consultant creates an Activity in the Master
+Plan (type, name, site, mode, consultant, date, times) → stored and listed; an end time before the start is
+refused; edit (name, end time, Project-wide) saved; status Planned → In Progress → Completed saved; Activity
+Detail shows it. It was cheap because the 6E steps were reusable. It is not a full Phase 3 suite.
+
+**Regressions on the final code (run from `tests/regression` through `run.mjs`):**
+
+| Suite | Result | Note |
+| --- | --- | --- |
+| 6D | 43/43 | |
+| 6C | 29/29 | |
+| 6B | 35/35 | |
+| 6A | 42/42 | |
+| 5C | 74/74 | |
+| 5D | 78/78 | |
+| 5E | 80/80 | |
+| 5F | 62/62 | first pass 59/60 — the large-register step (260 documents) timed out waiting for a page (network / load); a rerun alone passed 62/62 |
+| 4C-1 | 160/160 | |
+| 4C-2 | 155/155 | |
+| 4D-1 | 145/145 | |
+| 4D-2 | 122/122 | |
+| 4E | 122/122 | |
+| 4E-6 | 65/65 | |
+| 4F | 78/78 | |
+
+**Harness preservation:** `tests/regression` holds about 85 files (suites, fixtures, safety fingerprints, `run.mjs`), `tests/README.md`
+documents prerequisites, environment, fixtures, how to run and the gaps; dev dependencies `playwright-core`
+(26 suites drive the browser) and `jszip` (the .docx / workbook suites) were added; `npm run test:regression`
+and `npm run test:unit` exist; `npm test` deliberately does not. Paths were made relative (`REPO`), the
+browser path can be overridden (`RAYIMS_BROWSER_PATH`), two hard-coded account e-mails in `p5f` now come
+from the env file. 15 core suites plus the new ones ran from the repository. **Not preserved as runnable:**
+4B (`p4b-test.mjs` needs `P4B_IDS` from a harness that no longer exists), `p6a-local` / `p6b-local` (need
+`@electric-sql/pglite`, not added); `p5a`, `p5b`, `p5g`, `p6e`, `p4b5` were copied but not re-run in 7A.
+There is still no full Phase 3 suite.
+
+### Phase 7 — remaining slices (7B – 7E)
+Test cases: *not yet defined* (hardening migration, Bulk Upload, Expected Records, deployment dry-run).

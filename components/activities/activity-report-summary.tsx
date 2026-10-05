@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { getEvidenceUrl } from "@/lib/mutations/evidence";
 import { isViewableEvidence } from "@/lib/validation/evidence";
 import { formatFileSize } from "@/components/evidence/evidence-format";
+import { useToday } from "@/components/ui/use-today";
 import { findingLabel, formatDate, formatFindingNumber, isActionOverdue } from "@/lib/ui/format";
 import {
   actionStatusLabel,
@@ -53,6 +54,7 @@ export function ActivityReportSummary({ report }: { report: ActivityReport }) {
   const { verification: v, findings, actions, evidence } = report;
   const projectId = report.activity.projectId;
   const activitySite = report.activity.siteName;
+  const today = useToday();
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -180,7 +182,7 @@ export function ActivityReportSummary({ report }: { report: ActivityReport }) {
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <span className="min-w-0 flex-1 break-words text-sm font-medium">{a.description}</span>
                     <span className="flex flex-wrap gap-1.5">
-                      {isActionOverdue(a) ? <StatusBadge label="Overdue" tone="danger" /> : null}
+                      {isActionOverdue(a, today) ? <StatusBadge label="Overdue" tone="danger" /> : null}
                       <StatusBadge label={actionStatusLabel(a.status)} tone={actionStatusTone(a.status)} />
                     </span>
                   </div>

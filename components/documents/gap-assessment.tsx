@@ -17,7 +17,7 @@ import {
   verificationResultLabel,
   verificationResultTone,
 } from "@/lib/ui/status-tones";
-import { formatEvidenceDate } from "@/components/evidence/evidence-format";
+import { LocalTime } from "@/components/ui/local-time";
 import { findingLabel } from "@/lib/ui/format";
 import { completeDocumentReview, startDocumentReview, updateDocumentReview } from "@/lib/mutations/document-reviews";
 import { FindingFormDrawer } from "@/components/findings/finding-form-drawer";
@@ -91,7 +91,7 @@ export function FollowUpSummary({ projectId, review }: { projectId: string; revi
           {review.verificationItems.map((vi) => (
             <li key={vi.id} className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 text-sm">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted">Verification</span>
-              <Link href={`/projects/${projectId}/verification`} className="min-w-0 text-primary hover:underline">
+              <Link href={`/projects/${projectId}/verification?item=${vi.id}`} className="min-w-0 text-primary hover:underline">
                 {vi.question}
               </Link>
               <StatusBadge label={verificationResultLabel(vi.result)} tone={verificationResultTone(vi.result)} />
@@ -134,11 +134,19 @@ function ReviewComments({ notes, open }: { notes: string | null; open: boolean }
   );
 }
 
-function reviewMeta(r: DocumentReviewEntry): string {
+function ReviewMeta({ r }: { r: DocumentReviewEntry }) {
   const who = r.reviewerName ?? "Unknown user";
-  return r.reviewedAt
-    ? `Reviewed by ${who} · ${formatEvidenceDate(r.reviewedAt)} · started ${formatEvidenceDate(r.createdAt)}`
-    : `Started by ${who} · ${formatEvidenceDate(r.createdAt)} · not completed`;
+  return r.reviewedAt ? (
+    <>
+      {`Reviewed by ${who} · `}
+      <LocalTime iso={r.reviewedAt} /> · started <LocalTime iso={r.createdAt} />
+    </>
+  ) : (
+    <>
+      {`Started by ${who} · `}
+      <LocalTime iso={r.createdAt} /> · not completed
+    </>
+  );
 }
 
 /**
@@ -195,7 +203,9 @@ export function GapAssessmentPanel({
       {current ? (
         <>
           <ReviewComments notes={current.notes} open={open} />
-          <p className="text-xs text-muted">{reviewMeta(current)}</p>
+          <p className="text-xs text-muted">
+            <ReviewMeta r={current} />
+          </p>
           {current.status === "revision_required" ? (
             <p className="text-xs text-muted">Upload a new Version if the document content is revised.</p>
           ) : null}
@@ -341,7 +351,9 @@ export function AssessmentHistory({ projectId, reviews, label }: { projectId: st
             <li key={r.id} data-testid="assessment-entry" className="space-y-1 px-3 py-2">
               <StatusBadge label={documentStatusLabel(r.status)} tone={documentStatusTone(r.status)} />
               {r.notes ? <p className="whitespace-pre-wrap text-sm">{r.notes}</p> : <p className="text-sm text-muted">No comments.</p>}
-              <p className="text-xs text-muted">{reviewMeta(r)}</p>
+              <p className="text-xs text-muted">
+                <ReviewMeta r={r} />
+              </p>
               <FollowUpSummary projectId={projectId} review={r} />
             </li>
           ))}

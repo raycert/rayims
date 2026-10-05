@@ -1,20 +1,19 @@
-import { LayoutDashboard } from "lucide-react";
+import { HomeView } from "@/components/work/home-view";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
+import { requireUser } from "@/lib/auth/session";
+import { getWorkLists } from "@/lib/queries/work";
 
-export const metadata = { title: "Dashboard" };
+export const metadata = { title: "Home" };
 
-export default function DashboardPage() {
+/** Consultant Home (Phase 7A): what needs attention across Projects. The route stays /dashboard (post-login default). */
+export default async function HomePage() {
+  await requireUser();
+  const lists = await getWorkLists({ scopeProjectId: null, limit: 5 });
   return (
     <PageContainer>
-      <PageHeader title="Dashboard" />
-      <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-surface px-6 py-16 text-center">
-        <LayoutDashboard className="size-8 text-muted" aria-hidden />
-        <h2 className="mt-3 text-base font-medium">Your workspace is ready</h2>
-        <p className="mt-1 max-w-md text-sm text-muted">
-          Projects, planning and site verification will appear here as they are built.
-        </p>
-      </div>
+      <PageHeader title="Home" description="What needs your attention across your projects." />
+      <HomeView lists={lists} />
     </PageContainer>
   );
 }
