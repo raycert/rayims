@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Preserved regression harness (plain Node scripts, not application code).
+    "tests/**",
   ]),
 ]);
 

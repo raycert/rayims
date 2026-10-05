@@ -1,0 +1,36 @@
+// Local migration test (PGlite) for 20261003000100_activity_summary_fields.sql.
+import { PGlite } from "@electric-sql/pglite";
+import { fileURLToPath } from "node:url";
+import { readFileSync, readdirSync } from "node:fs";
+const MIG = fileURLToPath(new URL("../../supabase/migrations/", import.meta.url)).replace(/\\/g, "/");
+const SIXB = "20261003000100_activity_summary_fields.sql";
+let pass = 0, fail = 0;
+const rec = (ok, m) => { console.log(`${ok ? "PASS" : "FAIL"}  ${m}`); ok ? pass++ : fail++; };
+const db = new PGlite();
+await db.exec(`create role anon nologin; create role authenticated nologin; create role service_role nologin;
+  create schema auth; create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
+  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+  grant usage on schema auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated; grant usage on schema public to anon, authenticated;
+  alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on functions to anon, authenticated, service_role;`);
+for (const f of readdirSync(MIG).sort()) { if (f.includes("storage_bucket") || f === SIXB) continue; await db.exec(readFileSync(MIG + f, "utf8")); }
+const c = (await db.query(`insert into clients (name) values ('C') returning id`)).rows[0].id;
+const p = (await db.query(`insert into projects (client_id, name) values ($1, 'P') returning id`, [c])).rows[0].id;
+const at = (await db.query(`select id from activity_types limit 1`)).rows[0].id;
+const a = (await db.query(`insert into activities (project_id, activity_type_id, name, mode, work_performed, next_steps, updated_at) values ($1, $2, 'A', 'on_site', 'WP', 'NS', '2026-09-01T00:00:00Z') returning id`, [p, at])).rows[0].id;
+const before = (await db.query(`select md5(t::text) h from activities t where id = $1`, [a])).rows[0].h;
+await db.exec(readFileSync(MIG + SIXB, "utf8"));
+const cols = (await db.query(`select column_name, data_type, is_nullable, column_default from information_schema.columns where table_name = 'activities' and column_name in ('summary', 'client_participants') order by column_name`)).rows;
+rec(JSON.stringify(cols) === JSON.stringify([{ column_name: "client_participants", data_type: "text", is_nullable: "YES", column_default: null }, { column_name: "summary", data_type: "text", is_nullable: "YES", column_default: null }]), "summary / client_participants: text, nullable, no default");
+const row = (await db.query(`select work_performed, next_steps, summary, client_participants, updated_at from activities where id = $1`, [a])).rows[0];
+rec(row.work_performed === "WP" && row.next_steps === "NS" && row.summary === null && row.client_participants === null && new Date(row.updated_at).toISOString() === "2026-09-01T00:00:00.000Z", "Existing Activity: old fields + updated_at unchanged, new fields NULL");
+await db.query(`select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', false)`);
+await db.exec("set role authenticated");
+await db.query(`update activities set summary = 'Kết luận', client_participants = 'Nguyễn Văn A — HSE' where id = $1`, [a]);
+const r2 = (await db.query(`select summary, client_participants from activities where id = $1`, [a])).rows[0];
+await db.exec("reset role");
+rec(r2.summary === "Kết luận" && r2.client_participants === "Nguyễn Văn A — HSE", "authenticated can write the new columns (existing policy + grants cover them)");
+const tables = (await db.query(`select count(*)::int n from information_schema.tables where table_schema='public' and table_type='BASE TABLE' and table_name ~ '(report|summar)'`)).rows[0].n;
+rec(tables === 0, "No report / summary table");
+console.log(`\n${pass}/${pass + fail} passed, ${fail} failed`);
+process.exitCode = fail ? 1 : 0;
