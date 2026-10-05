@@ -235,9 +235,11 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **No status column.** Current status is derived (see below).
 - A document with zero versions is a valid "expected document" (Not Received).
 - **Used by Phase 5A (Document Register):** all columns above; no schema change. `doc_code` is
-  not unique (BR-113). Deleting a document CASCADES its versions (→ reviews → review attachments)
-  and mappings, and leaves version `files` rows / objects orphaned — so the application only
-  deletes a document that has **no versions** (BR-118).
+  not unique (BR-113). Since **Phase 7B** deleting a document that still has versions is **refused by the
+  database** (`document_versions.document_id` ON DELETE RESTRICT; BR-163) — it used to cascade the versions
+  (→ reviews → review attachments) and leave version `files` rows / objects orphaned. Only the mappings
+  (setup data) still cascade. The application only deletes a document that has **no versions** (BR-118); the
+  database is the safety net for a Version added between its check and its delete.
 
 ### document_versions
 - **Purpose:** an actual uploaded revision of a document.
@@ -248,7 +250,7 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Constraints:** UNIQUE `(document_id, version_no)`.
 - **Ordering rule:** the latest version is the highest `version_no`, never the
   `revision` text.
-- **Delete:** `document_id` CASCADE; `file_id` NO ACTION (a file referenced by a
+- **Delete:** `document_id` **RESTRICT** (Phase 7B; was CASCADE); `file_id` NO ACTION (a file referenced by a
   version cannot be deleted).
 - **Used by Phase 5B:** no schema change. The row is never updated (no `updated_at`, BR-119).
   `version_no` = max + 1 by the server (UNIQUE catches a race; retried once). The version's file uses
@@ -284,10 +286,13 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
     `status = under_review` it may be NULL; when status becomes
     `revision_required` or `accepted` it should be populated (application
     rule; not a database constraint).
-- **Delete:** `document_version_id` CASCADE.
+- **Delete:** `document_version_id` **RESTRICT** (Phase 7B; was CASCADE) — a Version with Gap Assessments cannot be
+  deleted; its review Evidence therefore can no longer disappear with it.
 - **Related framework items:** none stored on the review; gaps become issues or
   verification items with their own `framework_item_id`.
-- **Index:** `(document_version_id, created_at DESC)`.
+- **Index:** `(document_version_id, created_at DESC)`. **Partial UNIQUE index
+  `document_reviews_one_open_per_version_idx` on `(document_version_id) WHERE status = 'under_review'`** (Phase 7B):
+  at most one open assessment per Version (BR-162).
 - **Used by Phase 5F (Excel export):** no schema change; read-only. The export reuses the register read
   (`document_register` view incl. `latest_version_id` / `latest_review_id`, mappings, concluded reviews,
   site names) plus two project-joined queries: the project's versions (file name, received_on) and its
@@ -309,9 +314,9 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
   = starter, `reviewed_at` NULL; edit changes `notes` only while `under_review`; completion sets
   `status` (`revision_required` | `accepted`), `notes`, `reviewer_id` = concluding user and
   `reviewed_at` = now(), conditioned on `status = 'under_review'` (so it happens once). One open review
-  per version and latest-version-only are application rules (no partial unique index). The application
-  orders reviews by `created_at DESC, id DESC`; the `document_register` view orders by `created_at`
-  only (ties require two reviews of one version in the same microsecond — accepted).
+  per version is now also a **database guarantee** (Phase 7B partial unique index; a second open insert fails with
+  23505); latest-version-only stays an application rule. The application **and** the `document_register` view
+  order reviews by `created_at DESC, id DESC` (Phase 7B: the view gained the `id` tie-break).
 
 ### verification_items
 - **Purpose:** something to be checked during an activity/site visit.
@@ -479,7 +484,8 @@ documents.is_applicable
 ```
 
 "Latest review record" means the review record with the most recent
-`created_at` among the reviews of the latest version.
+`created_at` among the reviews of the latest version; when two share a `created_at`, the one with the
+higher `id` (`created_at DESC, id DESC`, Phase 7B).
 
 Evaluation order:
 
@@ -609,9 +615,9 @@ project-owned.
 | `framework_items` self-reference (`parent_id`)                      | NO ACTION   |
 | `document_framework_items.framework_item_id`, `verification_items.framework_item_id`, `issues.framework_item_id` → `framework_items` | NO ACTION |
 | Composite `(project_id, site_id)` → `project_sites` (all work entities) | NO ACTION |
-| `document_versions.document_id` → `documents`                       | CASCADE     |
+| `document_versions.document_id` → `documents`                       | RESTRICT (7B) |
 | `document_framework_items.document_id` → `documents`                | CASCADE     |
-| `document_reviews.document_version_id` → `document_versions`        | CASCADE     |
+| `document_reviews.document_version_id` → `document_versions`        | RESTRICT (7B) |
 | `document_versions.file_id`, `attachments.file_id` → `files`        | NO ACTION   |
 | `verification_items.target_activity_id`, `.verified_activity_id` → `activities` | SET NULL |
 | `verification_items.document_review_id`, `.follows_item_id`         | SET NULL    |
@@ -687,6 +693,7 @@ the Data API roles automatically (new projects since 2026-05-30, all projects fr
 - `actions (project_id, site_id) WHERE status <> 'closed'`
 - `document_versions (document_id, version_no)` (unique)
 - `document_reviews (document_version_id, created_at DESC)`
+- `document_reviews (document_version_id) WHERE status = 'under_review'` (unique, Phase 7B)
 - `document_framework_items (framework_item_id)`
 - Partial index per `attachments` FK column
 - `files (storage_key)` (unique)

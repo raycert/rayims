@@ -1720,5 +1720,78 @@ from the env file. 15 core suites plus the new ones ran from the repository. **N
 `@electric-sql/pglite`, not added); `p5a`, `p5b`, `p5g`, `p6e`, `p4b5` were copied but not re-run in 7A.
 There is still no full Phase 3 suite.
 
-### Phase 7 — remaining slices (7B – 7E)
-Test cases: *not yet defined* (hardening migration, Bulk Upload, Expected Records, deployment dry-run).
+### Phase 7B — Data-integrity hardening (executed 2026-10-05)
+
+Hosted Supabase, production build, Edge via Playwright, run **from the committed harness in `tests/`**. Fixtures
+prefixed `P7B-ACCEPT-`. Pre-flight: 12 migrations; documents / versions / reviews / attachments / files / Storage
+objects all 0; **0 Versions with more than one open review** (checked, not assumed); live constraint names read from
+`pg_constraint` (`document_versions_document_id_fkey`, `document_reviews_document_version_id_fkey`, both ON DELETE
+CASCADE, not deferrable) and the live `document_register` definition (`order by r.created_at desc`, `security_invoker`).
+Project-delete audit: the only Project delete in the application is the rollback of a brand-new Project (no Documents);
+the two RESTRICT FKs do not touch it. Test cleanups of every suite already delete reviews → versions → documents explicitly.
+
+**Migration** `20261005000100_document_integrity_hardening.sql`: tested **locally first** (`p7b-local`, PGlite with all
+earlier migrations, **26/26**: a duplicate-open-review database makes it stop with a clear message and change nothing; on
+clean data the two FKs become RESTRICT, the mapping FK still cascades, both stay non-deferrable, the unique partial index
+exists, the view keeps columns / types / order / `security_invoker` / grants and orders `created_at DESC, id DESC`;
+existing rows untouched; delete refusals; second open insert → 23505; concluded history unrestricted; tie-break), then
+`supabase db push --dry-run` (only this migration pending) and `supabase db push` (never `config push`). Hosted fingerprint
+after: the **only** change among migrations / tables / columns / RLS / policies / grants / functions / triggers / Storage is
+the migration count (12 → 13); FK delete actions `r`, `r` (mapping `c`), one new index, the view definition; **no new table,
+column, function or RPC; no RLS, grant or Storage change**.
+
+**Result: `p7b` 40/40 PASS** (two test-side problems on earlier runs, listed below).
+
+| Area | Checks (all PASS) |
+| --- | --- |
+| Constraints (hosted) | both FKs RESTRICT, mapping FK still CASCADE; partial unique index present; view orders `created_at DESC, id DESC` and keeps `security_invoker` |
+| Document delete | no Versions (with a requirement mapping) → deleted, mapping removed; with a Version → blocked by the application ("This document has versions and cannot be deleted."), Document, Version, file row and Storage object intact |
+| Version delete | latest unreviewed → Version row, file row and Storage object all removed; blocked with a concluded review, with an open review, and a non-latest Version ("Only the latest unreviewed version can be deleted.") → Version, file row, object and both reviews intact |
+| Deterministic Document race | the check saw no Version → a competing Version was inserted → the stale delete is **refused by the database** (HTTP 409, SQLSTATE 23503 — RESTRICT surfaces as a foreign-key violation) → Document and new Version survive, no file row or object lost |
+| Deterministic Version race | the check saw no review → a Gap Assessment **with Evidence** was added → the stale delete is refused → Version, Review, Evidence attachment, both file rows and both Storage objects survive |
+| Overlapping stress | 12 × (Version insert vs Document delete) and 12 × (review start vs Version delete), fired at the same instant: no Version / Review was ever lost; both orders of serialization occurred and were consistent |
+| One open review | 12 simultaneous inserts on one Version → exactly 1 created, 11 refused (23505); a later second open insert refused; concluded reviews unrestricted; a new open review possible once the previous one is concluded |
+| Application, simultaneous starts | a Consultant starts through the UI → exactly one open assessment; the captured Start action replayed **12 at once** → 1 started, 11 "already open", every response HTTP 200, 1 open of 1 review; **20 at once** on a fresh Version → exactly one review row |
+| Application delete races | the captured delete actions replayed against a competing insert with a random 0 – 30 ms offset, 30 × Document and 30 × Version: never a lost Version / Review, never a raw error; the new "can no longer be deleted because a version / Gap Assessment now exists" message was produced 20 – 22 (Document) and 15 – 22 (Version) times per 30 attempts across runs; the rest were refused by the application's own check |
+| Security | cross-project tampering (another Project's Document / Version id, either direction) → "could not be found" with no hint of Versions / reviews; signed out → the delete actions do nothing and a REST delete is denied; Documents unchanged |
+| Latest review | two reviews with an identical `created_at` (ids …aa Accepted, …bb Revision Required) → the view's latest review is the higher id; Document Detail and the register list show the same Revision Required |
+| Register statuses | Not Applicable, Not Received, Received, Under Review, Revision Required, Accepted unchanged (view and application list) |
+| Performance | review insert median 118 ms (open, covered by the partial index) vs 110 ms (concluded, not covered) over 10 inserts each; start through the UI about 1.0 – 1.5 s. No before-migration baseline exists, so the comparison is open vs concluded on the same table |
+| Cleanup | fixtures removed; documents / versions / reviews / findings / actions / attachments / files / Storage objects 0 |
+
+**How the interleavings were produced** (no sequential faking): (1) *deterministic* — the test plays both parties with real
+separate HTTP requests to the hosted database: T1's check (a read), T2's competing insert, then T1's delete, exactly the
+window the application leaves between its check and its delete; (2) *overlapping* — the competing insert and the delete are fired
+together with `Promise.all`, and the invariants are asserted whatever order the database serialized them in; (3) *through the
+application* — server actions captured from the UI are replayed concurrently with the competing insert.
+
+**Test-side problems on earlier runs (fixed in the test, not product defects):** the confirm dialog is an `alertdialog`;
+the UI offers Delete only on the current Version (the non-latest case is checked through the action); a variable shadowed a
+function; a keyword search for "error" matched the page payload of a successful action response; the cleanup check
+counted the three genuine Verification items.
+
+**Phase 7A and earlier on the final code (run from `tests/regression`):**
+
+| Suite | Result | Note |
+| --- | --- | --- |
+| 7A `p7a` | 107/107 | |
+| 7A `p7a-activity` | 9/9 | |
+| 7A `p7a-unit` | 92/92 | |
+| 6D / 6C / 6B / 6A | 43/43, 29/29, 35/35, 42/42 | report-rules unit test 21/21 |
+| 5A | 104/104 | |
+| 5B | 103/103 | |
+| 5C / 5D / 5E | 74/74, 78/78, 80/80 | |
+| 5F | 62/62 | first pass in the runner 59/60 (the large-register import preview timed out waiting 60 s; also seen in 7A); standalone rerun 62/62 |
+| 5G | 100/100 | first runs 83/85 and 98/100: one check read the Finding Detail text before the page had rendered, and one read the register / detail text before `<LocalTime>` (7A) had been formatted — both are timing in the test; waits added, rerun 100/100. 5G had not been re-run since Phase 5 |
+| 4C-1 / 4C-2 | 160/160, 155/155 | |
+| 4D-1 / 4D-2 | 145/145, 122/122 | |
+| 4E / 4E-6 / 4F | 122/122, 65/65, 78/78 | |
+
+**Data safety:** genuine data identical to the pre-flight snapshot; fixtures removed (only Chinh Long and Test 1 remain; 0 issues,
+actions, attachments, files, Storage objects).
+
+**Not exercised on the hosted database:** the migration's duplicate-open-review guard (the hosted data has no duplicates and the
+index now forbids creating them) — covered by the local PGlite test only.
+
+### Phase 7 — remaining slices (7C – 7E)
+Test cases: *not yet defined* (Bulk Upload, Expected Records, deployment dry-run).

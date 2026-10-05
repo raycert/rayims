@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
+import { isUniqueViolation } from "@/lib/domain/db-errors";
 import { completeReviewSchema, reviewCommentsSchema } from "@/lib/validation/document-reviews";
 import type { SupabaseServerClient } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
@@ -91,10 +92,16 @@ export async function startDocumentReview(projectId: string, versionId: string):
     .insert({ document_version_id: versionId, status: "under_review", reviewer_id: user.id, reviewed_at: null, notes: null })
     .select("id")
     .single();
+  if (isUniqueViolation(error)) {
+    // Phase 7B: the database allows one open assessment per Version; a simultaneous start lost the race.
+    revalidateDocument(projectId, ctx.documentId);
+    return { ok: false, error: ALREADY_OPEN };
+  }
   if (error || !data) return { ok: false, error: "Couldn't start the assessment. Try again." };
 
-  // Phase 5G: two simultaneous starts can both pass the check above (one open assessment per Version
-  // is app-enforced; there is no database constraint). Reconcile after the insert: if more than one
+  // Phase 5G: two simultaneous starts can both pass the check above. Since Phase 7B the database refuses the
+  // second open assessment (unique index, handled above), so this reconciliation is now only a second line of
+  // defence and normally finds exactly one. It stays as written: if more than one
   // assessment is open on this Version, the earliest (created_at, id) is kept and the others — just
   // started, so without comments, follow-up or evidence — are removed. Every interleaving converges on
   // one open assessment; the request whose record was removed reports ALREADY_OPEN.

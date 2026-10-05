@@ -3,6 +3,26 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 7B — Data-integrity hardening (2026-10-05)
+
+**Result: p7b 40/40 (plus local migration test 26/26); all Phase 7A / 6 / 5 / 4 regression suites green (5F and 5G on standalone rerun).** One migration, no RLS / grant / Storage change, no ADR, no new dependency.
+
+### Added
+
+- Migration `20261005000100_document_integrity_hardening.sql` (applied to the hosted project with
+  `supabase db push`; dry-run first): a precondition guard (stops if a Version has more than one open review),
+  `document_versions.document_id` and `document_reviews.document_version_id` ON DELETE RESTRICT (were CASCADE), the
+  partial unique index `document_reviews_one_open_per_version_idx`, and `document_register` ordering the latest review
+  by `created_at DESC, id DESC` (`create or replace`; columns, `security_invoker` and grants kept). BR-162 – BR-164.
+- `lib/domain/db-errors.ts`; plain messages for a delete refused by the database ("…can no longer be deleted because a
+  version / Gap Assessment now exists") and a unique violation on Start Gap Assessment ("already open").
+- Tests: `p7b-test.mjs` (hosted, races and invariants), `p7b-local.mjs` (PGlite migration test), fixtures and fingerprints.
+
+### Changed
+
+- The Phase 5G reconciliation in `startDocumentReview` stays but is now a second line of defence.
+- 03_DATABASE / 04_BUSINESS_RULES / 06_ROADMAP / 10_RUNBOOK updated (delete actions, index, view ordering, diagnostics).
+
 ## Phase 7A — Pilot Foundation + regression harness preservation (2026-10-04)
 
 **Result: 107/107 (plus 9/9 Activity smoke, 92/92 date unit) acceptance checks; all 15 core regression suites green (5F on rerun).** No migration, RLS, grant or Storage change; no ADR; no new

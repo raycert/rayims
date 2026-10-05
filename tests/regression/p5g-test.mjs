@@ -254,6 +254,7 @@ try {
   rec(rowHash("document_reviews", r1.id) === r1Hash && status(dic.id) === "revision_required", "Follow-up changed neither the assessment nor the Document status");
   // Finding Detail origin
   await page.goto(`${APP}/projects/${f.P.main}/findings/${fin.id}`);
+  await page.getByTestId("finding-review-source").waitFor({ timeout: 30000 }).catch(() => {}); // wait for the page itself (7B: the read raced the render)
   rec(/Gap Assessment/.test(await page.locator("main").innerText()) && /Documented Information Control Procedure/.test(await page.locator("main").innerText()), "Finding Detail shows its Gap Assessment origin");
   // V2
   await openDoc(page, f.P.main, dic.id);
@@ -395,9 +396,12 @@ try {
   // timezone
   await p.goto(DOCS(f.P.edge));
   await p.locator("tbody tr").first().waitFor({ timeout: 30000 });
+  // 7A: timestamps are rendered by <LocalTime>, hidden until the browser has formatted them in its own zone
+  await p.waitForFunction(() => document.querySelectorAll("time.invisible").length === 0, null, { timeout: 15000 }).catch(() => {});
   const tzReg = flat(await regRow(T("Timezone Document")).innerText());
   await openDoc(p, f.P.edge, f.E.tz);
   await vrows(p).first().getByRole("button", { name: /Assessment history/ }).click().catch(() => {});
+  await p.waitForFunction(() => document.querySelectorAll("time.invisible").length === 0, null, { timeout: 15000 }).catch(() => {});
   const tzDetail = flat(await p.locator("main").innerText());
   const tzExport = xe.x.rows.find((r) => r["Required Document"] === T("Timezone Document"));
   rec(/Sep 30, 2026/.test(tzReg) && /Sep 30, 2026/.test(tzDetail) && ymd(tzExport["Last Review"]) === "2026-09-30", "Review concluded 22:30 UTC (05:30 in Vietnam): register, detail and export all show 30 Sep 2026");

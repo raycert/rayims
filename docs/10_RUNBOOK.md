@@ -169,10 +169,16 @@ After any user or settings change:
 ## Documents (Phase 5)
 
 - Document Version files use the same private bucket, key scheme and orphan query as Evidence above.
-- **More than one open Gap Assessment on a Version** should not occur (simultaneous starts are
-  reconciled by the app). To check (SQL editor, read-only):
+- **More than one open Gap Assessment on a Version** cannot occur since Phase 7B (partial unique index
+  `document_reviews_one_open_per_version_idx`; the app also reconciles). A diagnostic (SQL editor, read-only):
   `select document_version_id, count(*) from public.document_reviews where status = 'under_review'
-  group by 1 having count(*) > 1;` — report any row; do not edit reviews by hand.
+  group by 1 having count(*) > 1;` — it should return no rows.
+- **A Document / Version delete that is refused** ("…can no longer be deleted because a version / Gap Assessment now
+  exists") means the database blocked it (ON DELETE RESTRICT, Phase 7B): something was added after the page was
+  opened. Read-only checks: `select count(*) from public.document_versions where document_id = '<id>';` and
+  `select count(*) from public.document_reviews where document_version_id = '<id>';`.
+- **Which review decided a Document's status:** `select latest_review_id, status from public.document_register
+  where document_id = '<id>';` (the highest `created_at`, ties by the higher `id`).
 - **Excel import** is all-or-nothing by compensation (no database transaction): if the framework
   mappings fail, the Documents just created are deleted again. A crash in between could leave
   Documents without their mappings; they are visible in the register (no requirements) and can be

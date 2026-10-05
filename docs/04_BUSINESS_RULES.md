@@ -363,7 +363,7 @@ Product behavior that the schema and UI must respect. Database details are in
   Assessment before uploading a new Version." (button disabled with that text; enforced on the server
   when the upload is prepared and again when it is registered, which then removes the uploaded object).
   Otherwise the open assessment would be left on an older Version where it can never be completed.
-- **BR-140** *(Phase 5G)* **One open assessment per Version — simultaneous starts:** the rule is
+- **BR-140** *(Phase 5G; database-enforced since Phase 7B, BR-162)* **One open assessment per Version — simultaneous starts:** the rule was
   app-enforced (no database constraint) and two simultaneous "Start Gap Assessment" requests could both
   pass the check (reproduced). After inserting, the server reconciles: if more than one assessment is
   open on the Version, the earliest (created_at, id) is kept and the others — just started, without
@@ -384,7 +384,8 @@ Product behavior that the schema and UI must respect. Database details are in
   of 100).
 - **BR-118** *(Phase 5A)* **Controlled Document delete:** only a Document with **no Versions**.
   Its Framework mappings are removed with it (setup data); versions, files and reviews are never
-  cascade-deleted by the application — "This document has versions and cannot be deleted."
+  cascade-deleted by the application — "This document has versions and cannot be deleted." Since Phase 7B the
+  database also refuses the delete (BR-163).
 
 ## Verification
 
@@ -770,6 +771,29 @@ itself. Admin and Consultant have the same rights; anonymous users have none.
   deliberately broader** (BR-152 / BR-153: the Activity's Actions plus the Actions of its Findings); the
   workspace filter describes where the Action itself was recorded. It combines with search, Status
   (including Overdue), Site, Priority and the Finding link filter.
+
+## Document data integrity (Phase 7B)
+
+- **BR-162** *(Phase 7B)* **One open Gap Assessment per Version is a database guarantee:** a partial unique index on
+  `document_reviews (document_version_id) WHERE status = 'under_review'`. A second open insert fails with
+  23505 and the application answers as before — "A Gap Assessment is already open for this version." — never a
+  raw database error. The Phase 5G reconciliation (BR-140) stays as a second line and normally finds one row.
+  Concluded assessments are unrestricted (history keeps several); a new open one is possible once the previous
+  one is concluded.
+- **BR-163** *(Phase 7B)* **Delete protection by the database:** `document_versions.document_id` and
+  `document_reviews.document_version_id` are ON DELETE RESTRICT. A Document with Versions and a Version with
+  Gap Assessments cannot be physically deleted, whatever the application checked a moment earlier. The
+  application rules are unchanged (BR-118: Document without Versions; BR-119 / 5B: the latest unreviewed Version
+  of an Applicable Document). When a concurrent change slips between the check and the delete the database
+  refuses (reported as a foreign-key violation, SQLSTATE 23503 / 23001) and the user reads: "This document can no
+  longer be deleted because a version now exists." / "This version can no longer be deleted because a Gap
+  Assessment now exists." Nothing is removed — no Version, Review, Review Evidence, file row or Storage object.
+  Project-scope validation happens first, so a foreign id is "not found" and reveals nothing. Other cascades
+  (requirement mappings, attachments of their own parent, Project children) are unchanged. There is no Project
+  delete path in the application except the rollback of a brand-new Project (no Documents).
+- **BR-164** *(Phase 7B)* **Deterministic latest review:** everywhere — application and `document_register` view —
+  the latest review of a Version is the one with the highest `created_at`, ties broken by the higher `id`
+  (`created_at DESC, id DESC`). The derived Document status (BR-17 / ADR-005) and its values are unchanged.
 
 ## Access and identity
 

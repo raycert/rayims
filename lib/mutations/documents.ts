@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 import { documentSchema } from "@/lib/validation/documents";
+import { isReferencedRowViolation } from "@/lib/domain/db-errors";
 import { evaluateDocumentDelete, type DeleteEvaluation } from "@/lib/domain/delete-rules";
 import { frameworkItemsInProjectScope, siteInProjectScope, type SupabaseServerClient } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
@@ -193,6 +194,11 @@ export async function deleteDocument(projectId: string, documentId: string): Pro
   if (!loaded.evaluation.canDelete) return { ok: false, error: loaded.evaluation.blockers.join(" ") };
 
   const { data, error } = await supabase.from("documents").delete().eq("id", documentId).eq("project_id", projectId).select("id");
+  if (isReferencedRowViolation(error)) {
+    // A Version was added between the check above and the delete: the database refused (Phase 7B, RESTRICT).
+    revalidateDocuments(projectId, documentId);
+    return { ok: false, error: "This document can no longer be deleted because a version now exists." };
+  }
   if (error) return { ok: false, error: "Couldn't delete the document. Try again." };
   if (!data || data.length === 0) return { ok: false, error: "This document could not be deleted. It may have been changed." };
 

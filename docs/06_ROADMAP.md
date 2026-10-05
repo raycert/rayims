@@ -38,7 +38,7 @@
 | — 6C  | Activity Report data integration            | **COMPLETED** |
 | — 6D  | Activity Report DOCX export                 | **COMPLETED** |
 | — 6E  | Phase 6 final acceptance                    | **COMPLETED** |
-| 7     | Dashboard / Polish / Pilot readiness        | **IN PROGRESS** (7A completed; 7B next) |
+| 7     | Dashboard / Polish / Pilot readiness        | **IN PROGRESS** (7A, 7B completed; 7C next) |
 
 > **The product workflow remains flexible.** The implementation order above does
 > **not** imply that Document Review must occur after Site Verification. Phase 4
@@ -623,10 +623,9 @@ RLS, grant or Storage change. See `08_TESTING.md`.
 
 **Phase 5 backlog (classified in 5G):**
 
-- *Hardening backlog:* id tie-break in the `document_register` view (migration); database-level
-  one-open-assessment constraint (partial unique index) to replace the app reconciliation; Version and
-  Document delete races (check-then-delete, same class as BR-140); import as one database transaction
-  (RPC) instead of compensation.
+- *Hardening backlog:* ~~id tie-break in the `document_register` view; database-level one-open-assessment
+  constraint; Version and Document delete races~~ — **done in Phase 7B**; import as one database transaction
+  (RPC) instead of compensation (still open).
 - *Accepted for V1:* Excel stores a numeric clause 8.10 as 8.1 (template columns are text — use them);
   Framework must be written with its edition (no guessing); 10 MB per file; repeated Document Codes are a
   warning only; not-found pages are streamed (HTTP 200 with "Page not found", nothing revealed).
@@ -702,10 +701,17 @@ Minimal dashboard, polish, demo data, deployment to Vercel (Polish / productivit
 | Slice | Name | Status |
 | --- | --- | --- |
 | 7A | Pilot Foundation + regression harness preservation | **COMPLETED** |
-| 7B | Data-integrity hardening (one migration, approved in principle: Document → Version and Version → Review delete FKs RESTRICT; one-open-review partial unique index; deterministic latest-review tie-break in `document_register`) | **NEXT** |
-| 7C | Bulk Document Upload (multi-select, deterministic match review, per-file atomic, no migration) | Planned |
+| 7B | Data-integrity hardening (one migration, approved in principle: Document → Version and Version → Review delete FKs RESTRICT; one-open-review partial unique index; deterministic latest-review tie-break in `document_register`) | **COMPLETED** |
+| 7C | Bulk Document Upload (multi-select, deterministic match review, per-file atomic, no migration) | **NEXT** |
 | 7D | Expected Records / Required Evidence (`documents.expected_records`, import, Gap Assessment, export) | Planned |
 | 7E | Deployment readiness + pilot dry-run | Planned |
+
+### Phase 7B — Data-integrity hardening [COMPLETED]
+
+One migration (`20261005000100_document_integrity_hardening.sql`): Document → Version and Version → Review delete
+FKs RESTRICT, a partial unique index for one open Gap Assessment per Version, and the `id` tie-break in the
+`document_register` view. Application handling of the new database errors; the user-facing workflow is unchanged.
+No RLS, grant or Storage change; no ADR. BR-162 – BR-164. Results in `08_TESTING.md`.
 
 ### Phase 7A — Pilot Foundation [COMPLETED]
 
@@ -724,9 +730,9 @@ BR-156 – BR-161. Results in `08_TESTING.md`.
   templates; report export retention / an issued-report register.
 - *Navigation / polish:* ~~review-origin Verification items link to the item~~ and ~~server-rendered dates use
   the server's time zone~~ — **done in 7A**.
-- *Hardening (needs approved migrations):* document / version delete races; a database partial unique
-  index for one open review per version; a deterministic latest-review tie-break in the `document_register`
-  view (`id`); import as one database transaction.
+- *Hardening:* ~~document / version delete races; a database partial unique index for one open review per
+  version; a deterministic latest-review tie-break in `document_register`~~ — **done in 7B**; import as one
+  database transaction (still open).
 
 **Document workflow backlog (recorded 2026-10-02 — not scheduled, not part of Phase 6; no schema, no
 SDKs, no change to Document upload behaviour until approved):**

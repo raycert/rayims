@@ -21,7 +21,7 @@ UI of a production build, and the **hosted** Supabase project is used for data.
 | `pXX-post-verify.mjs` | Run after a suite: confirms the suite left nothing behind (where it exists). |
 | `pXX-snapshot.mjs`, `p6a-schema.mjs`, `p6e-schema.mjs`, `p7a-schema.mjs`, `residue.mjs`, `clean-both.mjs` | Safety tools: fingerprint of the genuine (non-fixture) data, of the schema / RLS / grants / Storage configuration, and a leftover check. Used before and after a phase. |
 | `p6c-unit.mjs`, `p7a-unit.mjs` | The only suites that need **no server and no database** (report rules; date helpers in four time zones). `npm run test:unit` runs the first. |
-| `p6a-local.mjs`, `p6b-local.mjs` | Migration tests on an in-process Postgres (PGlite). **Not runnable here**: they need `@electric-sql/pglite`, which is not a dependency (see "Known gaps"). |
+| `p6a-local.mjs`, `p6b-local.mjs`, `p7b-local.mjs` | Migration tests on an in-process Postgres (PGlite). **Not runnable from a plain checkout**: they need `@electric-sql/pglite`, which is not a dependency (see "Known gaps"). `p7b-local` was run by copying it into a folder where PGlite is installed and setting `RAYIMS_MIGRATIONS` to `supabase/migrations/`. |
 | `run.mjs` | Runs suites one after another and reports a summary (`npm run test:regression`). |
 
 ### Suites
@@ -38,7 +38,8 @@ UI of a production build, and the **hosted** Supabase project is used for data.
 | `p5g` | Phase 5 acceptance (extra) | yes |
 | `p6a`, `p6b`, `p6c`, `p6d` | Finding numbering, Activity Summary, Activity Report data, DOCX export | yes |
 | `p6e` | Phase 6 acceptance scenario (extra, slow) | yes |
-| `p7a` | Phase 7A: Home, dates / time zones, deep link, Activity filters, mobile | yes |
+| `p7a`, `p7a-activity` | Phase 7A: Home, dates / time zones, deep link, Activity filters, mobile; minimal Activity smoke test | yes |
+| `p7b` | Phase 7B: Document / Version delete protection, one open Gap Assessment, deterministic latest review, races (needs the 7B migration applied to the hosted project) | yes |
 | `p4b` (`p4b-test.mjs`) | Original 4B execution suite | **no** - needs the `P4B_IDS` environment variable (fixture ids from a harness that was never preserved) |
 
 `run.mjs --list` prints the default ("core") list and the extra list.
@@ -119,9 +120,11 @@ line says `N/N passed, 0 failed`.
   Master Plan are covered by the Phase 6E scenario (`p6e`), `p4e6`, `p4f`, `p6b` and, since 7A, by
   `p7a` (Activity Detail, Master Plan overdue). A dedicated minimal Activity smoke test was assessed in 7A
   (see `docs/08_TESTING.md`).
-- `p6a-local.mjs` / `p6b-local.mjs` need PGlite (not installed) and have not been run from the repository.
+- `p6a-local.mjs` / `p6b-local.mjs` / `p7b-local.mjs` need PGlite (not installed) and have not been run from the repository itself (`p7b-local` passed 26/26 from a folder with PGlite installed).
 - The suites need the hosted Supabase project and a local browser; there is no CI. They are run by hand
   at the end of a phase.
+- Since Phase 7B a Document with Versions and a Version with reviews cannot be deleted by cascade: fixtures must delete reviews, then versions, then documents (all current cleanups do).
+- `p5f` can time out once in the large-register import preview when run after other suites; it passes when run alone (seen in 7A and 7B).
 - Some suites read application source files (`lib/queries/*.ts`, `lib/mutations/*.ts`) to assert that a
   pattern is present; a refactor of those files can legitimately require a test update.
 - Browser: Edge is the browser the results were produced with; other Chromium builds are expected to work

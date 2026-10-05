@@ -16,6 +16,7 @@ import {
   storedObjectSize,
 } from "@/lib/files/server";
 import { checkDocumentVersionFile, documentVersionMetaSchema } from "@/lib/validation/document-versions";
+import { isReferencedRowViolation } from "@/lib/domain/db-errors";
 import { evaluateVersionDelete, type DeleteEvaluation } from "@/lib/domain/delete-rules";
 import type { SupabaseServerClient } from "./scope-validation";
 import { fieldErrorsFrom, type ActionResult } from "./types";
@@ -288,6 +289,12 @@ export async function deleteDocumentVersion(
   if (!v.evaluation.canDelete) return { ok: false, error: v.evaluation.blockers.join(" ") };
 
   const { data, error } = await supabase.from("document_versions").delete().eq("id", versionId).eq("document_id", v.documentId).select("id");
+  if (isReferencedRowViolation(error)) {
+    // A Gap Assessment was started between the check above and the delete: the database refused (Phase 7B,
+    // RESTRICT). Nothing was removed — the file row and the stored object below are only touched after a delete.
+    revalidateDocument(projectId, v.documentId);
+    return { ok: false, error: "This version can no longer be deleted because a Gap Assessment now exists." };
+  }
   if (error) return { ok: false, error: "Couldn't delete the version. Try again." };
   if (!data || data.length === 0) return { ok: false, error: "This version could not be deleted. It may have been changed." };
 
