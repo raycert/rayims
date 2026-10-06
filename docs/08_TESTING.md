@@ -1793,5 +1793,63 @@ actions, attachments, files, Storage objects).
 **Not exercised on the hosted database:** the migration's duplicate-open-review guard (the hosted data has no duplicates and the
 index now forbids creating them) — covered by the local PGlite test only.
 
-### Phase 7 — remaining slices (7C – 7E)
-Test cases: *not yet defined* (Bulk Upload, Expected Records, deployment dry-run).
+### Phase 7C — Bulk Document Upload (executed 2026-10-05 / 2026-10-06)
+
+Hosted Supabase, production build, Edge via Playwright, run **from the committed harness in `tests/`**. Fixtures prefixed
+`P7C-ACCEPT-` (Document titles carry no prefix so title matching is realistic; the Client and Project do). Pre-flight:
+13 migrations, 20 tables, schema / RLS / grant / Storage fingerprint recorded, genuine-data snapshot taken; documents /
+versions / reviews / files / attachments / Storage objects all 0. Afterwards the fingerprint is **identical** (still 13
+migrations, 20 tables; **no migration, no RLS / grant / Storage change, no new table**) and the genuine data is identical.
+
+**Result: `p7c` 86/86 PASS** (final build), **`p7c-unit` 54/54** (matcher), after fixes described below.
+
+| Area | Checks (all PASS) |
+| --- | --- |
+| Entry point / selection | Bulk Upload button in the Documents workspace opens a page (not a drawer); the picker has no `webkitdirectory`; 51 files → "Select up to 50 files per batch." and Analyze disabled, nothing truncated, removing one re-enables it; 31 × 10 MB (over 300 MB) → advisory warning only, Analyze enabled; drag and drop adds files; the picker is a labelled multi-file input; signed out → login |
+| Mixed batch (Consultant, 13 rows) | unique code → Auto-match (Document shown as code · title · Site, Revision prefilled Rev.02, preview V1); code on two Sites → Suggested, nothing preselected, picker lists both candidates first; exact title → Suggested / Needs review, Accept makes it Ready; no match → Unmatched; 10 MB + 1 KB → Blocked with the policy message; .txt → Blocked; the same file twice → second Blocked as duplicate; open Gap Assessment → Blocked (existing wording); Not Applicable → Blocked; same file name and size as the current Version → warning only, still Ready, preview V2; manual assignment found by search → Manual; Skip → Skipped; filters Ready 5 / Unmatched 2 / Blocked 5 / Needs review 0 / All 13; summary bar; **nothing uploaded before Confirm**; Cancel uploads nothing |
+| Upload result | Completed 5 · Failed 0 · Skipped 1 · not uploaded 7; the result shows the Version the server created; database: V1 with revision Rev.02, received date, uploaded by the Consultant, original file name and size intact, the Document that had V1 got V2; 5 Versions, 5 file rows, 5 Storage objects, **0 Documents created**; blocked / unmatched / skipped files created nothing; every object lives under the Project prefix; Back to Documents shows the new state |
+| Next Version | no Version → preview V1, V1 → V2, V1 + V2 → V3; the server created exactly V1 / V2 / V3 |
+| Vietnamese | "Quy trình kiểm soát tài liệu Rev.02.pdf" and "Hồ sơ đào tạo 2026.xlsx" display intact (no mojibake), match their Vietnamese titles as Suggested (accent-insensitive title; word overlap with a year), Rev.02 hint; the original names are stored unchanged, only the Storage key is ASCII |
+| One file per Document | two files assigned to one Document → both Conflict, explained, Upload not possible; skipping one resolves it; only ONE Version created |
+| Realistic 30-file batch (Admin) | 30 Documents, 30 files → 30 Auto-match, all Ready; upload: 30 Versions, 30 file rows, 30 Storage objects, exactly one Version per Document, all keys unique, no orphan object |
+| Partial failure | the Storage upload of one of four files forced to fail: 3 completed, 1 failed with its reason; the earlier success kept and the later files continued; the failed upload left no file row, no Version, no object; Retry (fresh prepare) → exactly one V1, no duplicate |
+| Register failure | after a real Storage upload, another consultant opens a Gap Assessment on that Document: the server refuses with the existing message; the object was removed, no file row, no Version; Retry while still open fails again cleanly; after the assessment is concluded **Retry Failed** creates V2 |
+| State change during the batch | a Gap Assessment started (by SQL, between the files) on the second file's Document: that file fails with the existing message, files 1 and 3 complete, nothing created for the blocked one |
+| Isolation | the prepare / register server actions replayed with another Project's Document id (both directions) → generic "could not be found", no metadata, no Version / file row / object created; signed out → the action is refused; the Project's page does not contain the other Project's Document |
+| Mobile 390 / 412 | selection and Match Review fit (stacked cards, no horizontal overflow), the Document selector panel stays on screen, a conflict is explained in the card, reassigning through search resolves it, Upload reachable (not under the bottom navigation), the Confirm sheet is fully on screen, progress and result readable, Back to Documents reachable |
+| Desktop 1280×800 | 30 rows, compact (about 100 px each), no horizontal overflow, **no cell or control clipped at the table's right edge** |
+| Cleanup | fixtures removed; documents / versions / reviews / attachments / files / Storage objects 0 |
+
+**Matcher unit test (`p7c-unit`, 54/54):** normalization; revision hints (Rev.02, Rev02, Revision 3, V2, V2.1; "Div2" and "Reverse" are not hints); exact unique Document Code (also with `_`, `.`, no separators); PR-QMS-010 does not match PR-QMS-01; the same code on two Sites; Site words rank / preselect (never AUTO); the longest code wins; codes under 3 characters ignored; exact title after removing revision / date suffixes; Vietnamese with and without accents; word overlap (4/5 ≥ 0.8) and its uniqueness; exact title beats a longer similar title; a Site name alone never matches; determinism; duplicate selected files; row states (Ready, Needs review, Unmatched, Skipped, Blocked ×5, Conflict, resolved by skip / reassign, same-as-current warning, previews V1 / V2 / V3); summary counts; Document label. Thresholds (documented constants): 0.8 overlap of both sides, at least 2 shared words, 3-character codes, 0.1 uniqueness margin, 50 files, 300 MB advisory.
+
+**Performance (this machine, hosted database; no network conclusions beyond these figures):** matching 50 files against 300 Documents took
+about 32 ms (pure function); the browser analyzed 13 files in 90 – 131 ms and 30 files in 94 – 148 ms (including render);
+5 files of the mixed batch uploaded in 11.6 – 17.8 s; **30 sequential uploads of 20 KB files took 64 – 87 s (about 2.1 – 2.9 s per file)** across the runs. Sequential upload was
+usable for this size, so no parallelism was added.
+
+**Problems found while building the suite:** the suite caught **one real defect** — the file input handler reset the input before React read its
+live `FileList`, so a later selection could be empty (fixed: the files are copied first) — and a **layout defect seen in a screenshot**
+(the Include column clipped at the right edge; fixed, and a no-clipping check was added). The rest were test-side: a keyword search for
+"webkitdirectory" matched bundled React code, `innerText` applies the CSS uppercase, reads before the page had rendered, a file selected
+before hydration is ignored (and React ignores a repeat of the identical selection — the test clears and re-selects), and a mobile step that
+assigned a Document another file already targeted.
+
+**Regressions on the final code (run from `tests/regression`):**
+
+| Suite | Result | Note |
+| --- | --- | --- |
+| 7B `p7b` / `p7b-local` | 40/40, 26/26 | open-review blocking, Version and Document delete rules intact |
+| 7A `p7a`, `p7a-activity`, `p7a-unit` | 107/107, 9/9, 92/92 | |
+| 6D / 6C / 6B / 6A | 43/43, 29/29, 35/35, 42/42 | report-rules unit test 21/21 |
+| 5A / 5B | 104/104, 103/103 | single Version upload, numbering, cleanup |
+| 5C / 5D / 5E / 5F | 74/74, 78/78, 80/80, 62/62 | |
+| 5G | 100/100 | the first runner pass was 84/85: the large-register import preview timed out waiting 60 s (the same pattern seen in 7A / 7B); a standalone rerun passed 100/100 |
+| 4C-1 / 4C-2 / 4D-1 / 4D-2 | 160/160, 155/155, 145/145, 122/122 | |
+| 4E / 4E-6 / 4F | 122/122, 65/65, 78/78 | |
+
+**Data safety:** genuine data identical to the pre-flight snapshot; fixtures removed (only Chinh Long and Test 1 remain; 0 documents, versions, reviews, files, attachments, Storage objects).
+
+**Not covered:** parallel uploads, folder upload and a real slow / dropping network are not tested (Storage failure is simulated by aborting the request); the matcher's behaviour on very large catalogs (thousands of Documents) was only timed at 300.
+
+### Phase 7 — remaining slices (7D – 7E)
+Test cases: *not yet defined* (Expected Records, deployment dry-run).

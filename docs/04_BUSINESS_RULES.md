@@ -795,6 +795,53 @@ itself. Admin and Consultant have the same rights; anonymous users have none.
   the latest review of a Version is the one with the highest `created_at`, ties broken by the higher `id`
   (`created_at DESC, id DESC`). The derived Document status (BR-17 / ADR-005) and its values are unchanged.
 
+## Bulk Document Upload (Phase 7C, ADR-021)
+
+- **BR-165** *(Phase 7C)* **Bulk Upload creates Versions, never Documents.** From the Documents workspace, "Bulk Upload"
+  opens a page where a consultant selects several files (multi-select or drag and drop; no folder upload) and attaches
+  them to existing Required Documents of the Project. Required Documents still come from manual create or the Excel
+  import. Admin and Consultant have the same capability; a signed-out visitor is sent to login. No batch, upload
+  history or match information is stored — the Versions created are the record.
+- **BR-166** *(Phase 7C)* **Limits and file policy:** at most **50 files per batch** (more is blocked before Analyze with
+  "Select up to 50 files per batch." — never truncated); the **existing Document Version file policy** (PDF, Word,
+  Excel, PowerPoint; 10 MB per file; the same messages) applies per file and an invalid file is shown as Blocked;
+  a total over 300 MB only shows a warning. The same file selected twice (name, size, last-modified) is Blocked as a
+  duplicate.
+- **BR-167** *(Phase 7C)* **Deterministic matching** (`lib/documents/bulk-match.ts`, pure, unit-tested): **Auto-match** =
+  the Document Code appears as whole tokens in the file name (separators and case ignored; codes of fewer than 3
+  characters never; the longest code wins) and exactly ONE Document has it. **Suggested** (needs the consultant's
+  acceptance) = a code shared by several Documents (candidates ranked by Site words in the file name, never
+  auto-picked), the file name — after removing the extension, revision tokens (Rev01, Rev.02, Revision 2, V2) and dates
+  — equals a Document title (accent, case and separator insensitive; Vietnamese included), or a word overlap of at
+  least 80 % of both the title's and the file name's words with at least 2 shared words and a unique candidate.
+  Otherwise **No match**. A Site name alone never matches a file. A revision token only **prefills** the optional
+  Revision field ("Rev.02", "V2"); it is never a Version number. The original file name is never changed.
+- **BR-168** *(Phase 7C)* **Match Review and Confirm:** every file is shown — table on desktop, stacked cards on a phone —
+  with its Document (searchable selector: code · title · Site, "Project-wide" when none), Match type, preview of the next
+  Version (**preview only**; the server assigns V1 / V2 / V3), Revision and an Include / Skip control. Row states: **Ready**
+  (valid file, included, one Applicable Document whose current Version has no open Gap Assessment, accepted),
+  **Needs review** (a suggestion not yet accepted), **Unmatched**, **Blocked** (file policy, duplicate, Not Applicable —
+  "Versions cannot be uploaded while this document is Not Applicable." — or open Gap Assessment — "Complete the current Gap
+  Assessment before uploading a new Version."), **Skipped**, **Conflict**. **One file per Document per batch:** two included
+  files targeting one Document are both a Conflict and the batch cannot be confirmed until one is kept, reassigned or
+  skipped. "Same file name and size as current Version." is a warning only. Only Ready rows upload; the others do not block
+  the Confirm step (except conflicts). Nothing is uploaded before the consultant confirms the summary (Ready / Skipped /
+  Blocked / Unmatched).
+- **BR-169** *(Phase 7C)* **Upload is per-file atomic and sequential.** Each Ready file runs the existing steps
+  `prepareDocumentVersionUpload` → direct upload to the private bucket → `registerDocumentVersion` (BR-119, BR-139), one
+  file at a time, showing overall (n / total), the current file and each row's state (Queued, Uploading, Completed, Failed).
+  The server revalidates every file on fresh data, so a Document that became Not Applicable or got an open Gap Assessment
+  after the Match Review makes only that file fail (with the existing message) while the batch continues. A failed Storage
+  upload creates no file row and no Version; a failed registration removes the just-uploaded object (existing cleanup).
+  Successful files are never rolled back. **Retry** (per file or all failed) starts again with a fresh prepare — a fresh
+  key — and revalidates, so it cannot duplicate a Version.
+- **BR-170** *(Phase 7C)* **Result summary and recovery:** when the batch ends the page shows Completed (file, Document and
+  the Version the server actually created), Failed (reason, Retry), Skipped and "not uploaded" counts, with Back to
+  Documents (the register shows the new state). A batch-level "Received on" date (default: today, editable or empty) is
+  applied to every Version of the batch. Leaving the page during an upload asks for confirmation; closing it stops the
+  upload. An orphaned object (browser closed between upload and registration) is recovered as for a single upload
+  (10_RUNBOOK).
+
 ## Access and identity
 
 - **BR-41** V1 users are internal (admin / consultant). Public sign-up is

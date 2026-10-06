@@ -20,7 +20,7 @@ UI of a production build, and the **hosted** Supabase project is used for data.
 | `pXX-fixtures.mjs` | Creates (and removes) that suite's data. Every suite has its own name prefix (`P6D-ACCEPT-`, `P7A-ACCEPT-`, ...). |
 | `pXX-post-verify.mjs` | Run after a suite: confirms the suite left nothing behind (where it exists). |
 | `pXX-snapshot.mjs`, `p6a-schema.mjs`, `p6e-schema.mjs`, `p7a-schema.mjs`, `residue.mjs`, `clean-both.mjs` | Safety tools: fingerprint of the genuine (non-fixture) data, of the schema / RLS / grants / Storage configuration, and a leftover check. Used before and after a phase. |
-| `p6c-unit.mjs`, `p7a-unit.mjs` | The only suites that need **no server and no database** (report rules; date helpers in four time zones). `npm run test:unit` runs the first. |
+| `p6c-unit.mjs`, `p7a-unit.mjs`, `p7c-unit.mjs` | The only suites that need **no server and no database** (report rules; date helpers in four time zones; the Bulk Upload matcher). `npm run test:unit` runs the first. |
 | `p6a-local.mjs`, `p6b-local.mjs`, `p7b-local.mjs` | Migration tests on an in-process Postgres (PGlite). **Not runnable from a plain checkout**: they need `@electric-sql/pglite`, which is not a dependency (see "Known gaps"). `p7b-local` was run by copying it into a folder where PGlite is installed and setting `RAYIMS_MIGRATIONS` to `supabase/migrations/`. |
 | `run.mjs` | Runs suites one after another and reports a summary (`npm run test:regression`). |
 
@@ -39,6 +39,7 @@ UI of a production build, and the **hosted** Supabase project is used for data.
 | `p6a`, `p6b`, `p6c`, `p6d` | Finding numbering, Activity Summary, Activity Report data, DOCX export | yes |
 | `p6e` | Phase 6 acceptance scenario (extra, slow) | yes |
 | `p7a`, `p7a-activity` | Phase 7A: Home, dates / time zones, deep link, Activity filters, mobile; minimal Activity smoke test | yes |
+| `p7c` | Phase 7C: Bulk Document Upload (Match Review, confirm, sequential per-file upload, failures and retry, isolation, Vietnamese, mobile / desktop, 30-file batch) | yes (writes real files to the hosted private bucket; about 15 minutes) |
 | `p7b` | Phase 7B: Document / Version delete protection, one open Gap Assessment, deterministic latest review, races (needs the 7B migration applied to the hosted project) | yes |
 | `p4b` (`p4b-test.mjs`) | Original 4B execution suite | **no** - needs the `P4B_IDS` environment variable (fixture ids from a harness that was never preserved) |
 
@@ -123,6 +124,7 @@ line says `N/N passed, 0 failed`.
 - `p6a-local.mjs` / `p6b-local.mjs` / `p7b-local.mjs` need PGlite (not installed) and have not been run from the repository itself (`p7b-local` passed 26/26 from a folder with PGlite installed).
 - The suites need the hosted Supabase project and a local browser; there is no CI. They are run by hand
   at the end of a phase.
+- `p7c` creates test files under `<TEMP>/p7c-files` (including 31 files of about 10 MB for the total-size warning) and simulates Storage failures by aborting / delaying the browser's Storage request; it needs the 7B migration applied. The file input is server-rendered, so a selection made before hydration is ignored: the suite waits for network idle and re-selects.
 - Since Phase 7B a Document with Versions and a Version with reviews cannot be deleted by cascade: fixtures must delete reviews, then versions, then documents (all current cleanups do).
 - `p5f` can time out once in the large-register import preview when run after other suites; it passes when run alone (seen in 7A and 7B).
 - Some suites read application source files (`lib/queries/*.ts`, `lib/mutations/*.ts`) to assert that a

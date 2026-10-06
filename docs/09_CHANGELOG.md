@@ -3,6 +3,25 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 7C — Bulk Document Upload (2026-10-05)
+
+**Result: p7c 86/86 (plus matcher unit test 54/54); all Phase 7B / 7A / 6 / 5 / 4 regression suites green (5G on standalone rerun).** No migration, no RLS / grant / Storage change, no new table, no new dependency. ADR-021.
+
+### Added
+
+- **Bulk Upload** (`/projects/[projectId]/documents/bulk-upload`, button in the Documents workspace): choose up to 50
+  files → Match Review (table / cards, searchable Document selector, Include / Skip, Accept) → Confirm → sequential per-file
+  upload → result summary with Retry. `components/documents/bulk-upload-view.tsx`, `bulk-document-picker.tsx`.
+- `lib/documents/bulk-match.ts` — the pure deterministic matcher and row-state rules (Document Code, accent-insensitive
+  title, word overlap, Site ranking, revision hint, duplicate / conflict / blocker / warning rules) and
+  `lib/queries/bulk-upload.ts` (read-only, Project-scoped catalog, paged). BR-165 – BR-170.
+- Tests: `p7c-unit.mjs` (matcher, 54 checks), `p7c-test.mjs` (hosted acceptance), fixtures and fingerprints.
+
+### Changed
+
+- Nothing in the single-upload actions: Bulk Upload reuses `prepareDocumentVersionUpload` / `registerDocumentVersion`
+  unchanged (their server revalidation and cleanup are what make each file atomic).
+
 ## Phase 7B — Data-integrity hardening (2026-10-05)
 
 **Result: p7b 40/40 (plus local migration test 26/26); all Phase 7A / 6 / 5 / 4 regression suites green (5F and 5G on standalone rerun).** One migration, no RLS / grant / Storage change, no ADR, no new dependency.

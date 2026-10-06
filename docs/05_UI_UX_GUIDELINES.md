@@ -212,6 +212,23 @@ and prototype/demo data is not a requirement.
   border and ring) for a few seconds, no animation; the item is scrolled to the middle of the screen,
   clear of the bottom navigation.
 
+## Phase 7C UI patterns (Bulk Upload)
+
+- **A page, not a drawer:** Documents → **Bulk Upload** (secondary button beside Import Excel / Export Excel). Stages on one
+  page: choose files (drop zone with a "Choose files" button as the keyboard / phone fallback, selected-file list with
+  Remove, limit and size notices) → **Match Review** → Confirm sheet → progress and result. No wizard framework.
+- **Match Review:** a compact table on desktop (File · Document · Next · Revision · Status · Include; no more than six
+  columns, rows about 110 px) and **stacked cards under 768 px** — never a horizontally scrolling table. Match type
+  (Auto-match, Suggested, No match, Manual) and row state (Ready, Needs review, Unmatched, Blocked, Skipped, Conflict) are
+  always **text badges**, never colour alone; blockers and warnings are written in the row ("Warning: Same file name and
+  size as current Version."). A "Show" filter (All / Ready / Needs review / Unmatched / Blocked) replaces any second screen.
+  The summary bar (n ready · needs review · unmatched · blocked · skipped) and the **Upload n files** button sit above the
+  list and repeat below a long list; Confirm is a dialog (a bottom sheet on a phone).
+- **Document selector:** a button that opens a searchable list (code · title · Site; Suggested candidates first); keyboard:
+  Tab / Arrow keys, Escape; panels never exceed the screen width.
+- **Progress:** "12 / 30", the current file name (live region), a progress bar and one row per file with its state and a
+  named **Retry** button for failures.
+
 ## Out of scope for this document
 
 Detailed screen layouts, wireframes, component specifications and the visual

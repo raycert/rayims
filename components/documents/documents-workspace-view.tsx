@@ -151,6 +151,9 @@ export function DocumentsWorkspaceView({
           <Link href={`/projects/${projectId}/documents/import`} className={buttonClasses("secondary")}>
             Import Excel
           </Link>
+          <Link href={`/projects/${projectId}/documents/bulk-upload`} className={buttonClasses("secondary")}>
+            Bulk Upload
+          </Link>
           <Button type="button" variant="secondary" onClick={exportRegister} disabled={exporting}>
             {exporting ? "Exporting…" : "Export Excel"}
           </Button>

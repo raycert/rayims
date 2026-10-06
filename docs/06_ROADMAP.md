@@ -38,7 +38,7 @@
 | — 6C  | Activity Report data integration            | **COMPLETED** |
 | — 6D  | Activity Report DOCX export                 | **COMPLETED** |
 | — 6E  | Phase 6 final acceptance                    | **COMPLETED** |
-| 7     | Dashboard / Polish / Pilot readiness        | **IN PROGRESS** (7A, 7B completed; 7C next) |
+| 7     | Dashboard / Polish / Pilot readiness        | **IN PROGRESS** (7A, 7B, 7C completed; 7D next) |
 
 > **The product workflow remains flexible.** The implementation order above does
 > **not** imply that Document Review must occur after Site Verification. Phase 4
@@ -702,9 +702,16 @@ Minimal dashboard, polish, demo data, deployment to Vercel (Polish / productivit
 | --- | --- | --- |
 | 7A | Pilot Foundation + regression harness preservation | **COMPLETED** |
 | 7B | Data-integrity hardening (one migration, approved in principle: Document → Version and Version → Review delete FKs RESTRICT; one-open-review partial unique index; deterministic latest-review tie-break in `document_register`) | **COMPLETED** |
-| 7C | Bulk Document Upload (multi-select, deterministic match review, per-file atomic, no migration) | **NEXT** |
-| 7D | Expected Records / Required Evidence (`documents.expected_records`, import, Gap Assessment, export) | Planned |
+| 7C | Bulk Document Upload (multi-select, deterministic match review, per-file atomic, no migration) | **COMPLETED** |
+| 7D | Expected Records / Required Evidence (`documents.expected_records`, import, Gap Assessment, export) | **NEXT** |
 | 7E | Deployment readiness + pilot dry-run | Planned |
+
+### Phase 7C — Bulk Document Upload [COMPLETED]
+
+A page (`/projects/[projectId]/documents/bulk-upload`): choose up to 50 files → deterministic Match Review the consultant
+confirms → sequential, per-file atomic upload through the existing prepare / direct-to-Storage / register actions →
+result summary with retry. No migration, RLS, grant or Storage change; no new table. **ADR-021**, BR-165 – BR-170.
+Deferred: folder upload, parallel uploads, External Document Source, Expected Records. Results in `08_TESTING.md`.
 
 ### Phase 7B — Data-integrity hardening [COMPLETED]
 
@@ -723,7 +730,7 @@ BR-156 – BR-161. Results in `08_TESTING.md`.
 
 **Consolidated Phase 7 backlog (recorded at Phase 6 close — none of it is scheduled or approved):**
 
-- *Document productivity:* Bulk Document Upload with match suggestions and folder upload; External
+- *Document productivity:* ~~Bulk Document Upload with match suggestions~~ — **done in 7C** (folder upload still deferred); External
   Document Source (Google Drive / Google Docs, SharePoint / OneDrive) and "Snapshot for Assessment";
   Expected Records / Required Evidence as Document-level context (not Review Comments).
 - *Reporting:* photos in the Activity Report (explicit "include in report" choice); branded / custom report
@@ -737,7 +744,7 @@ BR-156 – BR-161. Results in `08_TESTING.md`.
 **Document workflow backlog (recorded 2026-10-02 — not scheduled, not part of Phase 6; no schema, no
 SDKs, no change to Document upload behaviour until approved):**
 
-- **Bulk Document Upload** — *Phase 7 / productivity backlog.* Documents → Bulk Upload → select
+- **Bulk Document Upload** — *delivered in Phase 7C (ADR-021); folder upload remains backlog.* Documents → Bulk Upload → select
   multiple files (or a folder, if the browser supports it cleanly) → auto-match **suggestions** → user
   confirmation → Document Versions created in bulk. Principles: it uploads **files / Versions only** —
   Required Documents still come from manual create or the Required Document Excel Import; matching uses

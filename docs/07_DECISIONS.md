@@ -534,3 +534,42 @@ statements in `01_V1_SCOPE.md` and `02_ARCHITECTURE.md` are updated for Activity
 **Supersedes:** the printable-HTML direction for Activity Reports (01_V1_SCOPE scope item 14 and the
 deferred "server-side PDF → printable HTML page" note; 02_ARCHITECTURE cost principle).
 **Status:** Approved (Phase 6D)
+
+## ADR-021 — Bulk Document Upload
+
+**Context:** a real engagement has 50–100 Required Documents and the client sends the files in one go.
+Uploading them one Version at a time (open the Document → Upload New Version → choose a file → save) is the
+largest repetitive chore of the Documents workflow. The Phase 7 pre-implementation review recommended a bulk
+flow without a new lifecycle, table, queue or storage architecture. The product owner approved the model for
+Phase 7C.
+**Decision:**
+- **Client-orchestrated.** A page (`/projects/[projectId]/documents/bulk-upload`) walks Choose files →
+  Match Review → Confirm → Upload → Result summary. There is **no batch table, no job, no queue, no background
+  process, no upload history and no stored match information**: the Versions that were created are the audit
+  trail. If the page is closed the upload stops; files already registered stay.
+- **Per-file atomic, no batch transaction.** Each file independently goes through the **existing single-upload
+  actions** — `prepareDocumentVersionUpload` → direct browser upload to the private bucket →
+  `registerDocumentVersion` — so there is no second Version-insert implementation. The server revalidates every
+  file (Project / Document scope, Applicable, open Gap Assessment, file policy, key, real object size); the
+  browser's Match Review is only UX. A failure of one file never rolls back files that succeeded; the existing
+  cleanup removes an unregistered object. A retry always starts with a fresh prepare (fresh key, fresh checks).
+- **Sequential by default.** One file at a time (predictable Version state, simple failure handling, friendly to
+  slow client uplinks, simple progress).
+- **Deterministic matching, no AI.** A pure function (`lib/documents/bulk-match.ts`): a unique Document Code
+  token in the file name → auto-match; a code shared by several Documents, an exact (accent / case / separator
+  insensitive) title after removing revision and date suffixes, or a unique high word overlap → suggested; a Site
+  name only ranks candidates, it never matches a file. **The consultant confirms every match before anything is
+  uploaded**; nothing is uploaded without the Confirm step; unmatched files stay unresolved and are never attached
+  silently; no Document is ever created.
+- **One file per Document per batch** (no V(n+1) and V(n+2) from one batch). A Document that is Not Applicable or
+  whose current Version has an open Gap Assessment cannot take a file (BR-139 unchanged, server-enforced).
+- **Limits:** 50 files per batch (blocked before Analyze, never truncated), the existing file policy (PDF, Word,
+  Excel, PowerPoint) and 10 MB per file; a total over 300 MB is only a warning.
+- **No folder upload** in this slice (`webkitdirectory` is not used); multi-select and drag-and-drop only.
+**Reason:** the largest productivity gain for the pilot with no schema, no new infrastructure and no new lifecycle,
+reusing the code and the security checks that already guard single uploads.
+**Consequences:** no migration, no RLS / grant / Storage policy change; a new page, a pure matcher and a
+read-only catalog query; BR-165 – BR-170; the Documents workspace gets a Bulk Upload action. A second Version of
+the same Document needs a second batch. Folder upload, external sources, Expected Records and parallel uploads
+remain deferred (06_ROADMAP).
+**Status:** Approved (Phase 7C)

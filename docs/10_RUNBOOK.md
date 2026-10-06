@@ -133,6 +133,22 @@ After any user or settings change:
 - A `files` row whose object is missing shows "File is unavailable." in the app; the metadata is
   kept on purpose — investigate before deleting it.
 
+## Bulk Document Upload (Phase 7C)
+
+- **Where:** Documents → Bulk Upload. It attaches files to existing Documents as new Versions; it never creates Documents.
+- **Limits:** 50 files per batch (the page refuses to analyze more), 10 MB per file, PDF / Word / Excel / PowerPoint; a total
+  over 300 MB is only a warning. Uploads are sequential — expect roughly the time of the same number of single uploads
+  (about 1 – 3 s per small file on a good connection). There is no folder upload yet.
+- **Failures are per file.** A failed file shows its reason and a **Retry** button (or **Retry Failed**); successful files are
+  never rolled back and there is no batch rollback. A retry starts a fresh upload (new key), so it cannot duplicate a Version.
+  Typical reasons: the connection dropped ("The upload failed. Check your connection and retry."), the Document became Not
+  Applicable, or a Gap Assessment was opened on it meanwhile ("Complete the current Gap Assessment before uploading a new Version.").
+- **If the page is closed or the browser crashes mid-batch:** the batch simply stops; files already registered are real
+  Versions (check the Documents register). A file whose object was uploaded but not registered leaves one unreferenced Storage
+  object — recover it with the same prefix-based orphan query as for a single Version upload ("Documents (Phase 5)" below).
+- Nothing about a batch is stored (no history, no match information): to see what a batch created, look at the Versions'
+  upload time and uploader on the Documents.
+
 ## Regression harness (Phase 7A)
 
 - The acceptance / regression scripts live in `tests/regression` (see `tests/README.md`): they drive a
