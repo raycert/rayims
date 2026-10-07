@@ -83,6 +83,8 @@ export function compareReviewsNewestFirst(a: { createdAt: string; id: string }, 
 export type DocumentDetail = DocumentRow & {
   projectId: string;
   createdAt: string;
+  /** Expected Records / Required Evidence (Phase 7D): document-level reference text; deliberately NOT on the register rows (long text). */
+  expectedRecords: string | null;
   /** Newest first (highest version_no = Current). One embedded query: file metadata, uploader, reviews. */
   versions: DocumentVersionSummary[];
 };
@@ -233,7 +235,7 @@ export async function getDocument(projectId: string, documentId: string): Promis
     supabase
       .from("documents")
       .select(
-        `id, project_id, site_id, doc_code, title, document_type, owner_name, is_applicable, created_at, document_framework_items(${ITEM_EMBED}), document_versions(id, version_no, revision, received_on, notes, created_at, files(original_name, mime_type, size_bytes), uploader:profiles!document_versions_uploaded_by_fkey(display_name, email), document_reviews(id, status, notes, created_at, reviewed_at, reviewer:profiles!document_reviews_reviewer_id_fkey(display_name, email), issues(id, finding_no, title, finding_type, status, created_at), verification_items(id, question, result, created_at)))`,
+        `id, project_id, site_id, doc_code, title, document_type, owner_name, is_applicable, expected_records, created_at, document_framework_items(${ITEM_EMBED}), document_versions(id, version_no, revision, received_on, notes, created_at, files(original_name, mime_type, size_bytes), uploader:profiles!document_versions_uploaded_by_fkey(display_name, email), document_reviews(id, status, notes, created_at, reviewed_at, reviewer:profiles!document_reviews_reviewer_id_fkey(display_name, email), issues(id, finding_no, title, finding_type, status, created_at), verification_items(id, question, result, created_at)))`,
       )
       .eq("id", documentId)
       .eq("project_id", projectId)
@@ -308,6 +310,7 @@ export async function getDocument(projectId: string, documentId: string): Promis
     latestReviewId: reg.latest_review_id,
     lastReviewAt,
     createdAt: d.created_at,
+    expectedRecords: d.expected_records,
     frameworkItems: (d.document_framework_items ?? [])
       .map((m) => m.framework_items)
       .filter((i): i is NonNullable<typeof i> => !!i)

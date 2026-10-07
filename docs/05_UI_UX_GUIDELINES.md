@@ -229,6 +229,20 @@ and prototype/demo data is not a requirement.
 - **Progress:** "12 / 30", the current file name (live region), a progress bar and one row per file with its state and a
   named **Retry** button for failures.
 
+## Phase 7D UI patterns (Expected Records)
+
+- **Edit / Create Document:** a multiline field "Expected Records / Required Evidence" (about 5 rows, placeholder showing one item
+  per line) after Owner, with the helper text "Records or evidence the consultant expects to review for this Required Document.
+  One per line." and a live "n / 2,000" counter that turns red over the limit (no `maxLength`: a longer text is refused with a
+  message, never silently cut).
+- **Document Detail:** a compact card "Expected Records / Required Evidence" with an Edit link, between the Framework Requirements
+  and the Versions; the text keeps its line breaks and wraps; empty = one muted line "No Expected Records recorded.".
+- **Gap Assessment:** a read-only collapsible block below "Assessed against" and above the Review Comments (a header button with
+  aria-expanded; expanded when short, collapsed when long — the same on every width; "Reference only. Edit it in Edit Document.").
+  Never an input, hidden when empty, never a pre-filled comment.
+- **Import preview:** an "Expected Records" column showing the first line (two lines at most) and "+n more lines"; cards on a phone
+  show "Expected Records: first line (+n more)". The register itself gets no such column.
+
 ## Out of scope for this document
 
 Detailed screen layouts, wireframes, component specifications and the visual

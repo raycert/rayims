@@ -1,5 +1,6 @@
 import { PROJECT_WIDE_LABEL, type RawDocumentRow } from "@/lib/import/document-register-workbook";
 import type { DocumentImportCatalog } from "@/lib/queries/document-import";
+import { EXPECTED_RECORDS_MAX, normalizeExpectedRecords } from "@/lib/validation/documents";
 
 /**
  * Required Document import validation (Phase 5E) — the single authoritative rule set, used by
@@ -23,6 +24,8 @@ type ResolvedRow = {
   siteLabel: string;
   /** null = the Applicable cell was blank */
   applicable: boolean | null;
+  /** Expected Records, trimmed with \n line endings; null = blank. */
+  expectedRecords: string | null;
   itemIds: string[];
   requirementsLabel: string;
   action: ImportRowAction | null;
@@ -36,6 +39,7 @@ export type ImportGroup = {
   docCode: string | null;
   documentType: string | null;
   ownerName: string | null;
+  expectedRecords: string | null;
   siteId: string | null;
   isApplicable: boolean;
   frameworkItemIds: string[];
@@ -51,6 +55,10 @@ export type ImportPreviewRow = {
   siteLabel: string;
   requirementsLabel: string;
   applicableLabel: string;
+  /** First line of the Expected Records (short), "" when blank — the preview never carries the whole text. */
+  expectedRecordsPreview: string;
+  /** Number of lines of the Expected Records (0 = blank). */
+  expectedRecordsLines: number;
   action: ImportRowAction | null;
 };
 
@@ -102,6 +110,12 @@ function resolveRow(raw: RawDocumentRow, maps: ReturnType<typeof buildMaps>): Re
     ["Owner", raw.owner],
   ] as const) {
     if (value.trim().length > MAX_TEXT) errors.push(`${label} is longer than ${MAX_TEXT} characters.`);
+  }
+
+  // Expected Records (Phase 7D): optional, multiline, at most EXPECTED_RECORDS_MAX characters — never silently truncated.
+  const expectedRecords = normalizeExpectedRecords(raw.expectedRecords);
+  if (expectedRecords && expectedRecords.length > EXPECTED_RECORDS_MAX) {
+    errors.push(`Expected Records is longer than ${EXPECTED_RECORDS_MAX.toLocaleString("en-US")} characters (${expectedRecords.length.toLocaleString("en-US")}). Shorten it; nothing is truncated.`);
   }
 
   // Site — only this project's sites, exact (case-insensitive) name.
@@ -160,7 +174,7 @@ function resolveRow(raw: RawDocumentRow, maps: ReturnType<typeof buildMaps>): Re
   }
   if (!requirementsLabel && (hasFramework || hasReq)) requirementsLabel = [raw.framework.trim(), raw.requirement.trim()].filter(Boolean).join(" · ");
 
-  return { raw, errors, warnings: [], title, siteId, siteLabel, applicable, itemIds, requirementsLabel, action: null };
+  return { raw, errors, warnings: [], title, siteId, siteLabel, applicable, expectedRecords, itemIds, requirementsLabel, action: null };
 }
 
 function buildMaps(catalog: DocumentImportCatalog) {
@@ -203,6 +217,7 @@ export function validateDocumentRows(
         docCode: r.raw.code.trim() || null,
         documentType: r.raw.type.trim() || null,
         ownerName: r.raw.owner.trim() || null,
+        expectedRecords: r.expectedRecords,
         siteId: r.siteId,
         isApplicable: r.applicable ?? true,
         frameworkItemIds: [...r.itemIds],
@@ -221,6 +236,12 @@ export function validateDocumentRows(
     ] as const) {
       if (mine && theirs && mine.toLowerCase() !== theirs.toLowerCase()) conflicts.push(`${label} "${mine}" vs "${theirs}"`);
     }
+    // Expected Records: blank inherits; the same text (after trimming and line-ending normalization only — lines are never
+    // reordered or reworded) is kept once; different non-blank texts are a conflict, never silently chosen.
+    if (r.expectedRecords && g.expectedRecords && r.expectedRecords !== g.expectedRecords) {
+      const first = (t: string) => (t.split("\n")[0].length > 40 ? `${t.split("\n")[0].slice(0, 40)}…` : t.split("\n")[0]);
+      conflicts.push(`Expected Records "${first(r.expectedRecords)}" vs "${first(g.expectedRecords)}"`);
+    }
     if (r.applicable !== null && firstApplicable !== null && r.applicable !== firstApplicable) {
       conflicts.push(`Applicable "${r.applicable ? "Yes" : "No"}" vs "${firstApplicable ? "Yes" : "No"}"`);
     }
@@ -231,6 +252,7 @@ export function validateDocumentRows(
     g.docCode ??= r.raw.code.trim() || null;
     g.documentType ??= r.raw.type.trim() || null;
     g.ownerName ??= r.raw.owner.trim() || null;
+    g.expectedRecords ??= r.expectedRecords;
     if (r.applicable !== null) g.isApplicable = r.applicable;
     for (const id of r.itemIds) if (!g.frameworkItemIds.includes(id)) g.frameworkItemIds.push(id);
     g.rows.push(r);
@@ -265,6 +287,7 @@ export function validateDocumentRows(
     docCode: g.docCode,
     documentType: g.documentType,
     ownerName: g.ownerName,
+    expectedRecords: g.expectedRecords,
     siteId: g.siteId,
     isApplicable: g.isApplicable,
     frameworkItemIds: g.frameworkItemIds,
@@ -285,6 +308,8 @@ export function toPreview(result: ReturnType<typeof validateDocumentRows>): Impo
       siteLabel: r.siteLabel,
       requirementsLabel: r.requirementsLabel,
       applicableLabel: r.applicable === false ? "No" : r.applicable === true ? "Yes" : "Yes (default)",
+      expectedRecordsPreview: r.expectedRecords ? r.expectedRecords.split("\n")[0].slice(0, 120) : "",
+      expectedRecordsLines: r.expectedRecords ? r.expectedRecords.split("\n").length : 0,
       action: r.errors.length > 0 ? null : r.action,
     };
   });

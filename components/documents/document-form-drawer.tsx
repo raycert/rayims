@@ -4,8 +4,10 @@ import { useState, useTransition } from "react";
 import { Drawer } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { createDocument, updateDocument } from "@/lib/mutations/documents";
+import { EXPECTED_RECORDS_MAX } from "@/lib/validation/documents";
 import { FrameworkRequirementPicker } from "./framework-requirement-picker";
 import type { DocumentFormCatalog, DocumentFrameworkItem, DocumentRow } from "@/lib/queries/documents";
 
@@ -37,7 +39,7 @@ export function DocumentFormDrawer({
   mode: "create" | "edit";
   projectId: string;
   catalog: DocumentFormCatalog;
-  document?: DocumentRow;
+  document?: DocumentRow & { expectedRecords?: string | null };
   onClose: () => void;
   onSaved: (message: string, documentId?: string) => void;
 }) {
@@ -45,6 +47,7 @@ export function DocumentFormDrawer({
   const [docCode, setDocCode] = useState(document?.docCode ?? "");
   const [documentType, setDocumentType] = useState(document?.documentType ?? "");
   const [ownerName, setOwnerName] = useState(document?.ownerName ?? "");
+  const [expectedRecords, setExpectedRecords] = useState(document?.expectedRecords ?? "");
   const [scope, setScope] = useState<Scope>(document?.siteId ? "specific_site" : "project_wide");
   const [siteId, setSiteId] = useState(document?.siteId ?? "");
   const [isApplicable, setIsApplicable] = useState(document?.isApplicable ?? true);
@@ -76,6 +79,7 @@ export function DocumentFormDrawer({
       docCode,
       documentType,
       ownerName,
+      expectedRecords,
       siteId: scope === "specific_site" ? siteId : "",
       isApplicable,
       frameworkItemIds: items.map((i) => i.id),
@@ -169,6 +173,32 @@ export function DocumentFormDrawer({
             </label>
             <Input id="doc-owner" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="e.g. Quality Manager" />
             <FieldError message={fieldErrors.ownerName} />
+          </div>
+
+          <div>
+            <label htmlFor="doc-expected-records" className="mb-1.5 block text-sm font-medium">
+              Expected Records / Required Evidence
+            </label>
+            <Textarea
+              id="doc-expected-records"
+              data-testid="doc-expected-records"
+              value={expectedRecords}
+              onChange={(e) => {
+                setExpectedRecords(e.target.value);
+                clearError("expectedRecords");
+              }}
+              rows={5}
+              placeholder={"Annual training plan\nTraining attendance records\nCompetence evaluation"}
+              aria-invalid={fieldErrors.expectedRecords ? true : undefined}
+              aria-describedby="doc-expected-records-help"
+            />
+            <p id="doc-expected-records-help" className="mt-1 flex flex-wrap justify-between gap-x-3 text-xs text-muted">
+              <span>Records or evidence the consultant expects to review for this Required Document. One per line.</span>
+              <span className={expectedRecords.length > EXPECTED_RECORDS_MAX ? "font-semibold text-danger" : undefined}>
+                {expectedRecords.length.toLocaleString("en-US")} / {EXPECTED_RECORDS_MAX.toLocaleString("en-US")}
+              </span>
+            </p>
+            <FieldError message={fieldErrors.expectedRecords} />
           </div>
 
           <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-border px-3 py-2.5">

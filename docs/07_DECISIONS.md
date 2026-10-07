@@ -573,3 +573,34 @@ read-only catalog query; BR-165 – BR-170; the Documents workspace gets a Bulk 
 the same Document needs a second batch. Folder upload, external sources, Expected Records and parallel uploads
 remain deferred (06_ROADMAP).
 **Status:** Approved (Phase 7C)
+
+## ADR-022 — Expected Records / Required Evidence
+
+**Context:** while assessing a client's Version the consultant needs to remember which records or evidence should
+exist for the Required Document (for a Training Procedure: the annual training plan, attendance records, competence
+evaluation, training effectiveness records). That guidance was carried in the consultant's head or squeezed into Review
+Comments, which are conclusions, not context. The Phase 7 pre-implementation review compared Document-level text,
+mapping-level text, framework-item metadata and a separate guidance table; the product owner approved the Document-level
+column for Phase 7D.
+**Decision:**
+- **Expected Records / Required Evidence belongs to the Required Document**: one **nullable text** column,
+  `documents.expected_records`. Optional, **multiline** (one record per line by convention — never parsed into
+  items), **maintained by the consultant**, capped at **2,000 characters in the application** (form, import and server
+  validation — no database CHECK, so the cap can change without a migration). Existing Documents get NULL (no backfill,
+  nothing generated).
+- It is **not** a Version field, a Review Comment, a Finding, an Evidence attachment, a Framework Item property or a
+  mapping property; there is **no separate table, no checklist, no approval / sign-off** and no AI generation. Changing it
+  never creates a Version, reopens or changes an assessment, changes the derived status, touches mappings or creates a
+  Finding / Verification item.
+- **Surfaces:** Create / Edit Document (textarea), Document Detail (compact card), **read-only** collapsible context in the
+  Gap Assessment (between the requirement context and the Review Comments; never auto-fills them), the Required Document
+  Excel import (optional column "Expected Records", aliases Required Evidence / Records / Expected Records / Required
+  Evidence; multiline cells kept; blank inherits, the same text — after trimming and line-ending normalization only — is kept
+  once, different texts for one Document identity are an error; import stays create-only) and the Gap Assessment Excel
+  export (one column immediately before Review Comments, repeated on every row of the Document). It is **not** a column of the
+  Documents register, is **not** searched, does **not** take part in Bulk Upload matching (ADR-021) and is not in the Activity Report.
+**Reason:** reference context that describes the Required Document itself, independent of any client-supplied revision, kept in
+the simplest structure (one column), without turning the Gap Assessment into a large form or inventing an approval concept.
+**Consequences:** one migration (`20261006000100_document_expected_records.sql`, one nullable column; no RLS, grant, index,
+trigger or Storage change — the column inherits the Documents policy); `types/database.ts` regenerated; BR-171 – BR-175.
+**Status:** Approved (Phase 7D)

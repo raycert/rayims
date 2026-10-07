@@ -166,6 +166,7 @@ try {
   const before = totals();
   let t = Date.now();
   await page.goto(`${DOCS(f.P.main)}/import`);
+  await page.waitForLoadState("networkidle").catch(() => {}); // the file input is server-rendered: a selection made before hydration is lost (Phase 7D)
   await page.getByLabel("Choose an Excel workbook").setInputFiles(impFile);
   rec(await wait(page.getByTestId("import-preview"), 60000), `Import preview of a client workbook with 2 banner rows above the header (${Date.now() - t} ms)`);
   const pv = flat(await page.getByTestId("import-preview").innerText());
@@ -464,6 +465,7 @@ try {
   await p.goto(`${DOCS(f.P.main)}/import`);
   const fake = path.join(DIR, "fake.xlsx");
   writeFileSync(fake, "Framework,Required Document\nISO 9001:2015,X\n");
+  await p.waitForLoadState("networkidle").catch(() => {}); // the file input is server-rendered: a selection made before hydration is lost (Phase 7D)
   await p.getByLabel("Choose an Excel workbook").setInputFiles(fake);
   const fakeMsg = p.locator("main").getByText(/Could not read this file\./).first();
   rec(await wait(fakeMsg) && !RAW_ERR.test(await p.locator("main").innerText()), "Invalid Excel (CSV renamed .xlsx): friendly message, no raw error");
@@ -476,6 +478,7 @@ try {
   const badFile = path.join(DIR, "bad.xlsx");
   await bad.xlsx.writeFile(badFile);
   await p.goto(`${DOCS(f.P.main)}/import`);
+  await p.waitForLoadState("networkidle").catch(() => {}); // the file input is server-rendered: a selection made before hydration is lost (Phase 7D)
   await p.getByLabel("Choose an Excel workbook").setInputFiles(badFile);
   await p.getByTestId("import-preview").waitFor({ timeout: 60000 });
   const bp = flat(await p.getByTestId("import-preview").innerText());
@@ -578,6 +581,7 @@ try {
   await big250.xlsx.writeFile(f250);
   let s = Date.now();
   await p.goto(`${DOCS(f.P.imp)}/import`);
+  await p.waitForLoadState("networkidle").catch(() => {}); // the file input is server-rendered: a selection made before hydration is lost (Phase 7D)
   await p.getByLabel("Choose an Excel workbook").setInputFiles(f250);
   await p.getByTestId("import-preview").waitFor({ timeout: 90000 });
   const prevMs = Date.now() - s;

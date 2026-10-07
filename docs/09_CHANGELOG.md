@@ -3,6 +3,28 @@
 Records what has been completed per phase. **No feature CRUD exists yet**; the
 application has authentication, the responsive shell and the schema only.
 
+## Phase 7D — Expected Records / Required Evidence (2026-10-06)
+
+**Result: p7d 69/69 (plus local migration test 10/10); all Phase 7C / 7B / 7A / 6 / 5 / 4 regression suites green (5E, 5F, 5G rerun after the fixes below).** One migration (one nullable column), no RLS / grant / Storage change, no new dependency. ADR-022.
+
+### Added
+
+- Migration `20261006000100_document_expected_records.sql` (tested locally on PGlite first, then `supabase db push --dry-run` and
+  `supabase db push`): `documents.expected_records text NULL` — no default, no CHECK, no index, no backfill. `types/database.ts`
+  regenerated (Row / Insert / Update only).
+- **Expected Records / Required Evidence** on the Document: multiline field in Create / Edit Document (trimmed, line breaks kept,
+  2,000-character cap, whitespace-only → NULL), a card on Document Detail, a **read-only** collapsible block in the Gap Assessment
+  (between "Assessed against" and the Review Comments). BR-171, BR-172.
+- Required Document import: optional **Expected Records** column (aliases Required Evidence / Records / Expected Records / Required
+  Evidence), multiline preserved, merge / conflict rules for repeated Document rows, preview column, template column. BR-173.
+- Gap Assessment export: **Expected Records** column immediately before Review Comments. BR-174.
+- Tests: `p7d-test.mjs` (hosted), `p7d-local.mjs` (PGlite migration test), fixtures and fingerprints.
+
+### Changed
+
+- `documentSchema`, `createDocument` / `updateDocument`, `getDocument` (detail only — the register rows and the `document_register` view
+  do not carry the text), `getGapAssessmentExport` (one extra batched read), the import parser / validator / insert.
+
 ## Phase 7C — Bulk Document Upload (2026-10-05)
 
 **Result: p7c 86/86 (plus matcher unit test 54/54); all Phase 7B / 7A / 6 / 5 / 4 regression suites green (5G on standalone rerun).** No migration, no RLS / grant / Storage change, no new table, no new dependency. ADR-021.

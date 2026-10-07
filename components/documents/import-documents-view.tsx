@@ -198,7 +198,7 @@ export function ImportDocumentsView({ projectId }: { projectId: string }) {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
-                  {["Row", "Required Document", "Code", "Site", "Framework Requirement(s)", "Applicable", "Result"].map((h) => (
+                  {["Row", "Required Document", "Code", "Site", "Framework Requirement(s)", "Applicable", "Expected Records", "Result"].map((h) => (
                     <th key={h} className="px-3 py-3 text-left text-[13px] font-semibold uppercase tracking-wide text-muted">
                       {h}
                     </th>
@@ -214,6 +214,16 @@ export function ImportDocumentsView({ projectId }: { projectId: string }) {
                     <td className="px-3 py-3 text-muted">{row.siteLabel}</td>
                     <td className="max-w-[220px] px-3 py-3 text-muted">{row.requirementsLabel || "—"}</td>
                     <td className="px-3 py-3 text-muted">{row.applicableLabel}</td>
+                    <td className="max-w-[200px] px-3 py-3 text-muted" data-testid="import-expected-records">
+                      {row.expectedRecordsLines > 0 ? (
+                        <span title={row.expectedRecordsPreview}>
+                          <span className="line-clamp-2 break-words">{row.expectedRecordsPreview}</span>
+                          {row.expectedRecordsLines > 1 ? <span className="text-xs">+{row.expectedRecordsLines - 1} more {row.expectedRecordsLines === 2 ? "line" : "lines"}</span> : null}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="min-w-64 px-3 py-3">
                       <StatusBadge label={STATUS_LABEL[row.status]} tone={STATUS_TONE[row.status]} />
                       {row.action && row.action !== "create" ? <span className="ml-2 text-xs text-muted">{ACTION_LABEL[row.action]}</span> : null}
@@ -241,6 +251,12 @@ export function ImportDocumentsView({ projectId }: { projectId: string }) {
                 <div className="mt-1 text-[12.5px] text-muted">
                   {[row.code, row.siteLabel, row.requirementsLabel, `Applicable: ${row.applicableLabel}`].filter(Boolean).join(" · ")}
                 </div>
+                {row.expectedRecordsLines > 0 ? (
+                  <div className="mt-1 break-words text-[12.5px] text-muted">
+                    Expected Records: {row.expectedRecordsPreview}
+                    {row.expectedRecordsLines > 1 ? ` (+${row.expectedRecordsLines - 1} more)` : ""}
+                  </div>
+                ) : null}
                 <Messages row={row} />
               </div>
             ))}

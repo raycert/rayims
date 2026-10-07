@@ -1851,5 +1851,77 @@ assigned a Document another file already targeted.
 
 **Not covered:** parallel uploads, folder upload and a real slow / dropping network are not tested (Storage failure is simulated by aborting the request); the matcher's behaviour on very large catalogs (thousands of Documents) was only timed at 300.
 
-### Phase 7 — remaining slices (7D – 7E)
-Test cases: *not yet defined* (Expected Records, deployment dry-run).
+### Phase 7D — Expected Records / Required Evidence (executed 2026-10-06 / 2026-10-07)
+
+Hosted Supabase, production build, Edge via Playwright, run **from the committed harness in `tests/`**. Fixtures prefixed
+`P7D-ACCEPT-` (Document titles unprefixed; the Client and Project carry it). Pre-flight: 13 migrations, 20 tables, schema / RLS /
+grant / Storage fingerprint and a genuine-data snapshot recorded; documents / versions / reviews / files / attachments / Storage
+objects all 0.
+
+**Migration** `20261006000100_document_expected_records.sql`: tested **locally first** (`p7d-local`, PGlite with every earlier
+migration, **10/10**: a nullable `text` column with no default, appended after the existing columns; an existing Document gets NULL and
+keeps its data; RLS policies and table grants unchanged; no new index, trigger, constraint, table or function; `authenticated` writes the
+column and multiline + Vietnamese text round-trips exactly; no database length limit), then `supabase db push --dry-run` (only this
+migration pending) and `supabase db push` (never `config push`). `types/database.ts` regenerated from the linked project: the only
+difference is `expected_records` in Row / Insert / Update. Hosted fingerprint after: the **only** change is the migration count
+(13 → 14); 20 tables; `documents` has the same 3 indexes, 1 trigger, 1 policy and `authenticated` grants as before; **no RLS, grant or
+Storage change**; genuine data identical.
+
+**Result: `p7d` 69/69 PASS** (final build). Earlier passes: 68/69 on a wrong test assumption (the preview keeps a *disabled* Import
+button instead of removing it).
+
+| Area | Checks (all PASS) |
+| --- | --- |
+| Create (Consultant) | Training Procedure with 4 lines stored exactly (line breaks kept), status Not Received, no Version created; the field is a labelled textarea with the helper text; no Expected Records → NULL; whitespace-only → NULL; 2,001 characters → "Keep Expected Records under 2,000 characters.", counter turns red, nothing created |
+| Edit (Admin) | stored trimmed, line breaks preserved; **only the Document's `expected_records` changes**: Versions, reviews, Findings, Verification items, Actions, files, mappings, Storage objects, the other Document fields and the derived status are identical (hash comparison on a Document with a Version, a concluded assessment, a review-origin Finding and Verification item); clearing stores NULL, again nothing else changes |
+| Document Detail | "No Expected Records recorded." when empty; otherwise a compact card with its 4 lines |
+| Gap Assessment | the block is visible, expanded and read-only (no input, "Reference only…"), placed after "Assessed against" and before the Review Comments; Review Comments are **not** pre-filled; concluding as Revision Required leaves Expected Records unchanged; the block stays after conclusion; a long text (over 240 characters / 4 lines) starts collapsed and expands to the whole text; none → no block |
+| Import — new column | multiline cells stored with their line breaks; preview shows the first line and "+2 more lines" in its own column and still shows the Applicable column; Vietnamese stored intact; CRLF in a cell → LF; multi-framework Document → ONE Document, two mappings, one value; blank + populated → the value survives, no false conflict; a 1,900-character, 25-line value stored whole |
+| Import — compatibility | the old 8-column workbook imports unchanged (NULL); aliases "Required Evidence" (stored), "Records" and "Expected Records / Required Evidence" (preview) resolve to the same field; the downloadable template has the optional 9th column |
+| Import — conflict / limit | two different texts for one Document identity → conflict error on the second row ("Expected Records "…" vs "…""), Import disabled, nothing created; the same text with other line endings / surrounding spaces is NOT a conflict; 2,001 characters → a row error ("longer than 2,000 characters (2,001)… nothing is truncated"), Import disabled |
+| Export | 20 columns, "Expected Records" **immediately before "Review Comments"**, every other column unchanged; multiline value with wrap; a multi-framework Document repeats the value on each row; none → blank cell; Vietnamese intact; the 1,900-character value complete with a capped row height; regression of status, current Version / file, Review Comments, Last Review (date), Finding and Verification counts, Follow-up Summary; no Expected Records of another Project |
+| Register / search / Bulk Upload | the Documents register has no Expected Records column and its search does not find by it; Bulk Upload unchanged: a file named like an Expected Records line stays unmatched and the catalog / page carry no Expected Records |
+| Isolation / authorization | the edit action replayed with another Project's Document (and with another Project's id) → "could not be found", nothing exposed or changed; signed out → refused; a REST update and read of `expected_records` signed out denied; the other Project's text never appears (route, export) |
+| Mobile 390 / 412 | Create form (long text) fits, no overflow, Create reachable; Document Detail wraps the long text; the Gap Assessment long block is collapsed with a reachable toggle (not under the bottom nav), expands without overflow; a short block starts expanded and fits |
+| Desktop 1280×800 | the card is compact (about 150 px for 4 lines) and the Gap Assessment panel stays under 520 px |
+| Cleanup | fixtures removed; documents / versions / reviews / findings / attachments / files / Storage objects 0 |
+
+**Problems found by the regression run (fixed):** one **real defect of my own change** — the import preview table lost its **Applicable**
+cell (my edit replaced the cell it was anchored on); 5E caught it ("Yes (default)" / "No" missing), it was restored, and the 7D suite now asserts it.
+**Intended changes the older suites asserted** were updated (not weakened): 5E's template header list gained "Expected Records"; 5F's header
+list, column count (19 → 20), AutoFilter range and the positions of Last Review and Review Comments moved one column for the new column.
+**Pre-existing test fragilities fixed:** 5F compared a UTC date with a date the export formats in the viewer's zone (it failed whenever the
+fixture instant crossed a UTC / local midnight — it did at 01:45 UTC); 5F and 5G chose the import file before the server-rendered input was hydrated (a
+selection made before hydration is lost), which showed as a 60 – 90 s "preview never appears" timeout — a network-idle wait now precedes every import
+file selection (the 500-row preview itself takes under 1 s, with or without the new column). Two early crashes of the 7B / 7A suites happened while I was
+running CPU-heavy unit and PGlite tests alongside; the leftover fixtures of the crashed run then broke 7A's "Home empty" check and 6D's global
+"documents 0" check — residue was cleaned and the whole list rerun on a clean state.
+
+**Regressions on the final code (run from `tests/regression`):**
+
+| Suite | Result | Note |
+| --- | --- | --- |
+| 7D `p7d` / `p7d-local` | 69/69, 10/10 | |
+| 7C `p7c` / matcher unit | 86/86, 54/54 | Bulk Upload unchanged |
+| 7B `p7b` / `p7b-local` | 40/40, 26/26 | |
+| 7A `p7a`, `p7a-activity`, `p7a-unit` | 107/107, 9/9, 92/92 | |
+| 6D / 6C / 6B / 6A | 43/43, 29/29, 35/35, 42/42 | report-rules unit test 21/21 |
+| 5A / 5B | 104/104, 103/103 | |
+| 5C / 5D | 74/74, 78/78 | |
+| 5E | 80/80 | import; first pass 78/80 (see above) |
+| 5F | 62/62 | export; first pass 44/62 (column positions), then the timezone and hydration fixes |
+| 5G | 100/100 | |
+| 4C-1 / 4C-2 / 4D-1 / 4D-2 | 160/160, 155/155, 145/145, 122/122 | |
+| 4E / 4E-6 / 4F | 122/122, 65/65, 78/78 | |
+
+The complete list was run once on a clean state; after the last code change (restoring the preview's Applicable cell — the import page only) the
+suites that touch the import and export (7D, 5E, 5F, 5G) were rerun, not the whole list.
+
+**Data safety:** genuine data identical to the pre-flight snapshot; fixtures removed (only Chinh Long and Test 1 remain; 0 documents, versions,
+reviews, files, attachments, Storage objects).
+
+**Not covered:** the import limits at the very edge (exactly 2,000 characters is accepted; 2,001 refused — 1,900 is the longest value stored in tests);
+very large numbers of Documents with Expected Records in the export were not timed.
+
+### Phase 7 — remaining slice (7E)
+Test cases: *not yet defined* (deployment readiness, pilot dry-run).

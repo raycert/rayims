@@ -118,12 +118,29 @@ export function DocumentDetailView({
           )}
         </section>
 
+        <section data-testid="document-expected-records" className="rounded-lg border border-border bg-surface">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+            <h2 className="text-sm font-semibold">Expected Records / Required Evidence</h2>
+            <button type="button" onClick={() => setEditing(true)} className="text-xs font-semibold text-primary hover:underline">
+              Edit
+            </button>
+          </div>
+          {document.expectedRecords ? (
+            <p data-testid="expected-records-text" className="whitespace-pre-wrap break-words px-4 py-3 text-sm">
+              {document.expectedRecords}
+            </p>
+          ) : (
+            <p className="px-4 py-3 text-sm text-muted">No Expected Records recorded.</p>
+          )}
+        </section>
+
         <DocumentVersionsSection
           projectId={document.projectId}
           documentId={document.id}
           isApplicable={document.isApplicable}
           versions={document.versions}
           frameworkItems={document.frameworkItems}
+          expectedRecords={document.expectedRecords}
           followUp={{ projectId: document.projectId, documentTitle: document.title, documentSiteId: document.siteId, catalog: followUpCatalog }}
           onChanged={(msg) => {
             router.refresh();

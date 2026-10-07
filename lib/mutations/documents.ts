@@ -56,6 +56,7 @@ export async function createDocument(projectId: string, input: unknown): Promise
       doc_code: d.docCode,
       document_type: d.documentType,
       owner_name: d.ownerName,
+      expected_records: d.expectedRecords,
       site_id: d.siteId,
       is_applicable: d.isApplicable,
       created_by: user.id,
@@ -143,6 +144,7 @@ export async function updateDocument(projectId: string, documentId: string, inpu
       doc_code: d.docCode,
       document_type: d.documentType,
       owner_name: d.ownerName,
+      expected_records: d.expectedRecords,
       site_id: d.siteId,
       is_applicable: d.isApplicable,
     })

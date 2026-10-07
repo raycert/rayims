@@ -8,6 +8,8 @@ import { fetchAllPages } from "./paging";
  * latest assessment's comments / reviewer, and the Document's direct follow-up counts.
  */
 export type GapAssessmentDocument = DocumentRow & {
+  /** Expected Records / Required Evidence of the Document (Phase 7D); null = none. Repeated on every export row of the Document. */
+  expectedRecords: string | null;
   /** Original file name of the latest version; null = no version. */
   currentFileName: string | null;
   /** received_on of the latest version (yyyy-mm-dd). */
@@ -35,7 +37,7 @@ export async function getGapAssessmentExport(projectId: string): Promise<GapAsse
   if (documents.length === 0) return [];
 
   const supabase = await createClient();
-  const [versionsRes, reviewsRes] = await Promise.all([
+  const [versionsRes, reviewsRes, recordsRes] = await Promise.all([
     fetchAllPages((from, to) =>
       supabase
         .from("document_versions")
@@ -55,9 +57,15 @@ export async function getGapAssessmentExport(projectId: string): Promise<GapAsse
         .order("id")
         .range(from, to),
     ),
+    // Expected Records live on the Document, not on the register view / rows (long text): read for the export only.
+    fetchAllPages((from, to) =>
+      supabase.from("documents").select("id, expected_records", { count: "exact" }).eq("project_id", projectId).order("id").range(from, to),
+    ),
   ]);
   if (versionsRes.error) throw new Error("Could not load document versions.");
   if (reviewsRes.error) throw new Error("Could not load document reviews.");
+  if (recordsRes.error) throw new Error("Could not load expected records.");
+  const recordsById = new Map(recordsRes.data.map((r) => [r.id, r.expected_records]));
 
   const versionById = new Map(versionsRes.data.map((v) => [v.id, v]));
   const reviewById = new Map(reviewsRes.data.map((r) => [r.id, r]));
@@ -83,6 +91,7 @@ export async function getGapAssessmentExport(projectId: string): Promise<GapAsse
     const review = d.latestReviewId ? reviewById.get(d.latestReviewId) : undefined;
     return {
       ...d,
+      expectedRecords: recordsById.get(d.id) ?? null,
       currentFileName: version?.files?.original_name ?? null,
       receivedOn: version?.received_on ?? null,
       reviewComments: review?.notes ?? null,

@@ -83,6 +83,7 @@ export async function importDocuments(projectId: string, formData: FormData): Pr
         doc_code: g.docCode,
         document_type: g.documentType,
         owner_name: g.ownerName,
+        expected_records: g.expectedRecords,
         site_id: g.siteId,
         is_applicable: g.isApplicable,
         created_by: user.id,

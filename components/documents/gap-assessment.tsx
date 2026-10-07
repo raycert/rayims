@@ -103,6 +103,39 @@ export function FollowUpSummary({ projectId, review }: { projectId: string; revi
   );
 }
 
+/**
+ * Expected Records / Required Evidence of the Document (Phase 7D) as READ-ONLY context for the assessment, between the
+ * requirement context and the Review Comments. Short text starts expanded, long text (over 240 characters or 4 lines)
+ * collapsed — the same on every screen size. Hidden when empty. Editing stays in Edit Document; it is never part of the
+ * assessment result and never fills the Review Comments.
+ */
+function ExpectedRecordsContext({ text }: { text: string | null }) {
+  const long = !!text && (text.length > 240 || text.split("\n").length > 4);
+  const [open, setOpen] = useState(!long);
+  if (!text) return null;
+  return (
+    <div data-testid="gap-expected-records" className="rounded-md border border-border bg-surface px-3 py-1.5">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex min-h-9 w-full items-center justify-between gap-2 text-left text-xs font-semibold uppercase tracking-wide text-muted"
+      >
+        <span>Expected Records / Required Evidence</span>
+        <span aria-hidden>{open ? "▴" : "▾"}</span>
+      </button>
+      {open ? (
+        <>
+          <p data-testid="gap-expected-records-text" className="whitespace-pre-wrap break-words pb-1 text-sm">
+            {text}
+          </p>
+          <p className="pb-1 text-xs text-muted">Reference only. Edit it in Edit Document.</p>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 /** "ISO 9001 7.5, ISO 14001 8.2" — the requirements the Version is assessed against (Document mappings). */
 function AssessedAgainst({ items }: { items: DocumentFrameworkItem[] }) {
   return (
@@ -159,6 +192,7 @@ export function GapAssessmentPanel({
   version,
   isApplicable,
   frameworkItems,
+  expectedRecords,
   followUp,
   onChanged,
 }: {
@@ -166,6 +200,7 @@ export function GapAssessmentPanel({
   version: DocumentVersionSummary;
   isApplicable: boolean;
   frameworkItems: DocumentFrameworkItem[];
+  expectedRecords: string | null;
   followUp: FollowUpContext;
   onChanged: (message: string) => void;
 }) {
@@ -199,6 +234,7 @@ export function GapAssessmentPanel({
         )}
       </div>
       <AssessedAgainst items={frameworkItems} />
+      <ExpectedRecordsContext text={expectedRecords} />
 
       {current ? (
         <>

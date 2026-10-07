@@ -184,6 +184,10 @@ After any user or settings change:
 
 ## Documents (Phase 5)
 
+- **Expected Records / Required Evidence (Phase 7D)** is the Document's `expected_records` text: edited in Edit Document, imported from the optional
+  "Expected Records" column of the Required Document workbook (create-only: an existing Document keeps its value) and exported in the Gap Assessment
+  workbook. Read-only check: `select id, title, length(expected_records) from public.documents where expected_records is not null;`. Clearing it or changing it
+  never affects Versions or assessments.
 - Document Version files use the same private bucket, key scheme and orphan query as Evidence above.
 - **More than one open Gap Assessment on a Version** cannot occur since Phase 7B (partial unique index
   `document_reviews_one_open_per_version_idx`; the app also reconciles). A diagnostic (SQL editor, read-only):

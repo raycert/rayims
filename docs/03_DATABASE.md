@@ -230,10 +230,18 @@ clients ─1─*─ projects ─1─*─ project_sites ─*─1─ sites ─*─
 - **Fields:** `id`, `project_id` (FK, NOT NULL), `site_id` (nullable),
   `doc_code` (client's own number, nullable), `title`, `document_type` (free
   text), `owner_name` (client-side owner, free text),
-  `is_applicable boolean NOT NULL DEFAULT true`, `created_by`, timestamps.
+  `is_applicable boolean NOT NULL DEFAULT true`, `expected_records text NULL` (Phase 7D, ADR-022 — see below),
+  `created_by`, timestamps.
 - **Site integrity:** composite FK `(project_id, site_id) → project_sites`.
 - **No status column.** Current status is derived (see below).
 - A document with zero versions is a valid "expected document" (Not Received).
+- **`expected_records` (Phase 7D, ADR-022):** nullable `text`, **no default**, **no CHECK**, no index; existing rows are NULL (no
+  backfill). Multiline reference text — the records / evidence the consultant expects to review for the Required Document —
+  maintained by the consultant. The 2,000-character cap is an **application** rule (form, server validation, import), so it can be
+  changed without a migration. Document-level only: **not** on `document_versions`, `document_reviews`,
+  `document_framework_items` or `framework_items`, and no separate table. It inherits the Documents RLS policy and grants (no
+  change); writing it never touches versions, reviews, mappings or status. It is read for Document Detail, the Gap
+  Assessment context and the Gap Assessment export, and **not** selected by the register list or the `document_register` view.
 - **Used by Phase 5A (Document Register):** all columns above; no schema change. `doc_code` is
   not unique (BR-113). Since **Phase 7B** deleting a document that still has versions is **refused by the
   database** (`document_versions.document_id` ON DELETE RESTRICT; BR-163) — it used to cascade the versions

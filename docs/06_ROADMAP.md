@@ -38,7 +38,7 @@
 | — 6C  | Activity Report data integration            | **COMPLETED** |
 | — 6D  | Activity Report DOCX export                 | **COMPLETED** |
 | — 6E  | Phase 6 final acceptance                    | **COMPLETED** |
-| 7     | Dashboard / Polish / Pilot readiness        | **IN PROGRESS** (7A, 7B, 7C completed; 7D next) |
+| 7     | Dashboard / Polish / Pilot readiness        | **IN PROGRESS** (7A – 7D completed; 7E next) |
 
 > **The product workflow remains flexible.** The implementation order above does
 > **not** imply that Document Review must occur after Site Verification. Phase 4
@@ -703,8 +703,15 @@ Minimal dashboard, polish, demo data, deployment to Vercel (Polish / productivit
 | 7A | Pilot Foundation + regression harness preservation | **COMPLETED** |
 | 7B | Data-integrity hardening (one migration, approved in principle: Document → Version and Version → Review delete FKs RESTRICT; one-open-review partial unique index; deterministic latest-review tie-break in `document_register`) | **COMPLETED** |
 | 7C | Bulk Document Upload (multi-select, deterministic match review, per-file atomic, no migration) | **COMPLETED** |
-| 7D | Expected Records / Required Evidence (`documents.expected_records`, import, Gap Assessment, export) | **NEXT** |
-| 7E | Deployment readiness + pilot dry-run | Planned |
+| 7D | Expected Records / Required Evidence (`documents.expected_records`, import, Gap Assessment, export) | **COMPLETED** |
+| 7E | Deployment readiness + pilot dry-run | **NEXT** |
+
+### Phase 7D — Expected Records / Required Evidence [COMPLETED]
+
+`documents.expected_records` (one nullable text column; migration `20261006000100_document_expected_records.sql`): Create / Edit
+Document, Document Detail, read-only Gap Assessment context, the Required Document import (optional column, aliases, multiline,
+merge / conflict rules), the Gap Assessment export column. No RLS, grant or Storage change; no new table. **ADR-022**,
+BR-171 – BR-175. Results in `08_TESTING.md`.
 
 ### Phase 7C — Bulk Document Upload [COMPLETED]
 
@@ -732,7 +739,7 @@ BR-156 – BR-161. Results in `08_TESTING.md`.
 
 - *Document productivity:* ~~Bulk Document Upload with match suggestions~~ — **done in 7C** (folder upload still deferred); External
   Document Source (Google Drive / Google Docs, SharePoint / OneDrive) and "Snapshot for Assessment";
-  Expected Records / Required Evidence as Document-level context (not Review Comments).
+  ~~Expected Records / Required Evidence as Document-level context~~ — **done in 7D**.
 - *Reporting:* photos in the Activity Report (explicit "include in report" choice); branded / custom report
   templates; report export retention / an issued-report register.
 - *Navigation / polish:* ~~review-origin Verification items link to the item~~ and ~~server-rendered dates use

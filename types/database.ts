@@ -569,6 +569,7 @@ export type Database = {
           created_by: string | null
           doc_code: string | null
           document_type: string | null
+          expected_records: string | null
           id: string
           is_applicable: boolean
           owner_name: string | null
@@ -582,6 +583,7 @@ export type Database = {
           created_by?: string | null
           doc_code?: string | null
           document_type?: string | null
+          expected_records?: string | null
           id?: string
           is_applicable?: boolean
           owner_name?: string | null
@@ -595,6 +597,7 @@ export type Database = {
           created_by?: string | null
           doc_code?: string | null
           document_type?: string | null
+          expected_records?: string | null
           id?: string
           is_applicable?: boolean
           owner_name?: string | null

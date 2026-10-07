@@ -28,6 +28,7 @@ export const EXPORT_COLUMNS = [
   { header: "Current File", width: 30, wrap: true },
   { header: "Received On", width: 13 },
   { header: "Gap Assessment Status", width: 19 },
+  { header: "Expected Records", width: 40, wrap: true },
   { header: "Review Comments", width: 48, wrap: true },
   { header: "Reviewed By", width: 18 },
   { header: "Last Review", width: 13 },
@@ -171,6 +172,7 @@ export async function buildGapAssessmentWorkbook(ctx: {
       clean(d.currentFileName),
       excelDate(d.receivedOn, ctx.timeZone),
       documentStatusLabel(d.status),
+      clean(d.expectedRecords),
       clean(d.reviewComments),
       clean(d.reviewedBy),
       excelDate(d.lastReviewAt, ctx.timeZone),
@@ -189,7 +191,7 @@ export async function buildGapAssessmentWorkbook(ctx: {
       }
     });
     row.getCell(12).numFmt = DATE_FORMAT;
-    row.getCell(16).numFmt = DATE_FORMAT;
+    row.getCell(17).numFmt = DATE_FORMAT; // Last Review (Expected Records was inserted before Review Comments)
     const status = row.getCell(13);
     status.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TONE_FILL[documentStatusTone(d.status)] } };
     // Excel sizes wrapped rows itself; only very long text gets a capped height (value is never cut).

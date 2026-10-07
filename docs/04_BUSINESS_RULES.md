@@ -310,8 +310,8 @@ Product behavior that the schema and UI must respect. Database details are in
   the limit = file-level error, never truncated); parsed on the server (formulas are read for their
   stored value only, never evaluated).
 - **BR-132** *(Phase 5E)* Columns (canonical template headers): **Framework**, **Framework Requirement**,
-  **Required Document** (required), **Document Code**, **Document Type**, **Owner**, **Site**, **Applicable**.
-  Accepted aliases: Clause / Clause / Requirement / Requirement (= Framework Requirement), Document
+  **Required Document** (required), **Document Code**, **Document Type**, **Owner**, **Site**, **Applicable**, and since
+  Phase 7D the optional **Expected Records** (BR-173). Accepted aliases: Clause / Clause / Requirement / Requirement (= Framework Requirement), Document
   Required / Required Documents (= Required Document), PIC (= Owner). Unknown columns are ignored; a
   missing Required Document column or two columns read as the same field are file-level errors. The
   "Required Documents" sheet is read, otherwise the first sheet. Site: blank = Project-wide, otherwise an
@@ -334,7 +334,8 @@ Product behavior that the schema and UI must respect. Database details are in
 - **BR-135** *(Phase 5F)* **Gap Assessment Excel export** is a read-only, consultant / client-facing register
   of the **whole** project (not the filtered screen): "Export Excel" on the Documents register downloads
   `RayIMS-Gap-Assessment-{Project}-{YYYYMMDD}.xlsx` (project name without accents / invalid characters,
-  server date). Admin and Consultant alike; signed-out requests are redirected, unknown projects are 404.
+  server date). Admin and Consultant alike; signed-out requests are redirected, unknown projects are 404. Since Phase 7D
+  it also carries the Document's Expected Records (BR-174).
   The server loads current data itself — nothing is taken from the browser — and writes nothing.
 - **BR-136** *(Phase 5F)* **Row grain:** one row per **Document × Framework Requirement**; a Document with
   several mappings repeats its current state and follow-up counts on every row (counts are never divided); a
@@ -841,6 +842,40 @@ itself. Admin and Consultant have the same rights; anonymous users have none.
   applied to every Version of the batch. Leaving the page during an upload asks for confirmation; closing it stops the
   upload. An orphaned object (browser closed between upload and registration) is recovered as for a single upload
   (10_RUNBOOK).
+
+## Expected Records / Required Evidence (Phase 7D, ADR-022)
+
+- **BR-171** *(Phase 7D)* **Expected Records belongs to the Required Document**: `documents.expected_records`, optional
+  multiline text — the records or evidence the consultant expects to review for that Document (e.g. for a Training Procedure:
+  annual training plan, attendance records, competence evaluation, training effectiveness records), one per line by
+  convention. It is **not** a Version field, Review Comment, Finding, Evidence, Framework Item property or mapping
+  property, and there is no separate table, checklist or approval. Existing Documents have none (NULL). Surrounding whitespace
+  is trimmed, line breaks are kept (stored as \n), whitespace-only is stored as NULL, and the text is limited to **2,000
+  characters** — a longer text is refused with "Keep Expected Records under 2,000 characters.", never truncated. Label: "Expected
+  Records / Required Evidence" — helper text "Records or evidence the consultant expects to review for this Required Document."
+- **BR-172** *(Phase 7D)* **Maintenance and context:** the consultant adds, edits or clears it in Create / Edit Document (Admin
+  and Consultant alike). Changing it is reference-data only: it creates no Version, does not affect the current Version, does
+  not reopen or change a Gap Assessment, does not change the derived status, mappings, Findings, Verification items, Actions,
+  Evidence or Storage — only the Document row changes. Document Detail shows it in a compact card ("No Expected Records
+  recorded." when empty). In the **Gap Assessment** it is **read-only context** between the requirement context and the Review
+  Comments: expanded when short, collapsed when long (over 240 characters or 4 lines; the same on every screen size), hidden
+  when empty; it never fills the Review Comments and is not part of the result (Revision Required / Accepted).
+- **BR-173** *(Phase 7D)* **Import:** the Required Document import accepts an optional column **Expected Records** (aliases:
+  Required Evidence, Records, Expected Records / Required Evidence); a workbook without it imports exactly as before (NULL).
+  Cell line breaks are kept (CRLF → LF); the preview shows the first line and "+n more lines" in its own column; more than
+  2,000 characters is a row error (never truncated). Rows of one Document identity (same title + site, BR-133) share ONE
+  Expected Records: all blank → NULL; one non-blank + blanks → that value; the same text repeated (compared after trimming and
+  line-ending normalization only — lines are never reordered or reworded) → kept once; different non-blank texts → a **conflict
+  error** and nothing is imported. A Document mapped to several framework requirements stores one value, not one per mapping.
+  Import stays create-only: an existing Document is skipped and its Expected Records are not changed. The server re-parses
+  and re-validates on import (BR-134). The template has the column.
+- **BR-174** *(Phase 7D)* **Export:** the Gap Assessment export has one extra column, **Expected Records**, immediately before
+  **Review Comments**; every other column keeps its meaning. The Document-level text is repeated on every row of the Document
+  (the grain stays Document × Framework Requirement), wrapped with its line breaks, in the usual capped row height; no text is
+  cut; a Document without it has a blank cell (not "N/A" / "None").
+- **BR-175** *(Phase 7D)* **Where it does NOT appear:** not a column of the Documents register and not searched by it; not a
+  matching signal or part of the catalog of Bulk Upload (ADR-021); not in the Activity Report; never copied automatically into
+  Findings, Verification items, Actions or Evidence.
 
 ## Access and identity
 

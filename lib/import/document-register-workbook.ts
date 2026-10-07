@@ -24,6 +24,7 @@ export const HEADERS = {
   owner: "Owner",
   site: "Site",
   applicable: "Applicable",
+  expectedRecords: "Expected Records",
 } as const;
 
 type HeaderKey = keyof typeof HEADERS;
@@ -39,6 +40,7 @@ const ALIASES: Record<HeaderKey, string[]> = {
   owner: ["PIC"],
   site: [],
   applicable: [],
+  expectedRecords: ["Required Evidence", "Records", "Expected Records / Required Evidence"],
 };
 
 export type RawDocumentRow = {
@@ -52,6 +54,8 @@ export type RawDocumentRow = {
   owner: string;
   site: string;
   applicable: string;
+  /** Expected Records / Required Evidence (Phase 7D): multiline cell text, line breaks kept. */
+  expectedRecords: string;
   /** Headers of formula cells that have no stored value (never evaluated). */
   unreadableFormulas: string[];
 };
@@ -163,6 +167,7 @@ export async function parseDocumentRegisterWorkbook(bytes: Uint8Array): Promise<
       owner: text("owner"),
       site: text("site"),
       applicable: text("applicable"),
+      expectedRecords: text("expectedRecords"),
       unreadableFormulas,
     };
     const blank = HEADER_KEYS.every((k) => parsed[k] === "") && unreadableFormulas.length === 0;
@@ -201,9 +206,11 @@ export async function buildDocumentRegisterTemplate(ctx: TemplateContext): Promi
     { header: HEADERS.owner, key: "owner", width: 22 },
     { header: HEADERS.site, key: "site", width: 20 },
     { header: HEADERS.applicable, key: "applicable", width: 12 },
+    { header: HEADERS.expectedRecords, key: "expectedRecords", width: 44 },
   ];
   // Text format, so a clause such as "8.10" is never turned into the number 8.1.
-  for (let c = 1; c <= 8; c += 1) data.getColumn(c).numFmt = "@";
+  for (let c = 1; c <= 9; c += 1) data.getColumn(c).numFmt = "@";
+  data.getColumn(9).alignment = { wrapText: true, vertical: "top" };
   const header = data.getRow(1);
   header.font = { bold: true, color: { argb: "FFFFFFFF" } };
   header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: NAVY } };
@@ -226,6 +233,8 @@ export async function buildDocumentRegisterTemplate(ctx: TemplateContext): Promi
   line("Document Code, Document Type, Owner: optional free text. Codes need not be unique.");
   line("Site: optional. Blank = Project-wide. Otherwise one of this project's sites (listed below).");
   line("Applicable: optional. Yes / No (also Y / N, True / False). Blank = Yes.");
+  line("Expected Records (also Required Evidence / Records): optional. The records or evidence you expect to review for the document, one per line inside the cell (Alt+Enter). Up to 2,000 characters.");
+  line("The same document repeated for several requirements: give the same Expected Records on each row or leave it blank on the others; different texts are an error.");
   line("A document that already exists in the project (same title and site) is skipped, never changed.");
   line("If any row has an error, nothing is imported. Fix the file and upload it again.");
   line("Also accepted as headers: Clause (= Framework Requirement), PIC (= Owner), Document Required (= Required Document).");
@@ -242,6 +251,7 @@ export async function buildDocumentRegisterTemplate(ctx: TemplateContext): Promi
     "Quality Manager",
     "",
     "Yes",
+    "EXAMPLE: Document register\nRevision history of controlled documents\nDistribution list",
   ]);
   guide.addRow(["", "", "EXAMPLE: Emergency Response Plan (site-specific)", "", "Plan", "HSE Manager", ctx.sites[0] ?? "Site A", ""]);
   guide.addRow([]);

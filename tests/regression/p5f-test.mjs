@@ -19,7 +19,7 @@ async function waitDb(fn, ms = 30000) { const e = Date.now() + ms; while (Date.n
 const shot = (p, n, full = false) => p.screenshot({ path: path.join(OUT, n + ".png"), fullPage: full });
 const count = (sql) => dbQuery(sql)[0].n;
 const T = (s) => `P5F-ACCEPT-${s}`;
-const HEADERS = ["Framework", "Framework Requirement", "Required Document", "Document Code", "Document Type", "Site", "Owner", "Applicable", "Current Version", "Current Revision", "Current File", "Received On", "Gap Assessment Status", "Review Comments", "Reviewed By", "Last Review", "Findings", "Verification Items", "Follow-up Summary"];
+const HEADERS = ["Framework", "Framework Requirement", "Required Document", "Document Code", "Document Type", "Site", "Owner", "Applicable", "Current Version", "Current Revision", "Current File", "Received On", "Gap Assessment Status", "Expected Records", "Review Comments", "Reviewed By", "Last Review", "Findings", "Verification Items", "Follow-up Summary"];
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 const ENUMS = /\b(not_received|revision_required|under_review|n_a|verified_ok|issue_identified|follow_up_required|opportunity_for_improvement)\b/;
 
@@ -100,11 +100,11 @@ try {
 
   // ===== Structure =====
   rec(JSON.stringify(x.wb.worksheets.map((s) => s.name)) === JSON.stringify(["Gap Assessment", "Summary"]) && x.wb.worksheets.every((s) => s.state === "visible"), "Sheets: Gap Assessment + Summary, no hidden sheets");
-  rec(JSON.stringify(x.header) === JSON.stringify(HEADERS), "Main sheet: 19 columns in the approved order");
+  rec(JSON.stringify(x.header) === JSON.stringify(HEADERS), "Main sheet: 20 columns in the approved order (Phase 7D: Expected Records before Review Comments)");
   rec(x.sheet.views[0]?.state === "frozen" && x.sheet.views[0]?.ySplit === 1, "Top row frozen");
   const af = x.sheet.autoFilter;
-  rec(typeof af === "string" ? af === "A1:S1" : af?.from?.column === 1 && af?.to?.column === 19, `AutoFilter on all 19 columns (${JSON.stringify(af)})`);
-  rec(x.sheet.getRow(1).getCell(1).font?.bold === true && x.sheet.getRow(1).getCell(19).font?.bold === true, "Header bold");
+  rec(typeof af === "string" ? af === "A1:T1" : af?.from?.column === 1 && af?.to?.column === 20, `AutoFilter on all 20 columns (${JSON.stringify(af)})`);
+  rec(x.sheet.getRow(1).getCell(1).font?.bold === true && x.sheet.getRow(1).getCell(20).font?.bold === true, "Header bold");
   const expectedRows = count(`select coalesce(sum(greatest(1, (select count(*) from document_framework_items m where m.document_id=d.id))), 0)::int n from documents d where d.project_id='${f.p}'`);
   rec(x.rows.length === expectedRows, `One row per Document × Framework Requirement: ${x.rows.length} rows (expected ${expectedRows})`);
 
@@ -125,7 +125,10 @@ try {
   const rs = one(T("Waste Management Procedure"));
   rec(rs["Gap Assessment Status"] === "Received" && rs["Current Version"] === "V2" && rs["Current Revision"] === "Rev.02" && rs["Review Comments"] === "" && rs["Reviewed By"] === "" && rs["Last Review"] === "" && !x.all.includes("V1 COMMENT MUST NOT APPEAR"), "New version reset: V2 / Received, V1 comments nowhere in the workbook");
   const ur = one(T("Internal Audit Programme"));
-  const openDone = dbQuery(`select reviewed_at::text t from document_reviews where id='${f.R.openDone}'`)[0].t.slice(0, 10);
+  // The export shows Last Review as its calendar day in the viewer's zone (the browser's, here this machine's), so the expected day is
+  // computed the same way — comparing it with the database's UTC date failed whenever the fixture instant crossed a UTC / local midnight.
+  const openDoneAt = dbQuery(`select to_char(reviewed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') t from document_reviews where id='${f.R.openDone}'`)[0].t;
+  const openDone = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(openDoneAt));
   rec(ur["Gap Assessment Status"] === "Under Review" && ur["Review Comments"] === "Currently checking signatures." && ur["Reviewed By"] === users.consultant.email, "Under Review: current comments, current reviewer (no display name → email)");
   rec(ymd(ur["Last Review"]) === openDone, `Under Review: Last Review = earlier completed assessment (${openDone})`);
   const two = one(T("Improvement Procedure"));
@@ -154,14 +157,14 @@ try {
   rec(na.Findings === 1 && na["Current Version"] === "V1" && na["Current File"] === "Radiation plan.pdf" && ymd(na["Received On"]) === "2026-09-10" && na["Review Comments"] === "Gap found before the document became N/A.", "N/A history: status Not Applicable, historical file / date / comments / Finding kept");
 
   // ===== Dates =====
-  const recvCell = x.sheet.getRow(rc._row).getCell(12), lastCell = x.sheet.getRow(rr._row).getCell(16);
+  const recvCell = x.sheet.getRow(rc._row).getCell(12), lastCell = x.sheet.getRow(rr._row).getCell(17); // Last Review (7D: one column to the right)
   const rrDate = dbQuery(`select reviewed_at::text t from document_reviews where id='${f.R.revision}'`)[0].t.slice(0, 10);
   rec(recvCell.value instanceof Date && ymd(recvCell.value) === "2026-09-15" && recvCell.numFmt === "dd/mm/yyyy", "Received On: Excel date 15/09/2026 (dd/mm/yyyy)");
   rec(lastCell.value instanceof Date && ymd(lastCell.value) === rrDate && lastCell.numFmt === "dd/mm/yyyy", `Last Review: Excel date (${rrDate}), dd/mm/yyyy`);
 
   // ===== Long comments / special characters =====
   const lg = one(T("Record Control Procedure"));
-  const lgCell = x.sheet.getRow(lg._row).getCell(14);
+  const lgCell = x.sheet.getRow(lg._row).getCell(15); // Review Comments (7D: one column to the right)
   rec(lg["Review Comments"] === LONG_COMMENT && lgCell.alignment?.wrapText === true, `Long multi-line comment preserved in full (${LONG_COMMENT.length} chars) and wrapped`);
   rec((x.sheet.getRow(lg._row).height ?? 0) <= 120 && (x.sheet.getRow(lg._row).height ?? 0) > 0, `  ...row height capped (${x.sheet.getRow(lg._row).height} pt), value not truncated`);
   rec(rc["Required Document"] === T("Quy trình kiểm soát tài liệu & hồ sơ / ISO-9001 (Rev)") && rc.Owner === "Trưởng phòng QA" && x.all.includes("§ 7.5.3.2") && x.all.includes("Dòng tiếng Việt"), "Vietnamese, &, /, -, parentheses, § preserved (no mojibake)");
@@ -278,6 +281,7 @@ try {
   const impFile = path.join(DIR, "import.xlsx");
   await wbI.xlsx.writeFile(impFile);
   await I.page.goto(`${DOCS(f.pI)}/import`);
+  await I.page.waitForLoadState("networkidle").catch(() => {}); // the file input is server-rendered: a selection made before hydration is lost (Phase 7D)
   await I.page.getByLabel("Choose an Excel workbook").setInputFiles(impFile);
   await I.page.getByTestId("import-preview").waitFor({ timeout: 60000 });
   const confirm = I.page.getByRole("checkbox");

@@ -95,6 +95,7 @@ const resultCounts = async (page) => flat(await T(page, "bulk-result-counts").in
 {
   const { ctx, page } = await open(1280, 800);
   await page.goto(`${APP}/projects/${f.pP}/documents`);
+  await page.getByRole("link", { name: "Bulk Upload" }).first().waitFor({ timeout: 30000 });
   rec(await page.getByRole("link", { name: "Bulk Upload" }).first().isVisible(), "Documents workspace has a Bulk Upload action");
   await page.getByRole("link", { name: "Bulk Upload" }).first().click();
   await page.waitForURL("**/documents/bulk-upload", { timeout: 20000 });

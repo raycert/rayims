@@ -32,6 +32,7 @@ export function DocumentVersionsSection({
   isApplicable,
   versions,
   frameworkItems,
+  expectedRecords,
   followUp,
   onChanged,
 }: {
@@ -41,6 +42,8 @@ export function DocumentVersionsSection({
   versions: DocumentVersionSummary[];
   /** The Document's mapped requirements — the context a Version is assessed against. */
   frameworkItems: DocumentFrameworkItem[];
+  /** Document-level Expected Records, shown read-only in the Gap Assessment (Phase 7D). */
+  expectedRecords: string | null;
   /** Context for Gap Assessment follow-up (Create Finding / Add to Verification, Phase 5D). */
   followUp: FollowUpContext;
   onChanged: (message: string) => void;
@@ -161,6 +164,7 @@ export function DocumentVersionsSection({
                           version={v}
                           isApplicable={isApplicable}
                           frameworkItems={frameworkItems}
+                          expectedRecords={expectedRecords}
                           followUp={followUp}
                           onChanged={onChanged}
                         />

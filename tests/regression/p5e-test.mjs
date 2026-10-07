@@ -20,7 +20,8 @@ const flat = (s) => s.replace(/\s+/g, " ").trim();
 async function waitDb(fn, ms = 30000) { const e = Date.now() + ms; while (Date.now() < e) { if (fn()) return true; await new Promise((r) => setTimeout(r, 800)); } return false; }
 const shot = (p, n, full = false) => p.screenshot({ path: path.join(OUT, n + ".png"), fullPage: full });
 
-const HEAD = ["Framework", "Framework Requirement", "Required Document", "Document Code", "Document Type", "Owner", "Site", "Applicable"];
+// Phase 7D: the template gained the optional "Expected Records" column (last).
+const HEAD = ["Framework", "Framework Requirement", "Required Document", "Document Code", "Document Type", "Owner", "Site", "Applicable", "Expected Records"];
 /** rows: arrays in HEAD order (or objects for custom headers). */
 async function xlsx(name, rows, { headers = HEAD, sheet = "Required Documents", cellHook = null } = {}) {
   const wb = new ExcelJS.Workbook();
@@ -123,7 +124,11 @@ try {
   rec(/Same document as row 6/.test(await rowMsg(page, 7)), "Row 7 (same title+site, other framework) merges into row 6 — warning");
   rec(/Document Code "PR-QMS-01" is also used by row 8/.test(await rowMsg(page, 2)) && /also used by row 2/.test(await rowMsg(page, 8)), "Duplicate code: warning only on both rows");
   rec(/Document already exists in this project/.test(await rowMsg(page, 9)) && /Skipped \(already exists\)/.test(await rowMsg(page, 9)), "Existing document: skip warning");
-  rec(/ISO 9001:2015 · 6\.1, 4\.1/.test(await rowMsg(page, 8)) && /Yes \(default\)/.test(await rowMsg(page, 5)) && /\bNo\b/.test(await rowMsg(page, 4)), "Preview columns: several requirements, Applicable default / No");
+  {
+    const [m8, m5, m4] = [await rowMsg(page, 8), await rowMsg(page, 5), await rowMsg(page, 4)];
+    const ok = [/ISO 9001:2015 · 6\.1, 4\.1/.test(m8), /Yes \(default\)/.test(m5), /\bNo\b/.test(m4)];
+    rec(ok.every(Boolean), "Preview columns: several requirements, Applicable default / No", ok.every(Boolean) ? "" : `${JSON.stringify(ok)} row8="${m8}" row5="${m5}" row4="${m4}"`);
+  }
   rec(/6 documents will be created/.test(summary) && /1 existing document is skipped/.test(summary), "Preview states 6 documents to create, 1 existing skipped");
   rec(await importBtn(page).isDisabled(), "Import disabled until the warnings are confirmed");
   await shot(page, "d-preview", true);
